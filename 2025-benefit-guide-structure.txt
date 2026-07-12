@@ -1,0 +1,686 @@
+================================================================================
+2025 EMPLOYEE BENEFITS GUIDE — MASTER STRUCTURE
+================================================================================
+
+Purpose: Single source of truth for an agent to generate print-ready HTML and
+convert to PDF in seconds. Everything lives in this file.
+
+How the agent uses this:
+  1. Read BROKER_CONFIG below — swap this block per broker/client deployment
+  2. Read PAGE STRUCTURE — one section per PDF page (19 pages)
+  3. Generate HTML: each page = one <section class="guide-page"> with page-break
+  4. Replace every [BROKER:key] token from BROKER_CONFIG
+  5. Use [FIXED] copy as-is; use [PLAN] values from plan tables in each page
+  6. Output: single HTML file or 19 page files → print/PDF via browser or wkhtmltopdf
+
+Token legend:
+  [BROKER:key]     → value from BROKER_CONFIG (phones, names, dates, branding)
+  [FIXED]          → standard copy, same for all guides
+  [PLAN]           → plan-specific amounts listed on that page
+  [PLAN:payroll]   → ER/EE cost per pay period (see PAYROLL COST TABLE format)
+
+================================================================================
+PAYROLL COST TABLE — STANDARD FORMAT (ER / EE per pay period)
+================================================================================
+Use this table on any plan page where the employer and/or employee share premium
+costs. Input ER (Employer) and EE (Employee) amounts separately.
+
+Columns (adjust if BROKER_CONFIG pay_periods differs):
+  | Coverage Tier          | ER (22 pay) | EE (22 pay) | ER (26 pay) | EE (26 pay) |
+
+Standard coverage tiers (same order on every plan page):
+  1. Single
+  2. Employee + Spouse
+  3. Employee + Child(ren)
+  4. Family
+
+Rules:
+  - Dollar amounts per pay period (e.g. $127.00). Use $0.00 or "Employer Paid"
+    when EE or ER does not contribute.
+  - If employer pays 100% (Life, LTD, EAP): show ER row note "Employer Paid"
+    and EE = $0.00 for all tiers, OR omit payroll table and use Who Pays line.
+  - Total premium per tier (optional footnote): ER + EE per column.
+  - pay_periods come from BROKER_CONFIG payroll section (default 22 and 26).
+
+HTML component:
+  <table class="payroll-cost-table">
+    <thead>
+      <tr>
+        <th>Coverage Tier</th>
+        <th>ER ([BROKER:pay_periods_22_label])</th>
+        <th>EE ([BROKER:pay_periods_22_label])</th>
+        <th>ER ([BROKER:pay_periods_26_label])</th>
+        <th>EE ([BROKER:pay_periods_26_label])</th>
+      </tr>
+    </thead>
+    <tbody><!-- one row per tier --></tbody>
+  </table>
+
+================================================================================
+BROKER_CONFIG
+================================================================================
+Swap this entire block when generating a guide for a different broker or client.
+All phone numbers, emails, URLs, employer names, and contacts live HERE ONLY.
+
+--- broker ---
+id:                    example-broker
+name:                  Example Benefits Broker
+logo:                  /assets/brokers/example-broker/logo.svg
+primary_color:         #1e4d8c
+secondary_color:       #6a7fb8
+footer_text:           Prepared by Example Benefits Broker
+
+--- client ---
+employer_cover_name:   Flower City Communications
+employer_legal_name:   Genesee Community Charter School
+employer_short_name:   GCCS
+plan_year:             2025
+plan_year_label:       2025 Plan Year
+
+--- payroll (cost per pay period — used on plan pages 6–8, 12, 13) ---
+pay_periods:           22, 26
+pay_periods_22_label:  22 Pay Periods
+pay_periods_26_label:  26 Pay Periods
+# ER = Employer cost per pay period | EE = Employee cost per pay period
+# Leave ER blank or 0 if employer does not contribute to that plan/tier
+
+--- enrollment ---
+contact_name:          Jennifer Kelly
+contact_email:         
+contact_phone:         
+oe_start:              2025-11-13
+oe_end:                2025-11-27
+oe_display_dates:      Wednesday, November 13 – Wednesday, November 27
+oe_meeting_display:    Wednesday, November 13th at 1:30 PM
+whats_new:
+  - New Medical plan added and contribution rates
+  - Addition of Employer-paid Life and Accidental Death & Dismemberment insurance
+  - Addition of Employer-paid Long-Term Disability insurance
+  - Addition of Employee Assistance Plan
+
+--- human_resources ---
+hr_name:               Maureen Milke
+hr_phone:              585-697-1960
+hr_email:              mmilke@gccschool.org
+
+--- broker_contacts (page 18; hide section if empty) ---
+broker_contact_name:   
+broker_contact_phone:  
+broker_contact_email:  
+broker_contact_title:  Benefits Consultant
+
+--- carriers (used on plan pages + contact list page 18) ---
+carrier_medical_dental_name:     Excellus BCBS
+carrier_medical_dental_phone:    800-499-1275
+carrier_medical_dental_website:  www.excellusbcbs.com
+
+carrier_vision_name:             EyeMed
+carrier_vision_phone:            866-800-5457
+carrier_vision_website:          www.eyemed.com
+
+carrier_life_ltd_name:           Guardian
+carrier_life_ltd_phone:          800-541-7846
+carrier_life_ltd_website:        www.guardiananytime.com
+
+carrier_eap_name:                EAP - ComPsych
+carrier_eap_phone:               855-239-0743
+carrier_eap_website:             www.guidanceresources.com
+
+carrier_fsa_hra_name:            Benefit Resource, Inc.
+carrier_fsa_hra_phone:           
+carrier_fsa_hra_website:         
+
+--- telemedicine (page 9) ---
+telemedicine_carrier_label:  Excellus / MDLive
+telemedicine_app:            MDLive
+telemedicine_phone:          1-866-692-5045
+telemedicine_text:           EXCELLUS to 635483
+telemedicine_website:        ExcellusBCBS.com/Member
+
+--- eap (page 16) ---
+eap_phone:                   1-855-239-0743
+eap_website:                 www.guardianresources.com
+eap_sessions:                6
+
+--- voluntary_benefits (page 17) ---
+voluntary_carrier:           Colonial
+voluntary_rep_name:          Tony Mangione
+voluntary_rep_email:         tony.mangione@coloniallifesales.com
+voluntary_rep_phone_1:       585-230-6633
+voluntary_rep_phone_2:       585-704-8886
+
+--- fsa (page 11) ---
+fsa_administrator:           Benefit Resource, Inc.
+fsa_eligible_expenses_url:   
+
+--- plan_costs (ER / EE per pay period — [PLAN:payroll] input for agent) ---
+# Medical Option 1 — SimplyBlue Plus Gold 1
+medical_option_1:
+  single:              { er_22: "", ee_22: "127.00", er_26: "", ee_26: "107.46" }
+  employee_spouse:       { er_22: "", ee_22: "254.01", er_26: "", ee_26: "214.93" }
+  employee_children:     { er_22: "", ee_22: "215.91", er_26: "", ee_26: "182.69" }
+  family:                { er_22: "", ee_22: "361.96", er_26: "", ee_26: "306.27" }
+
+# Medical Option 2 — SimplyBlue Plus Silver 19
+medical_option_2:
+  single:              { er_22: "", ee_22: "110.20", er_26: "", ee_26: "93.25" }
+  employee_spouse:     { er_22: "", ee_22: "220.40", er_26: "", ee_26: "186.49" }
+  employee_children:   { er_22: "", ee_22: "187.34", er_26: "", ee_26: "158.52" }
+  family:              { er_22: "", ee_22: "314.07", er_26: "", ee_26: "265.75" }
+
+# Medical Option 3 — SimplyBlue Plus Bronze 4
+medical_option_3:
+  single:              { er_22: "", ee_22: "87.39", er_26: "", ee_26: "73.95" }
+  employee_spouse:     { er_22: "", ee_22: "174.78", er_26: "", ee_26: "147.89" }
+  employee_children:   { er_22: "", ee_22: "148.56", er_26: "", ee_26: "125.71" }
+  family:              { er_22: "", ee_22: "249.06", er_26: "", ee_26: "210.75" }
+
+# Dental
+dental:
+  single:              { er_22: "", ee_22: "4.59", er_26: "", ee_26: "3.88" }
+  employee_spouse:     { er_22: "", ee_22: "9.18", er_26: "", ee_26: "7.76" }
+  employee_children:   { er_22: "", ee_22: "9.03", er_26: "", ee_26: "7.64" }
+  family:              { er_22: "", ee_22: "14.49", er_26: "", ee_26: "12.26" }
+
+# Vision
+vision:
+  single:              { er_22: "", ee_22: "3.97", er_26: "", ee_26: "3.36" }
+  employee_spouse:     { er_22: "", ee_22: "7.54", er_26: "", ee_26: "6.38" }
+  employee_children:   { er_22: "", ee_22: "7.94", er_26: "", ee_26: "6.72" }
+  family:              { er_22: "", ee_22: "11.67", er_26: "", ee_26: "9.87" }
+
+# Employer-paid plans (no EE payroll deduction — optional table or Who Pays only)
+life_add:              { who_pays: "Employer", ee_per_pay: "0.00" }
+ltd:                   { who_pays: "Employer", ee_per_pay: "0.00" }
+eap:                   { who_pays: "Employer", ee_per_pay: "0.00" }
+
+================================================================================
+TABLE OF CONTENTS → PAGES
+================================================================================
+
+  Page 1   Cover
+  Page 2   Table of Contents
+  Page 3   Welcome
+  Page 4   Open Enrollment
+  Page 5   Eligibility
+  Page 6   Medical — Option 1 (SimplyBlue Plus Gold 1)
+  Page 7   Medical — Option 2 (SimplyBlue Plus Silver 19)
+  Page 8   Medical — Option 3 (SimplyBlue Plus Bronze 4 / HSA)
+  Page 9   Telemedicine
+  Page 10  Health Reimbursement Account (HRA)
+  Page 11  Flexible Spending Account (FSA)
+  Page 12  Dental
+  Page 13  Vision
+  Page 14  Basic Life & AD&D
+  Page 15  Long Term Disability
+  Page 16  EAP
+  Page 17  Voluntary Benefits
+  Page 18  Contact List
+  Page 19  Legal Disclaimer
+
+================================================================================
+HTML SHELL (agent generates this wrapper once)
+================================================================================
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>[BROKER:employer_cover_name] — [BROKER:plan_year_label] Benefits Guide</title>
+  <style>
+    /* Print-ready: one section per PDF page */
+    @page { size: letter; margin: 0.5in; }
+    .guide-page { page-break-after: always; min-height: 10in; }
+    .guide-page:last-child { page-break-after: auto; }
+    /* Use [BROKER:primary_color] and [BROKER:secondary_color] for headers */
+  </style>
+</head>
+<body>
+  <!-- Insert PAGE 1–19 sections below -->
+</body>
+</html>
+
+================================================================================
+PAGE 1 — COVER
+================================================================================
+Section ID: cover
+Layout:   Full-page hero, centered text, optional hero image
+
+Content:
+  H1:       Benefits Guide
+  Subtitle: EMPLOYEE
+  Plan year: [BROKER:plan_year_label]
+  Employer:  [BROKER:employer_cover_name]
+  Logo:      [BROKER:logo] (broker or employer — top or bottom)
+
+HTML:
+  <section id="cover" class="guide-page">
+    <h1>Benefits Guide</h1>
+    <p class="subtitle">EMPLOYEE</p>
+    <p class="plan-year">[BROKER:plan_year_label]</p>
+    <p class="employer">[BROKER:employer_cover_name]</p>
+  </section>
+
+================================================================================
+PAGE 2 — TABLE OF CONTENTS
+================================================================================
+Section ID: toc
+Layout:   Numbered list, two columns optional
+
+Content [FIXED links to page anchors]:
+  3   Welcome!
+  4   Open Enrollment
+  5   Eligibility
+  6-8 Medical
+  9   Telemedicine
+  10  Health Reimbursement Account (HRA)
+  11  Flexible Spending Account (FSA)
+  12  Dental
+  13  Vision
+  14  Basic Life & AD&D
+  15  Long Term Disability
+  16  EAP
+  17  Voluntary Benefits
+  18  Contact List
+
+HTML:
+  <section id="toc" class="guide-page">
+    <h1>Table of Contents</h1>
+    <nav><ol>...</ol></nav>
+  </section>
+
+================================================================================
+PAGE 3 — WELCOME
+================================================================================
+Section ID: welcome
+Layout:   Lead quote + two body paragraphs
+
+Content:
+  [BROKER] Lead: "[BROKER:employer_cover_name] goal is to provide you and your
+  family with the most effective, cost-efficient and comprehensive benefits
+  package."
+
+  [FIXED] Body 1: "These programs are reviewed annually to ensure they are
+  in-line with the current trends and remain in compliance with government
+  regulations such as the Health Care Reform legislation. Each plan year,
+  you'll see a continued dedication to offering a wide array of benefit
+  choices so you can make the best decisions to suit your needs and those of
+  your family. Please read this guide carefully so that you may make informed
+  enrollment decisions."
+
+  [FIXED] Body 2 (disclaimer): "This guide is designed to highlight your
+  benefit options. It is not a complete Summary Plan Description. For more
+  details including covered expenses, exclusions, and limitations, please
+  refer to individual Summary Plan Descriptions or request information
+  directly from the insurance carrier. If any discrepancy exists between this
+  guide and the official documents, the Summary Plan Description will prevail."
+
+================================================================================
+PAGE 4 — OPEN ENROLLMENT
+================================================================================
+Section ID: open-enrollment
+Layout:   Three subsections
+
+4.1 WHAT'S NEW IN [BROKER:plan_year]
+  [BROKER] Render as <ol> from BROKER_CONFIG whats_new list
+
+4.2 HOW TO ENROLL
+  [BROKER] "Fill out all enrollment forms and return to [BROKER:contact_name].
+  If waiving coverages, please sign the waiver and submit to [BROKER:contact_name]."
+  [BROKER] "For more information, please join one of our educational meetings:
+  [BROKER:oe_meeting_display]: Open Enrollment meeting"
+
+4.3 OPEN ENROLLMENT FOR THE [BROKER:plan_year] PLAN YEAR
+  [FIXED] "Open Enrollment is the window of opportunity to review your benefit
+  enrollments and determine if you want to make any changes for the following
+  plan year. Decisions made during Open Enrollment are generally binding for
+  the entire plan year and cannot be changed until next year's Open Enrollment
+  unless there is a qualified change in status (see Eligibility page)."
+  [BROKER] Open Enrollment Dates: [BROKER:oe_display_dates]
+
+================================================================================
+PAGE 5 — ELIGIBILITY
+================================================================================
+Section ID: eligibility
+Layout:   Three subsections; QCS in highlighted box
+
+5.1 INITIAL ELIGIBILITY PERIOD [FIXED]
+  - Begins day you become benefit eligible; ends 30 days from that date
+  - Benefits begin 1st of the following month after 30 days of employment
+  - Miss deadline → wait for Open Enrollment (unless qualifying event)
+
+5.2 DEPENDENTS [FIXED]
+  - Eligible for: medical, dental, vision, voluntary life, critical illness,
+    and accident coverage
+  - Spouse (unless legally separated) or domestic partner
+  - Children: natural, adopted, step/foster/legal custody, QMCSO
+  - Covered until end of month following 26th birthday
+
+5.3 QUALIFIED CHANGE IN STATUS [FIXED — render in callout box]
+  - Marriage, divorce, legal separation
+  - Birth or adoption of child
+  - Change in child's dependent status
+  - Death of spouse, child, or qualified dependent
+  - Change in service area
+  - Change in employment status or other employer plan coverage
+  - Submit within 30 days of event; late submissions subject to carrier approval
+
+================================================================================
+PAGE 6 — MEDICAL OPTION 1
+================================================================================
+Section ID: medical-option-1
+Carrier: [BROKER:carrier_medical_dental_name]
+Layout:   At-a-Glance table + payroll cost table (ER / EE per pay period)
+
+[PLAN] SimplyBlue Plus Gold 1
+
+| Field                    | Value                              |
+|--------------------------|------------------------------------|
+| Deductible               | N/A                                |
+| Coinsurance              | N/A                                |
+| OOP Max                  | Single $9,200 / Family $18,400     |
+| Rx Tier 1/2/3            | $15 ($0 age 19) / 40% / 50%        |
+| Preventive Drugs         | Not Subject to Deductible          |
+| Preventive Care          | Covered in Full                    |
+| Primary Visit            | $30 Copay                          |
+| Specialist Visit         | $60 Copay                          |
+| Inpatient Hospital       | $1,250 Copay per admission         |
+| Outpatient Surgery       | $650 Copay (facility)              |
+| Emergency Room           | $650 Copay                         |
+| Urgent Care              | $60 Copay                          |
+
+[PLAN:payroll] Cost Per Pay Period — from BROKER_CONFIG plan_costs.medical_option_1:
+
+| Coverage Tier         | ER (22 pay) | EE (22 pay) | ER (26 pay) | EE (26 pay) |
+|-----------------------|-------------|-------------|-------------|-------------|
+| Single                | [er_22]     | $127.00     | [er_26]     | $107.46     |
+| Employee + Spouse     | [er_22]     | $254.01     | [er_26]     | $214.93     |
+| Employee + Child(ren) | [er_22]     | $215.91     | [er_26]     | $182.69     |
+| Family                | [er_22]     | $361.96     | [er_26]     | $306.27     |
+
+Table heading: "Cost Per Pay Period" with subheading "ER = Employer | EE = Employee"
+
+Footer [FIXED]: "This summary represents a general overview. Limitations and
+exclusions may vary depending on your specific benefit plan."
+Carrier line: [BROKER:carrier_medical_dental_name]
+
+================================================================================
+PAGE 7 — MEDICAL OPTION 2
+================================================================================
+Section ID: medical-option-2
+Carrier: [BROKER:carrier_medical_dental_name]
+
+[PLAN] SimplyBlue Plus Silver 19
+
+| Field                    | Value                              |
+|--------------------------|------------------------------------|
+| Deductible               | Single $3,350 / Family $6,700      |
+| Coinsurance              | N/A                                |
+| OOP Max                  | Single $7,750 / Family $15,500     |
+| Rx Tier 1/2/3            | $5 ($0 age 19) / $45 / $90 after ded |
+| Preventive Care          | Covered in Full                    |
+| Primary Visit            | $25 Copay after Deductible         |
+| Specialist Visit         | $50 Copay after Deductible         |
+| Inpatient Hospital       | $500 Copay after Deductible        |
+| Outpatient Surgery       | $350 Copay after Deductible        |
+| Emergency Room           | $350 Copay after Deductible        |
+| Urgent Care              | $50 Copay after Deductible         |
+
+[PLAN:payroll] Cost Per Pay Period — from BROKER_CONFIG plan_costs.medical_option_2:
+
+| Coverage Tier         | ER (22 pay) | EE (22 pay) | ER (26 pay) | EE (26 pay) |
+|-----------------------|-------------|-------------|-------------|-------------|
+| Single                | [er_22]     | $110.20     | [er_26]     | $93.25      |
+| Employee + Spouse     | [er_22]     | $220.40     | [er_26]     | $186.49     |
+| Employee + Child(ren) | [er_22]     | $187.34     | [er_26]     | $158.52     |
+| Family                | [er_22]     | $314.07     | [er_26]     | $265.75     |
+
+================================================================================
+PAGE 8 — MEDICAL OPTION 3
+================================================================================
+Section ID: medical-option-3
+Carrier: [BROKER:carrier_medical_dental_name]
+
+[PLAN] SimplyBlue Plus Bronze 4 — HSA Qualified
+
+| Field                    | Value                              |
+|--------------------------|------------------------------------|
+| Deductible               | Single $8,300 / Family $16,600    |
+| Coinsurance              | 0%                                 |
+| OOP Max                  | Single $8,300 / Family $16,600     |
+| Rx Tier 1/2/3            | $0 / $0 / $0 after Deductible      |
+| All visits/hospital/ER   | Covered at 100% after Deductible   |
+
+[PLAN:payroll] Cost Per Pay Period — from BROKER_CONFIG plan_costs.medical_option_3:
+
+| Coverage Tier         | ER (22 pay) | EE (22 pay) | ER (26 pay) | EE (26 pay) |
+|-----------------------|-------------|-------------|-------------|-------------|
+| Single                | [er_22]     | $87.39      | [er_26]     | $73.95      |
+| Employee + Spouse     | [er_22]     | $174.78     | [er_26]     | $147.89     |
+| Employee + Child(ren) | [er_22]     | $148.56     | [er_26]     | $125.71     |
+| Family                | [er_22]     | $249.06     | [er_26]     | $210.75     |
+
+================================================================================
+PAGE 9 — TELEMEDICINE
+================================================================================
+Section ID: telemedicine
+Carrier label: [BROKER:telemedicine_carrier_label]
+Layout:   Intro + conditions grid + contact table + behavioral health list
+
+[FIXED] Intro: Telemedicine via U.S. Board Certified Doctors & Pediatricians.
+Average wait ~20 minutes. Not a PCP replacement. Good for non-emergency care.
+
+[FIXED] Conditions: Nausea, Bronchitis, Acne, Pinkeye, Fever, Allergies,
+Earache, Cold & Flu, Asthma
+
+Contact table — ALL from BROKER_CONFIG:
+  App:     [BROKER:telemedicine_app]
+  Phone:   [BROKER:telemedicine_phone]
+  Text:    [BROKER:telemedicine_text]
+  Website: [BROKER:telemedicine_website]
+
+[FIXED] Behavioral health conditions: Addiction, Bipolar Disorder, Depression,
+Eating Disorders, Grief and Loss, LGBTQ Support, Life Changes, Panic Disorders,
+Postpartum Depression, Relationship Issues, Stress, Trauma and PTSD
+
+================================================================================
+PAGE 10 — HEALTH REIMBURSEMENT ACCOUNT (HRA)
+================================================================================
+Section ID: hra
+Administrator: [BROKER:carrier_fsa_hra_name]
+
+[FIXED] Overview: Employer-funded HRA for medical expenses (copays, deductible,
+Rx). Debit card from administrator.
+
+[BROKER] "[BROKER:employer_legal_name] contribution based on healthcare plan."
+
+[PLAN] Contribution table:
+  | Tier   | Gold 1 | Silver 19 & Bronze 4 |
+  | Single | $1,000 | $1,500               |
+  | Family | $2,000 | $2,500               |
+
+================================================================================
+PAGE 11 — FLEXIBLE SPENDING ACCOUNT (FSA)
+================================================================================
+Section ID: fsa
+Administrator: [BROKER:fsa_administrator]
+
+[FIXED] Overview: Pre-tax payroll deductions. Does NOT rollover (except medical
+carryover noted below).
+
+[PLAN] FSA Medical:
+  - Max contribution 2025: $3,300
+  - Max carryover: $660
+  - MasterCard debit card; save itemized receipts
+  - Eligible expenses: [BROKER:fsa_eligible_expenses_url] (link if provided)
+
+[FIXED] FSA Dependent Care:
+  - Max: $5,000/year ($2,500 if married filing separately)
+  - Licensed day care, after-school care (under 13), elder care in home, etc.
+
+================================================================================
+PAGE 12 — DENTAL
+================================================================================
+Section ID: dental
+Carrier: [BROKER:carrier_medical_dental_name]
+
+[PLAN]
+  Who Pays: [BROKER:employer_short_name] & Employee
+  Preventive / Basic / Major / Ortho (to 19): 100/80/50/50% in & out of network
+  Deductible: Single $50 / Family $150 (preventive waived)
+  Annual Max: $1,000 | Ortho lifetime: $1,000 | Waiting period: None
+
+[PLAN:payroll] Cost Per Pay Period — from BROKER_CONFIG plan_costs.dental:
+
+| Coverage Tier         | ER (22 pay) | EE (22 pay) | ER (26 pay) | EE (26 pay) |
+|-----------------------|-------------|-------------|-------------|-------------|
+| Single                | [er_22]     | $4.59       | [er_26]     | $3.88       |
+| Employee + Spouse     | [er_22]     | $9.18       | [er_26]     | $7.76       |
+| Employee + Child(ren) | [er_22]     | $9.03       | [er_26]     | $7.64       |
+| Family                | [er_22]     | $14.49      | [er_26]     | $12.26      |
+
+Note: Who Pays line = [BROKER:employer_short_name] & Employee — populate ER column
+from employer contribution worksheet.
+
+================================================================================
+PAGE 13 — VISION
+================================================================================
+Section ID: vision
+Carrier: [BROKER:carrier_vision_name] — Insight Network
+
+[PLAN]
+  Who Pays: Employee
+  Exam: $10 copay | Frames: up to $130 + 20% off | Lenses: $25 copay
+  Contacts elective: up to $130 + 15% off | Medically necessary: covered in full
+  Frequency: exam, frames, contacts — once every 12 months
+
+[PLAN:payroll] Cost Per Pay Period — from BROKER_CONFIG plan_costs.vision:
+
+| Coverage Tier         | ER (22 pay) | EE (22 pay) | ER (26 pay) | EE (26 pay) |
+|-----------------------|-------------|-------------|-------------|-------------|
+| Single                | [er_22]     | $3.97       | [er_26]     | $3.36       |
+| Employee + Spouse     | [er_22]     | $7.54       | [er_26]     | $6.38       |
+| Employee + Child(ren) | [er_22]     | $7.94       | [er_26]     | $6.72       |
+| Family                | [er_22]     | $11.67      | [er_26]     | $9.87       |
+
+Note: Who Pays = Employee — ER column typically $0.00 unless employer subsidizes.
+
+================================================================================
+PAGE 14 — BASIC LIFE & AD&D
+================================================================================
+Section ID: life-add
+Carrier: [BROKER:carrier_life_ltd_name]
+
+[BROKER] Employer-paid by [BROKER:employer_legal_name].
+
+[PLAN:payroll] Employer-paid — no EE deduction:
+  Who Pays: Employer | EE cost per pay period: $0.00 (all tiers)
+  Optional: omit payroll table; show "100% Employer Paid" callout instead.
+
+[PLAN]
+  Life benefit: 1× annual salary | Guarantee issue: $50,000
+  Age reduction: 35% at 65, 50% at 70
+
+Footer: [BROKER:carrier_life_ltd_name] | [BROKER:carrier_life_ltd_phone] | [BROKER:carrier_life_ltd_website]
+
+================================================================================
+PAGE 15 — LONG TERM DISABILITY
+================================================================================
+Section ID: ltd
+Carrier: [BROKER:carrier_life_ltd_name]
+
+[BROKER] [BROKER:employer_legal_name] pays full cost.
+
+[PLAN:payroll] Employer-paid — no EE deduction:
+  Who Pays: Employer | EE cost per pay period: $0.00
+
+[PLAN]
+  Monthly benefit: 60% up to $4,000
+  Definition: 24 months own occupation
+  Elimination: 180 days | Max duration: SSNRA
+  Pre-existing: 3 months / 12 months
+
+================================================================================
+PAGE 16 — EAP
+================================================================================
+Section ID: eap
+
+[FIXED] What is EAP: Voluntary, confidential. Up to [BROKER:eap_sessions] face-to-face
+sessions. 24/7 access. Covers employee and immediate dependents.
+
+[FIXED] Services: Depression, grief, family/marital issues, addictions, stress,
+financial/legal concerns, identity theft, wills, WorkLife (child care, elder care).
+
+Contact — from BROKER_CONFIG only:
+  Phone:   [BROKER:eap_phone]
+  Website: [BROKER:eap_website]
+
+================================================================================
+PAGE 17 — VOLUNTARY BENEFITS
+================================================================================
+Section ID: voluntary-benefits
+Carrier: [BROKER:voluntary_carrier]
+
+[FIXED] Accident, Specified Disease, Hospital Indemnity, Voluntary Term Life,
+Disability — contact representative to enroll.
+
+Contact — from BROKER_CONFIG only:
+  Name:   [BROKER:voluntary_rep_name]
+  Email:  [BROKER:voluntary_rep_email]
+  Phone:  [BROKER:voluntary_rep_phone_1] / [BROKER:voluntary_rep_phone_2]
+
+================================================================================
+PAGE 18 — CONTACT LIST
+================================================================================
+Section ID: contacts
+Layout:   Three tables — entire page built from BROKER_CONFIG only
+
+TABLE 1 — Carriers:
+  | [BROKER:carrier_medical_dental_name] | [BROKER:carrier_medical_dental_phone] | [BROKER:carrier_medical_dental_website] |
+  | [BROKER:carrier_vision_name]         | [BROKER:carrier_vision_phone]         | [BROKER:carrier_vision_website]         |
+  | [BROKER:carrier_life_ltd_name]       | [BROKER:carrier_life_ltd_phone]       | [BROKER:carrier_life_ltd_website]       |
+  | [BROKER:carrier_eap_name]            | [BROKER:carrier_eap_phone]            | [BROKER:carrier_eap_website]            |
+
+TABLE 2 — Human Resources:
+  | [BROKER:hr_name] | [BROKER:hr_phone] | [BROKER:hr_email] |
+
+TABLE 3 — Broker Contacts (skip if broker_contact_name is empty):
+  | [BROKER:broker_contact_name] | [BROKER:broker_contact_phone] | [BROKER:broker_contact_email] |
+
+================================================================================
+PAGE 19 — LEGAL DISCLAIMER
+================================================================================
+Section ID: disclaimer
+Layout:   Fine print footer block
+
+[FIXED] "The information in this guide is presented for illustrative purposes
+and is based on information provided by the employer. The text contained in
+this guide was taken from various summary plan descriptions and benefit
+summaries. While every effort was taken to accurately summarize your
+benefits, discrepancies, or errors are always possible. In case of discrepancy
+between this guide and the official plan documents, the official plan
+documents will prevail. All information is confidential, pursuant to the
+Health Insurance Portability and Accountability Act of 1996."
+
+[BROKER] "If you have any questions about this summary, contact Human Resources:
+[BROKER:hr_name] at [BROKER:hr_phone] or [BROKER:hr_email]."
+
+[BROKER] Footer: [BROKER:footer_text]
+
+================================================================================
+AGENT CHECKLIST (before PDF export)
+================================================================================
+
+  [ ] All [BROKER:*] tokens replaced from BROKER_CONFIG
+  [ ] ER and EE columns filled in plan_costs for pages 6–8, 12, 13
+  [ ] Payroll table shows [BROKER:pay_periods_22_label] and [BROKER:pay_periods_26_label]
+  [ ] Employer-paid plans (14–16): EE = $0.00 or "Employer Paid" callout shown
+  [ ] employer_cover_name vs employer_legal_name used in correct pages
+  [ ] Contact list (page 18) matches telemedicine/EAP/voluntary pages
+  [ ] Each .guide-page has page-break-after: always
+  [ ] Empty broker_contact fields → hide broker table on page 18
+  [ ] Print preview: 19 pages, letter size
+
+================================================================================
+END OF MASTER STRUCTURE
+================================================================================
