@@ -33,6 +33,9 @@
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 10px;
+  --danger: #b42318;
+  --danger-soft: #fff1f0;
+  --success: #147d64;
 }
 
 body { background: var(--canvas); font-family: var(--font-sans); font-size: var(--text-sm); line-height: var(--leading-normal); }
@@ -227,12 +230,373 @@ body { background: var(--canvas); font-family: var(--font-sans); font-size: var(
 .inlinePlans .pageHead { padding: 5px 0 16px; }
 .inlinePlans .pageHead .title h1 { font-size: var(--text-lg); }
 .inlinePlans .pageHead .title > span { display: none; }
+.planDocumentPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-4);
+}
+.planDocumentName,
+.uploadedPlanFile,
+.parsedTablePreview,
+.planDocumentSaved {
+  min-width: 0;
+}
+.planDocumentName {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.planDocumentName > svg {
+  width: var(--text-xl);
+  height: var(--text-xl);
+  color: var(--muted);
+  flex: 0 0 auto;
+  margin-top: var(--space-1);
+}
+.planDocumentName b,
+.planDocumentName small,
+.uploadedPlanFile b,
+.uploadedPlanFile span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.planDocumentName b,
+.uploadedPlanFile b,
+.parsedTablePreview b {
+  color: var(--ink);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+.planDocumentName small,
+.uploadedPlanFile span,
+.parsedTablePreview span {
+  margin-top: var(--space-1);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-normal);
+  line-height: var(--leading-normal);
+}
+.planUploadTarget {
+  position: relative;
+  justify-self: start;
+  width: min(420px, 100%);
+  min-height: 120px;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  align-items: center;
+  justify-content: stretch;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.48);
+  color: var(--ink);
+  text-align: left;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  overflow: hidden;
+}
+.planUploadTarget:hover {
+  border-color: rgba(11,95,255,.38);
+  background: rgba(255,255,255,.72);
+}
+.planUploadTarget:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(11,95,255,.12);
+}
+.planUploadTarget svg {
+  width: var(--text-xl);
+  height: var(--text-xl);
+  color: currentColor;
+}
+.planUploadTarget b {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+}
+.planUploadTarget span {
+  display: block;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-normal);
+}
+.planUploadTarget input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.uploadedPlanFile {
+  justify-self: start;
+  width: min(520px, 100%);
+  display: grid;
+  grid-template-columns: var(--control-sm) minmax(0, 1fr) var(--control-sm);
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 120px;
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.48);
+}
+.uploadedPlanFile > svg {
+  width: var(--text-base);
+  height: var(--text-base);
+  color: var(--muted);
+  justify-self: center;
+}
+.quietIconButton {
+  width: var(--control-sm);
+  height: var(--control-sm);
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+}
+.quietIconButton:hover {
+  border-color: var(--border);
+  background: rgba(255,255,255,.64);
+  color: var(--ink);
+}
+.quietIconButton:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(11,95,255,.12);
+}
+.quietIconButton svg {
+  width: var(--text-sm);
+  height: var(--text-sm);
+}
+.parsedTablePreview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  justify-items: stretch;
+  text-align: left;
+}
+.planDocumentSaved {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--accent-strong);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+.planDocumentSaved svg {
+  width: var(--text-xs);
+  height: var(--text-xs);
+}
+.emptyCoverageCosts {
+  display: grid;
+  gap: var(--space-1);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+.emptyCoverageCosts b {
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+.emptyCoverageCosts span {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+.planDocumentsSection {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+.plansEmptyState {
+  min-height: 260px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-5);
+  padding: var(--space-8);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: rgba(255,255,255,.48);
+  text-align: center;
+}
+.plansEmptyState > div {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  max-width: 340px;
+}
+.plansEmptyState > div > svg {
+  width: var(--space-8);
+  height: var(--space-8);
+  color: var(--muted);
+}
+.plansEmptyState h2 {
+  margin: var(--space-2) 0 0;
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+.plansEmptyState p {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+.planUploadButton {
+  min-width: 124px;
+  height: var(--control);
+  min-height: var(--control);
+  padding: 0 var(--space-4);
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+}
+.planUploadButton svg {
+  width: var(--text-sm);
+  height: var(--text-sm);
+  color: currentColor;
+}
+.planDocumentGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: var(--space-3);
+}
+.planDocumentCard,
+.addPlanCard {
+  min-height: 172px;
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: rgba(255,255,255,.58);
+  box-shadow: none;
+  text-align: left;
+}
+.planDocumentCard:hover,
+.addPlanCard:hover {
+  border-color: var(--border-strong);
+  background: rgba(255,255,255,.78);
+}
+.planDocumentPreview {
+  width: 48px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,.76);
+  color: var(--accent-strong);
+}
+.planDocumentPreview svg,
+.addPlanCard svg {
+  width: var(--text-xl);
+  height: var(--text-xl);
+}
+.planDocumentCard b,
+.addPlanCard b {
+  display: block;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.planDocumentCard span,
+.planDocumentCard small {
+  display: block;
+  overflow: hidden;
+  margin-top: var(--space-1);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.addPlanCard {
+  align-content: center;
+  justify-items: center;
+  border-style: dashed;
+  color: var(--accent-strong);
+  text-align: center;
+}
+.addPlanCard b {
+  color: var(--accent-strong);
+}
+.planUploadModal {
+  width: min(520px, 100%);
+}
+.planUploadDropzone {
+  position: relative;
+  min-height: 170px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: rgba(255,255,255,.56);
+  color: var(--ink);
+  text-align: center;
+  overflow: hidden;
+}
+.planUploadDropzone:hover,
+.planUploadDropzone.dragging {
+  border-color: rgba(11,95,255,.42);
+  background: rgba(238,244,255,.58);
+}
+.planUploadDropzone:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(11,95,255,.12);
+}
+.planUploadDropzone svg {
+  width: var(--space-6);
+  height: var(--space-6);
+  color: var(--accent-strong);
+}
+.planUploadModal .modalHeading > span {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.planUploadModal .modalHeading > span svg {
+  color: currentColor;
+}
+.planUploadDropzone b {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.planUploadDropzone span {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+.planUploadDropzone input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
 .comparisonPanel { margin-bottom: var(--space-4); }
 .yearTabs { display: inline-flex; gap: var(--space-1); padding: var(--space-1); border: 1px solid var(--border); border-radius: var(--radius-md); background: rgba(255,255,255,.48); }
 .yearTabs button { min-width: 64px; height: var(--control-sm); padding: 0 var(--space-3); border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--muted); font-size: var(--text-sm); font-weight: var(--weight-medium); }
 .yearTabs button:hover { color: var(--ink); background: rgba(255,255,255,.52); }
 .yearTabs button.active { border-color: rgba(11,95,255,.22); background: rgba(238,244,255,.9); color: var(--accent-strong); box-shadow: 0 1px 2px rgba(11,95,255,.06); }
-.costChart { margin-top: var(--space-3); padding: var(--space-5); border: 1px solid var(--border); border-radius: var(--radius-lg); background: rgba(255,255,255,.6); box-shadow: var(--shadow-sm); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.costChart { margin-top: var(--space-4); padding: var(--space-5); border: 1px solid var(--border); border-radius: var(--radius-lg); background: rgba(255,255,255,.6); box-shadow: var(--shadow-sm); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
 .costChartHead { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-5); }
 .costChartHead h2 { margin: 0; font-size: var(--text-lg); line-height: var(--leading-tight); font-weight: var(--weight-semibold); }
 .costChartHead p { margin: var(--space-1) 0 0; color: var(--muted); font-size: var(--text-sm); }
@@ -244,10 +608,11 @@ body { background: var(--canvas); font-family: var(--font-sans); font-size: var(
 .chartRow { display: grid; grid-template-columns: 112px minmax(0,1fr); gap: var(--space-4); align-items: center; }
 .chartRow > span { color: #52525b; font-size: var(--text-xs); font-weight: var(--weight-medium); }
 .chartBars { display: grid; gap: 6px; }
-.chartBarLine { height: 20px; position: relative; display: flex; align-items: center; border-radius: 4px; background: rgba(39,39,42,.035); overflow: hidden; }
-.chartBarLine > i { position: absolute; inset: 0 auto 0 0; min-width: 2px; border-radius: 4px; background: var(--accent); }
-.chartBarLine > i[data-series="0"] { background: #8EB3FF; }
-.chartBarLine > b { position: relative; z-index: 1; margin-left: auto; padding-right: var(--space-2); color: #18181b; font-size: var(--text-xs); font-weight: var(--weight-medium); }
+.chartBarLine { height: 20px; display: grid; grid-template-columns: minmax(0,1fr) minmax(82px,max-content); gap: var(--space-2); align-items: center; }
+.chartBarTrack { height: 100%; position: relative; border-radius: 4px; background: rgba(39,39,42,.035); overflow: hidden; }
+.chartBarTrack > i { position: absolute; inset: 0 auto 0 0; min-width: 2px; border-radius: 4px; background: var(--accent); }
+.chartBarTrack > i[data-series="0"] { background: #8EB3FF; }
+.chartBarLine > b { color: #18181b; font-size: var(--text-xs); font-weight: var(--weight-medium); text-align: right; }
 .tableCard { border-radius: 9px; background: rgba(255,255,255,.62); box-shadow: var(--shadow-sm); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
 .tableTitle { padding: 15px 17px; }
 .tableCard table { font-size: var(--text-xs); line-height: var(--leading-tight); }
@@ -288,5 +653,13 @@ body { background: var(--canvas); font-family: var(--font-sans); font-size: var(
   .benefitCard:last-child { border-bottom: 0; }
   .companyOverview { grid-template-columns: 1fr; }
   .overviewEdit { justify-self: start; }
+  .planDocumentPanel {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .parsedTablePreview {
+    justify-items: start;
+    text-align: left;
+  }
   .costChartHead { display: block; }.chartLegend { margin-top: var(--space-3); }.chartRow { grid-template-columns: 1fr; gap: 6px; }
 }

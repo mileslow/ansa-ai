@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Building2,
+  AlertTriangle,
   ChevronRight,
   ArrowLeft,
   HeartPulse,
@@ -20,6 +21,10 @@ import {
   Users,
   Plus,
   Trash2,
+  Upload,
+  FileText,
+  FileSearch,
+  Pencil,
   LayoutGrid,
   Settings,
   PanelLeft,
@@ -27,12 +32,13 @@ import {
 import {
   collection,
   doc,
-  getDocs,
+  onSnapshot,
   orderBy,
   query,
   setDoc,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
+import { db, storage } from "./firebase";
 import AddCompany from "./AddCompany";
 import "./styles.css";
 import "./inline.css";
@@ -40,6 +46,7 @@ import "./add-company.css";
 import "./generation.css";
 import "./design-system.css";
 import "./clean-pass.css";
+import "./plan-parsing.css";
 const tiers = ["EE", "EE + Spouse", "EE + Children", "EE + Family"];
 const fmt = (n) =>
   new Intl.NumberFormat("en-US", {
@@ -91,12 +98,18 @@ function App() {
   useEffect(() => {
     let f = () => setRoute(path());
     addEventListener("popstate", f);
-    getDocs(
+    const unsubscribe = onSnapshot(
       query(collection(db, "benefitsCompanies"), orderBy("renewalDate", "asc")),
-    )
-      .then((s) => setCompanies(s.docs.map((d) => ({ id: d.id, ...d.data() }))))
-      .finally(() => setLoading(false));
-    return () => removeEventListener("popstate", f);
+      (snapshot) => {
+        setCompanies(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+        setLoading(false);
+      },
+      () => setLoading(false),
+    );
+    return () => {
+      removeEventListener("popstate", f);
+      unsubscribe();
+    };
   }, []);
   if (loading) return <Loading />;
   let ordered = [...companies].sort((a, b) =>
@@ -113,34 +126,15 @@ function App() {
     };
   return (
     <div className="appShell">
-      <Sidebar
-        company={company}
-        directoryActive={route.length === 0}
-        onHome={() => go("/", setRoute)}
-      />
+      <Sidebar company={company} directoryActive={route.length === 0} onHome={() => go("/", setRoute)} />
       <div className="appContent">
-        <div className="mobileBar">
-          <PanelLeft />
-          <b>ansa</b>
-        </div>
+        <div className="mobileBar"><PanelLeft /><b>ansa</b></div>
         {route.length === 0 ? (
-          <Directory
-            companies={ordered}
-            add={add}
-            open={(id) => go(`/companies/${id}`, setRoute)}
-          />
+          <Directory companies={ordered} add={add} open={(id) => go(`/companies/${id}`, setRoute)} />
         ) : company ? (
-          <Company
-            company={company}
-            onUpdate={update}
-            back={() => go("/", setRoute)}
-          />
+          <Company company={company} onUpdate={update} back={() => go("/", setRoute)} />
         ) : (
-          <Directory
-            companies={ordered}
-            add={add}
-            open={(id) => go(`/companies/${id}`, setRoute)}
-          />
+          <Directory companies={ordered} add={add} open={(id) => go(`/companies/${id}`, setRoute)} />
         )}
       </div>
     </div>
@@ -149,29 +143,13 @@ function App() {
 function Sidebar({ onHome, company, directoryActive }) {
   return (
     <aside className="sidebar">
-      <button className="brand" onClick={onHome} aria-label="ansa home">
-        <b>ansa</b>
-      </button>
+      <button className="brand" onClick={onHome} aria-label="ansa home"><b>ansa</b></button>
       <nav className="sidebarNav" aria-label="Main navigation">
         <small>Workspace</small>
-        <button className={directoryActive ? "active" : ""} onClick={onHome}>
-          <LayoutGrid />
-          Companies
-        </button>
-        {company && (
-          <div className="sidebarCompany">
-            <span>{company.name.slice(0, 1)}</span>
-            <div>
-              <b>{company.name}</b>
-              <small>{company.renewalLabel}</small>
-            </div>
-          </div>
-        )}
+        <button className={directoryActive ? "active" : ""} onClick={onHome}><LayoutGrid />Companies</button>
+        {company && <div className="sidebarCompany"><span>{company.name.slice(0, 1)}</span><div><b>{company.name}</b><small>{company.renewalLabel}</small></div></div>}
       </nav>
-      <div className="sidebarFoot">
-        <button><Settings />Settings</button>
-        <span>Benefits workspace</span>
-      </div>
+      <div className="sidebarFoot"><button><Settings />Settings</button><span>Benefits workspace</span></div>
     </aside>
   );
 }
@@ -245,6 +223,7 @@ const emptyDetails = {
   },
   telemedicine: { app: "", phone: "", text: "", website: "" },
   accounts: { administrator: "", type: "", hraContributions: [] },
+  planDocuments: { health: null, dental: null, vision: null, documents: [] },
 };
 const mergeDetails = (d) => ({
   ...emptyDetails,
@@ -285,6 +264,10 @@ const mergeDetails = (d) => ({
     ...d?.accounts,
     hraContributions: d?.accounts?.hraContributions || [],
   },
+  planDocuments: {
+    ...emptyDetails.planDocuments,
+    ...d?.planDocuments,
+  },
 });
 const dateLabel = (v) =>
   v
@@ -316,15 +299,15 @@ function Company({ company, onUpdate, back }) {
         "health",
         "Medical",
         HeartPulse,
-        "Medical coverage and contribution comparison",
+        "Premiums, employer share, and employee deductions",
       ],
       [
         "dental",
         "Dental",
         Smile,
-        "Dental coverage and contribution comparison",
+        "Premiums, employer share, and employee deductions",
       ],
-      ["vision", "Vision", Eye, "Vision coverage and contribution comparison"],
+      ["vision", "Vision", Eye, "Premiums, employer share, and employee deductions"],
     ];
   let planYear =
     details.planYear.start || details.planYear.end
@@ -450,8 +433,8 @@ function Company({ company, onUpdate, back }) {
       <Back onClick={back} />
       <div className="companyTop">
         <Title
-          eyebrow="Company workspace"
-          title={details.employer.short || company.name}
+          eyebrow={details.employer.short || company.name}
+          title="Benefit plans"
           sub={`Renewal period ${company.renewalLabel}`}
         />
         <div className="companyQuick">
@@ -472,9 +455,9 @@ function Company({ company, onUpdate, back }) {
       <nav className="workspaceTabs" aria-label="Company workspace">
         {[
           ["plans", "Plans"],
+          ["costs", "Costs"],
           ["booklet", "Booklet"],
           ["people", "People"],
-          ["carriers", "Carriers"],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -489,54 +472,45 @@ function Company({ company, onUpdate, back }) {
         ))}
       </nav>
       {activeTab === "plans" && (
+        <PlanDocumentsSection
+          company={company}
+          details={details}
+          onUpdate={onUpdate}
+        />
+      )}
+      {activeTab === "costs" && (
         <>
-          <div className="benefitStack">
-            {cards.map(([key, name, Icon, sub]) => {
-              let active = !!company.benefits?.[key],
-                open = expanded === key;
-              return (
-                <button
-                  key={key}
-                  className={`benefitCard ${active ? "" : "disabled"} ${open ? "selected" : ""}`}
-                  onClick={() => active && setExpanded(open ? null : key)}
-                >
-                  <span className={`benefitIcon ${key}`}>
-                    <Icon />
-                  </span>
-                  <div>
-                    <b>{name}</b>
-                    <p>{sub}</p>
-                    {active ? (
-                      <span>
-                        {company.benefits[key].years.join(" vs ")} ·{" "}
-                        {open ? "Hide comparison" : "View comparison"}
-                      </span>
-                    ) : (
-                      <span>Not offered</span>
-                    )}
-                  </div>
-                  {active && <ChevronRight />}
-                </button>
-              );
-            })}
-          </div>
+          <CoverageSelector
+            cards={cards}
+            selected={expanded}
+            onSelect={(key) => setExpanded(expanded === key ? null : key)}
+            company={company}
+            mode="costs"
+          />
           {expanded && (
             <div className="expandedForm">
-              <Plans
-                key={expanded}
-                company={company}
-                type={expanded}
-                onUpdate={onUpdate}
-              />
+              {company.benefits?.[expanded] ? (
+                <Plans
+                  key={expanded}
+                  company={company}
+                  type={expanded}
+                  onUpdate={onUpdate}
+                />
+              ) : (
+                <div className="emptyCoverageCosts">
+                  <b>No employee cost table</b>
+                  <span>
+                    Upload a source document now. Employee premium and
+                    contribution rows can be added after the plan is parsed.
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </>
       )}
       {activeTab === "people" && (
         <PeopleTab company={company} details={details} onUpdate={onUpdate} />
-      )}
-      {activeTab === "carriers" && (
-        <CarriersTab company={company} details={details} onUpdate={onUpdate} />
       )}
       {activeTab === "booklet" && (
         <BookletTab
@@ -546,6 +520,533 @@ function Company({ company, onUpdate, back }) {
         />
       )}
     </main>
+  );
+}
+
+function CoverageSelector({ cards, selected, onSelect, company, mode }) {
+  return (
+    <div className="benefitStack">
+      {cards.map(([key, name, Icon, sub]) => {
+        let hasCosts = !!company.benefits?.[key],
+          isSelected = selected === key,
+          planYears = (company.benefits?.[key]?.plans || [])
+            .map((plan) => Number(plan.year))
+            .filter(Number.isFinite),
+          currentYear = planYears.length ? Math.max(...planYears) : null;
+        return (
+          <button
+            key={key}
+            className={`benefitCard ${isSelected ? "selected" : ""}`}
+            onClick={() => onSelect(key)}
+          >
+            <span className={`benefitIcon ${key}`}>
+              <Icon />
+            </span>
+            <div>
+              <b>{name}</b>
+              <p>{sub}</p>
+              {hasCosts ? (
+                <span>
+                  {currentYear || "Current year"} ·{" "}
+                  {isSelected ? "Hide costs" : "Edit costs"}
+                </span>
+              ) : (
+                <span>Not offered</span>
+              )}
+            </div>
+            <ChevronRight />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const fileSize = (size = 0) => {
+  if (!size) return "0 KB";
+  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+};
+const normalizePlanDocuments = (store = {}) => {
+  let existing = Array.isArray(store.documents) ? store.documents : [],
+    typed = ["health", "dental", "vision"]
+      .map((key) => store[key] && { ...store[key], id: store[key].id || key })
+      .filter(Boolean);
+  return [...typed, ...existing].filter(
+    (doc, index, docs) => docs.findIndex((item) => item.id === doc.id) === index,
+  );
+};
+function PlanDocumentsSection({ company, details, onUpdate }) {
+  const [documents, setDocuments] = useState(() =>
+      normalizePlanDocuments(details.planDocuments),
+    ),
+    [modalOpen, setModalOpen] = useState(false),
+    [selectedId, setSelectedId] = useState(null);
+  useEffect(() => {
+    const plans = collection(db, "benefitsCompanies", company.id, "plans");
+    return onSnapshot(plans, (snapshot) => {
+      const live = snapshot.docs
+        .map((item) => ({ id: item.id, ...item.data() }))
+        .sort((a, b) => String(b.uploadedAt || "").localeCompare(String(a.uploadedAt || "")));
+      const legacy = normalizePlanDocuments(details.planDocuments).filter(
+        (item) => !live.some((plan) => plan.id === item.id),
+      );
+      setDocuments([...live, ...legacy]);
+    });
+  }, [company.id, details.planDocuments]);
+  const selected = documents.find((plan) => plan.id === selectedId);
+  let startParser = (planId) => {
+      fetch("/api/parse-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId: company.id, planId }),
+      })
+        .then(async (response) => {
+          if (response.ok) return;
+          const body = await response.json().catch(() => ({}));
+          throw Error(body.error || "Could not start plan parser");
+        })
+        .catch((error) =>
+          setDoc(
+            doc(db, "benefitsCompanies", company.id, "plans", planId),
+            {
+              status: "failed",
+              parsingState: "failed",
+              error: error.message,
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true },
+          ),
+        );
+    },
+    addPlan = async (uploaded) => {
+      const uploadedAt = new Date().toISOString();
+      await setDoc(doc(db, "benefitsCompanies", company.id, "plans", uploaded.id), {
+        ...uploaded,
+        uploadedAt,
+        status: "queued",
+        parsingState: "queued",
+        parsingPct: 0,
+        attributes: {},
+        error: null,
+      });
+      setModalOpen(false);
+      startParser(uploaded.id);
+    };
+  if (selected)
+    return (
+      <PlanDetail
+        companyId={company.id}
+        plan={selected}
+        close={() => setSelectedId(null)}
+        retry={() => startParser(selected.id)}
+      />
+    );
+  return (
+    <section className="planDocumentsSection">
+      {documents.length === 0 ? (
+        <div className="plansEmptyState">
+          <div>
+            <FileText />
+            <h2>No plans yet</h2>
+            <p>
+              Looks like there are no plans for this company. Upload one here.
+            </p>
+          </div>
+          <button className="companyAction planUploadButton" onClick={() => setModalOpen(true)}>
+            <Upload />
+            Upload plan
+          </button>
+        </div>
+      ) : (
+        <div className="planDocumentGrid">
+          {documents.map((plan) => (
+            <button
+              className={`planDocumentCard ${plan.status === "parsing" || plan.status === "queued" ? "parsing" : ""}`}
+              key={plan.id}
+              onClick={() => setSelectedId(plan.id)}
+            >
+              <div className="planDocumentPreview">
+                {plan.status === "complete" ? <FileSearch /> : <FileText />}
+              </div>
+              <div className="planDocumentSummary">
+                <b>{plan.attributes?.identity?.planName || plan.name}</b>
+                <span>
+                  {new Date(plan.uploadedAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
+                <small>
+                  {[plan.fileName, fileSize(plan.size)].filter(Boolean).join(" · ")}
+                </small>
+                {(plan.status === "parsing" || plan.status === "queued") && (
+                  <PlanProgress plan={plan} compact />
+                )}
+                {plan.status === "failed" && <small className="planFailed">Parsing failed</small>}
+              </div>
+              <ChevronRight />
+            </button>
+          ))}
+          <button className="addPlanCard" onClick={() => setModalOpen(true)}>
+            <Plus />
+            <b>Add new plan</b>
+          </button>
+        </div>
+      )}
+      {modalOpen && (
+        <PlanUploadModal
+          companyId={company.id}
+          close={() => setModalOpen(false)}
+          submit={addPlan}
+        />
+      )}
+    </section>
+  );
+}
+
+function PlanProgress({ plan, compact = false }) {
+  const pct = Math.max(0, Math.min(100, Number(plan.parsingPct) || 0));
+  return (
+    <div className={`planParseProgress ${compact ? "compact" : ""}`}>
+      <div>
+        {plan.status === "complete" ? <Check /> : <LoaderCircle />}
+        <span>{plan.parsingState || "queued"}</span>
+        <b>{pct}%</b>
+      </div>
+      <i><span style={{ width: `${pct}%` }} /></i>
+    </div>
+  );
+}
+
+function PlanUploadModal({ companyId, close, submit }) {
+  const [name, setName] = useState(""),
+    [file, setFile] = useState(null),
+    [dragging, setDragging] = useState(false),
+    [uploadPct, setUploadPct] = useState(0),
+    [uploaded, setUploaded] = useState(null),
+    [saving, setSaving] = useState(false),
+    [error, setError] = useState("");
+  const planId = useMemo(() => crypto.randomUUID(), []);
+  let chooseFile = (selected) => {
+      if (!selected) return;
+      if (selected.type !== "application/pdf" && !selected.name.toLowerCase().endsWith(".pdf")) {
+        setError("Medical plan source must be a PDF");
+        return;
+      }
+      setFile(selected);
+      setUploaded(null);
+      setUploadPct(0);
+      setError("");
+      const safeName = selected.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
+      const storagePath = `benefitsCompanies/${companyId}/plans/${planId}/${safeName}`;
+      const task = uploadBytesResumable(ref(storage, storagePath), selected, {
+        contentType: selected.type || "application/pdf",
+      });
+      task.on(
+        "state_changed",
+        (snapshot) => setUploadPct(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)),
+        (uploadError) => setError(uploadError.message || "Upload failed"),
+        async () => {
+          const downloadURL = await getDownloadURL(task.snapshot.ref);
+          setUploadPct(100);
+          setUploaded({
+            id: planId,
+            name: name.trim() || selected.name.replace(/\.pdf$/i, ""),
+            fileName: selected.name,
+            size: selected.size,
+            type: selected.type || "application/pdf",
+            storagePath,
+            downloadURL,
+          });
+        },
+      );
+    },
+    onSubmit = async (event) => {
+      event.preventDefault();
+      if (!name.trim() || !uploaded || saving) return;
+      setSaving(true);
+      try {
+        await submit({ ...uploaded, name: name.trim() });
+      } catch (submitError) {
+        setError(submitError.message || "Could not create plan");
+        setSaving(false);
+      }
+    };
+  return (
+    <div className="modalBackdrop">
+      <form className="addModal planUploadModal" onSubmit={onSubmit}>
+        <button type="button" className="modalClose" onClick={close}>
+          <X />
+        </button>
+        <div className="modalHeading">
+          <span>
+            <Upload />
+          </span>
+          <div>
+            <h2>Upload plan</h2>
+            <p>Name the plan and upload the source document.</p>
+          </div>
+        </div>
+        <label className="field">
+          Plan name
+          <input
+            autoFocus
+            placeholder="UHC Bronze 2026"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </label>
+        <label
+          className={`planUploadDropzone ${dragging ? "dragging" : ""}`}
+          onDragEnter={(event) => {
+            event.preventDefault();
+            setDragging(true);
+          }}
+          onDragOver={(event) => event.preventDefault()}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragging(false);
+            chooseFile(event.dataTransfer.files?.[0]);
+          }}
+        >
+          <Upload />
+          <b>{file ? file.name : "Drop plan document here"}</b>
+          <span>{file ? fileSize(file.size) : "PDF up to 50 MB"}</span>
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            onChange={(event) => chooseFile(event.target.files?.[0])}
+          />
+        </label>
+        {file && uploadPct < 100 && (
+          <div className="bucketUploadProgress">
+            <span>Uploading document</span><b>{uploadPct}%</b>
+            <i><span style={{ width: `${uploadPct}%` }} /></i>
+          </div>
+        )}
+        {uploaded && <small className="bucketUploadReady"><Check /> Document uploaded</small>}
+        {error && <p className="formError">{error}</p>}
+        <div className="modalActions">
+          <button type="button" className="outline" onClick={close}>
+            Cancel
+          </button>
+          <button className="primary" disabled={!name.trim() || !uploaded || saving}>
+            {saving ? <LoaderCircle /> : <Upload />}
+            {saving ? "Starting parser" : "Upload plan"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function PlanDetail({ companyId, plan, close, retry }) {
+  const [tab, setTab] = useState("pdf");
+  return (
+    <section className="planDetail">
+      <div className="planDetailHead">
+        <button className="back" onClick={close}><ArrowLeft /> Plans</button>
+        <div>
+          <span>{plan.attributes?.identity?.carrier || "Medical plan"}</span>
+          <h2>{plan.attributes?.identity?.planName || plan.name}</h2>
+          <small>{plan.fileName}</small>
+        </div>
+        {plan.status === "failed" && <button className="outline" onClick={retry}>Retry parsing</button>}
+      </div>
+      {plan.status !== "complete" && plan.status !== "failed" && <PlanProgress plan={plan} />}
+      {plan.error && <p className="planDetailError"><AlertTriangle />{plan.error}</p>}
+      <nav className="planDetailTabs" aria-label="Plan document">
+        <button className={tab === "pdf" ? "active" : ""} onClick={() => setTab("pdf")}><FileText />PDF</button>
+        <button className={tab === "attributes" ? "active" : ""} onClick={() => setTab("attributes")}><Pencil />Attributes</button>
+      </nav>
+      {tab === "attributes" ? (
+        <PlanAttributeEditor companyId={companyId} plan={plan} />
+      ) : (
+        <div className="sourcePdfViewer">
+          {plan.downloadURL ? <iframe title={plan.name} src={`${plan.downloadURL}#view=FitH&toolbar=1&navpanes=0`} /> : <p>Source PDF is unavailable.</p>}
+        </div>
+      )}
+    </section>
+  );
+}
+
+const attributeLabel = (value) => value
+  .replace(/([a-z])([A-Z])/g, "$1 $2")
+  .replace(/^./, (letter) => letter.toUpperCase())
+  .replace(/\bId\b/g, "ID")
+  .replace(/\bHsa\b/g, "HSA")
+  .replace(/\bUrl\b/g, "URL");
+const attributeOrder = ["identity", "financial", "network", "contacts", "services", "prescriptions", "exclusions", "otherCoveredServices", "legal", "languageAccess", "coverageExamples", "notices", "extractionWarnings"];
+const attributeFieldOrder = [
+  "documentType", "carrier", "planName", "planId", "groupName", "coverageStart", "coverageEnd", "coverageFor", "planType", "networkName", "market", "state", "fundingType", "metalTier", "hsaEligible",
+  "deductible", "familyDeductibleRule", "servicesBeforeDeductible", "servicesBeforeDeductibleNotes", "specificDeductibles", "outOfPocketLimit", "familyOutOfPocketRule", "excludedFromOutOfPocket",
+  "usesProviderNetwork", "outOfNetworkCoverage", "referralRequired", "referralNotes", "balanceBillingWarning", "emergencyCoverageNotes", "providerDirectoryUrl",
+  "medicalEvent", "service", "inNetwork", "outOfNetwork", "networkTier", "cost", "deductibleApplies", "limitations", "preauthorization", "visitOrUnitLimit", "ageLimit", "rawNotes",
+  "name", "description", "drugListUrl", "pharmacyNetworkNotes", "retailSupply", "mailOrderSupply", "retailCost", "mailOrderCost", "outOfNetworkCost", "priorAuthorizationNotes", "stepTherapyNotes", "specialtyDrugNotes", "tiers",
+  "label", "organization", "phone", "email", "url", "purpose", "notes", "continuationRights", "grievanceAndAppealsRights", "minimumEssentialCoverage", "minimumValueStandard", "marketplaceNotes", "contacts",
+  "language", "message", "scenario", "assumptions", "includedServices", "totalExampleCost", "memberPays", "deductibles", "copayments", "coinsurance", "limitsOrExclusions", "total", "heading", "text", "sourcePage", "sourcePages", "period", "individual", "family", "embeddedIndividual", "raw",
+];
+const orderedAttributeEntries = (value) => Object.entries(value).sort(([left], [right]) => {
+  const leftIndex = attributeFieldOrder.indexOf(left), rightIndex = attributeFieldOrder.indexOf(right);
+  if (leftIndex < 0 && rightIndex < 0) return left.localeCompare(right);
+  if (leftIndex < 0) return 1;
+  if (rightIndex < 0) return -1;
+  return leftIndex - rightIndex;
+});
+const emptyArrayItems = {
+  sourcePages: 1,
+  servicesBeforeDeductible: "",
+  excludedFromOutOfPocket: "",
+  extractionWarnings: "",
+  includedServices: "",
+  specificDeductibles: { service: "", individual: null, family: null, notes: null },
+  contacts: { label: "", organization: null, phone: null, email: null, url: null, purpose: null },
+  inNetwork: { networkTier: "", cost: "", deductibleApplies: null, notes: null },
+  outOfNetwork: { networkTier: "", cost: "", deductibleApplies: null, notes: null },
+  tiers: { name: "", description: null, retailCost: null, mailOrderCost: null, outOfNetworkCost: null, deductibleApplies: null, limitations: null, sourcePage: 1 },
+  exclusions: { service: "", notes: null, sourcePages: [] },
+  otherCoveredServices: { service: "", limitations: null, sourcePages: [] },
+  languageAccess: { language: "", message: "", phone: null, sourcePage: 1 },
+  assumptions: { label: "", value: "" },
+  coverageExamples: { name: "", scenario: "", assumptions: [], includedServices: [], totalExampleCost: null, memberPays: { deductibles: null, copayments: null, coinsurance: null, limitsOrExclusions: null, total: null }, sourcePage: 1 },
+  notices: { heading: "", text: "", sourcePages: [] },
+  services: { medicalEvent: "", service: "", inNetwork: [], outOfNetwork: [], limitations: null, preauthorization: null, visitOrUnitLimit: null, ageLimit: null, rawNotes: null, sourcePage: 1 },
+};
+const blankLike = (value) => {
+  if (Array.isArray(value)) return [];
+  if (value && typeof value === "object")
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, blankLike(item)]));
+  if (typeof value === "number") return 0;
+  if (typeof value === "boolean") return false;
+  return value === null ? null : "";
+};
+const replaceAtPath = (source, path, value) => {
+  if (!path.length) return value;
+  const next = structuredClone(source), parent = path.slice(0, -1).reduce((at, key) => at[key], next);
+  parent[path.at(-1)] = value;
+  return next;
+};
+const itemTitle = (item, index) =>
+  item && typeof item === "object"
+    ? item.service || item.name || item.label || item.language || item.heading || `Item ${index + 1}`
+    : `Item ${index + 1}`;
+function AttributeValueEditor({ label, value, path = [], change, templateKey }) {
+  if (Array.isArray(value)) {
+    const add = () => {
+      const sample = value[0] !== undefined
+        ? blankLike(value[0])
+        : structuredClone(emptyArrayItems[templateKey || path.at(-1)] ?? "");
+      change(path, [...value, sample]);
+    };
+    return (
+      <div className="attributeArray">
+        <div className="attributeArrayHead"><span>{label}</span><button type="button" className="outline attributeAdd" onClick={add}><Plus />Add</button></div>
+        {value.length === 0 ? <small className="attributeEmpty">None</small> : value.map((item, index) => {
+          const itemPath = [...path, index];
+          if (item && typeof item === "object")
+            return (
+              <details className="attributeArrayItem" key={index}>
+                <summary>{itemTitle(item, index)}<button type="button" aria-label={`Remove ${itemTitle(item, index)}`} onClick={(event) => { event.preventDefault(); event.stopPropagation(); change(path, value.filter((_, itemIndex) => itemIndex !== index)); }}><Trash2 /></button></summary>
+                <AttributeValueEditor label="" value={item} path={itemPath} change={change} />
+              </details>
+            );
+          return (
+            <div className="attributePrimitiveRow" key={index}>
+              <input value={item ?? ""} type={typeof item === "number" ? "number" : "text"} onChange={(event) => change(itemPath, typeof item === "number" ? Number(event.target.value) : event.target.value)} />
+              <button type="button" aria-label={`Remove ${label} item`} onClick={() => change(path, value.filter((_, itemIndex) => itemIndex !== index))}><Trash2 /></button>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+  if (value && typeof value === "object")
+    return (
+      <div className={`attributeObject ${label ? "nested" : ""}`}>
+        {label && <h4>{label}</h4>}
+        <div className="attributeFields">
+          {orderedAttributeEntries(value).map(([key, item]) => <AttributeValueEditor key={key} label={attributeLabel(key)} value={item} path={[...path, key]} change={change} />)}
+        </div>
+      </div>
+    );
+  if (typeof value === "boolean")
+    return <label className="attributeBoolean"><input type="checkbox" checked={value} onChange={(event) => change(path, event.target.checked)} /><span>{label}</span></label>;
+  const fieldKey = String(path.at(-1) || ""),
+    nullableBoolean = value === null && /(?:eligible|required|applies|standard|participation|coverage|network)$/i.test(fieldKey),
+    inputType = /email/i.test(fieldKey) ? "email" : /url|website/i.test(fieldKey) ? "url" : /phone/i.test(fieldKey) ? "tel" : "text";
+  if (nullableBoolean)
+    return (
+      <label className="attributeField">
+        <span>{label}</span>
+        <select value="" onChange={(event) => change(path, event.target.value === "" ? null : event.target.value === "true")}>
+          <option value="">Not specified</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </label>
+    );
+  const long = typeof value === "string" && (value.length > 100 || /notes|rights|warning|text|message|limitations|rule/i.test(label));
+  return (
+    <label className={`attributeField ${long ? "long" : ""}`}>
+      <span>{label}</span>
+      {long
+        ? <textarea value={value ?? ""} onChange={(event) => change(path, typeof value === "string" ? event.target.value : event.target.value || null)} />
+        : <input type={typeof value === "number" ? "number" : inputType} value={value ?? ""} onChange={(event) => change(path, typeof value === "number" ? Number(event.target.value) : typeof value === "string" ? event.target.value : event.target.value || null)} />}
+    </label>
+  );
+}
+function PlanAttributeEditor({ companyId, plan }) {
+  const [draft, setDraft] = useState({}),
+    [dirty, setDirty] = useState({}),
+    [saved, setSaved] = useState(false),
+    [error, setError] = useState("");
+  useEffect(() => {
+    setDraft((current) => {
+      const next = { ...current };
+      for (const [key, value] of Object.entries(plan.attributes || {}))
+        if (!dirty[key]) next[key] = structuredClone(value);
+      return next;
+    });
+  }, [plan.attributes, dirty]);
+  const keys = Object.keys(draft).sort((a, b) => attributeOrder.indexOf(a) - attributeOrder.indexOf(b));
+  const changeGroup = (group, path, value) => {
+    setDraft((current) => ({ ...current, [group]: replaceAtPath(current[group], path, value) }));
+    setDirty((current) => ({ ...current, [group]: true }));
+  };
+  let save = async () => {
+    try {
+      await setDoc(
+        doc(db, "benefitsCompanies", companyId, "plans", plan.id),
+        { attributes: draft, updatedAt: new Date().toISOString() },
+        { merge: true },
+      );
+      setDirty({});
+      setError("");
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1200);
+    } catch (saveError) {
+      setError(saveError.message || "Could not save attributes");
+    }
+  };
+  return (
+    <div className="attributeEditor">
+      <div className="attributeEditorBar">
+        <span>Live from Firestore · {keys.length} groups</span>
+        <button className="companyAction compact" onClick={save} disabled={!Object.keys(dirty).length}>
+          {saved ? <Check /> : <Save />}{saved ? "Saved" : "Save attributes"}
+        </button>
+      </div>
+      {keys.length ? keys.map((key) => (
+        <section className="attributeGroup" key={key}>
+          <h3>{attributeLabel(key)}</h3>
+          <AttributeValueEditor label="" value={draft[key]} templateKey={key} change={(path, value) => changeGroup(key, path, value)} />
+        </section>
+      )) : <div className="attributeWaiting"><LoaderCircle /><b>Waiting for extracted attributes</b></div>}
+      {error && <p className="formError">{error}</p>}
+    </div>
   );
 }
 
@@ -729,6 +1230,19 @@ function CarriersTab({ company, details, onUpdate }) {
 
 function BookletTab({ generation, generating, generate }) {
   const pagesRef = useRef(null);
+  let progress = generation.pageCount
+      ? Math.round((generation.pages.length / generation.pageCount) * 86)
+      : 0,
+    statusLabel =
+      generation.status === "rendering"
+        ? "Rendering final PDF"
+        : generation.status === "complete"
+          ? "Booklet ready"
+          : generation.status === "error"
+            ? "Generation stopped"
+            : "Generating booklet";
+  if (generation.status === "rendering") progress = 94;
+  if (generation.status === "complete") progress = 100;
   useEffect(() => {
     if (!generation.pages.length) return;
     let viewer = pagesRef.current,
@@ -741,6 +1255,43 @@ function BookletTab({ generation, generating, generate }) {
         });
     });
   }, [generation.pages.length]);
+  const status =
+    generation.status !== "idle" ? (
+      <div
+        className={`generationStatus ${generation.status === "complete" ? "complete" : ""} ${generation.status === "error" ? "error" : ""}`}
+      >
+        <div>
+          {generation.status === "complete" ? (
+            <Check />
+          ) : generation.status === "error" ? (
+            <AlertTriangle />
+          ) : (
+            <LoaderCircle />
+          )}
+          <span>
+            <b>{statusLabel}</b>
+            <small>{generation.message || "Preparing pages"}</small>
+          </span>
+        </div>
+        <div className="progressTrack">
+          <i style={{ width: `${progress}%` }} />
+        </div>
+        {generation.pdfUrl ? (
+          <a
+            className="companyAction"
+            href={generation.pdfUrl}
+            download={generation.filename || "benefits-guide.pdf"}
+          >
+            <Save />
+            Download
+          </a>
+        ) : (
+          <small className="generationCount">
+            {generation.pages.length}/{generation.pageCount || 10}
+          </small>
+        )}
+      </div>
+    ) : null;
   return (
     <section className="tabPanel bookletPanel">
       {generation.status === "idle" ? (
@@ -754,52 +1305,58 @@ function BookletTab({ generation, generating, generate }) {
           </button>
         </div>
       ) : generation.status === "complete" && generation.pdfUrl ? (
-        <div className="finalPdfViewer">
-          <iframe
-            title="Generated benefits booklet"
-            src={`${generation.pdfUrl}#view=FitH&toolbar=1&navpanes=0`}
-          />
-        </div>
+        <>
+          {status}
+          <div className="finalPdfViewer">
+            <iframe
+              title="Generated benefits booklet"
+              src={`${generation.pdfUrl}#view=FitH&toolbar=1&navpanes=0`}
+            />
+          </div>
+        </>
       ) : (
-        <div className="bookletPages" ref={pagesRef}>
-          {generation.pages.map((page) => (
-            <article className="bookletPage bookletPageOnly" key={page.index}>
-              <iframe title={page.title} srcDoc={page.html} />
-            </article>
-          ))}
-          {generating && (
-            <article
-              className={`bookletPage bookletPageOnly pageSkeleton streamTypingPage ${generation.draftCopy ? "copyDraftPage" : ""}`}
-            >
-              {generation.draftCopy ? (
-                <div className="copyDraftHtml">
-                  <small>Employee benefits guide</small>
-                  <h2>{generation.draftCopy.title}</h2>
-                  <p>{generation.draftCopy.text}</p>
-                  <i />
+        <>
+          {status}
+          <div className="bookletPages" ref={pagesRef}>
+            {generation.pages.map((page) => (
+              <article className="bookletPage bookletPageOnly" key={page.index}>
+                <iframe title={page.title} srcDoc={page.html} />
+              </article>
+            ))}
+            {generating && (
+              <article
+                className={`bookletPage bookletPageOnly pageSkeleton streamTypingPage ${generation.draftCopy ? "copyDraftPage" : ""}`}
+              >
+                {generation.draftCopy ? (
+                  <div className="copyDraftHtml">
+                    <small>Employee benefits guide</small>
+                    <h2>{generation.draftCopy.title}</h2>
+                    <p>{generation.draftCopy.text}</p>
+                    <i />
+                  </div>
+                ) : (
+                  <div
+                    className="typesettingShimmer"
+                    aria-label="Typesetting page"
+                  >
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                  </div>
+                )}
+              </article>
+            )}
+            {generation.error && (
+              <article className="bookletPage bookletPageOnly pageSkeleton streamTypingPage error">
+                <div>
+                  <span>{generation.error}</span>
                 </div>
-              ) : (
-                <div
-                  className="typesettingShimmer"
-                  aria-label="Typesetting page"
-                >
-                  <i />
-                  <i />
-                  <i />
-                  <i />
-                  <i />
-                </div>
-              )}
-            </article>
-          )}
-          {generation.error && (
-            <article className="bookletPage bookletPageOnly pageSkeleton streamTypingPage error">
-              <div>
-                <span>{generation.error}</span>
-              </div>
-            </article>
-          )}
-        </div>
+              </article>
+            )}
+          </div>
+        </>
       )}
     </section>
   );
@@ -951,23 +1508,12 @@ function CompanyOverview({ company, details, onUpdate }) {
           {facts.map((fact, i) => (
             <b key={`${fact}-${i}`}>{fact}</b>
           ))}
-          {site && (
-            <a
-              href={site.startsWith("http") ? site : `https://${site}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Globe2 />
-              {site.replace(/^https?:\/\//, "").replace(/\/$/, "")}
-            </a>
-          )}
+          {site && <a href={site.startsWith("http") ? site : `https://${site}`} target="_blank" rel="noreferrer"><Globe2 />{site.replace(/^https?:\/\//, "").replace(/\/$/, "")}</a>}
         </div>
-        {(company.phone || company.email) && (
-          <div className="overviewContacts">
-            {company.phone && <span><Phone />{company.phone}</span>}
-            {company.email && <span><Mail />{company.email}</span>}
-          </div>
-        )}
+        {(company.phone || company.email) && <div className="overviewContacts">
+          {company.phone && <span><Phone />{company.phone}</span>}
+          {company.email && <span><Mail />{company.email}</span>}
+        </div>}
       </div>
       <button className="overviewEdit" onClick={start}>
         <Settings2 />
@@ -1415,14 +1961,24 @@ function Plans({ company, type, onUpdate }) {
   let benefit = company.benefits[type],
     [pays, setPays] = useState(52),
     [data, setData] = useState(benefit.plans);
-  let current = useMemo(
-    () => data.map((p) => calculate(p, pays)),
-    [data, pays],
+  let currentPlanIndex = data.reduce(
+    (latest, plan, index) =>
+      latest === -1 || Number(plan.year) > Number(data[latest].year)
+        ? index
+        : latest,
+    -1,
   );
-  let update = (pi, ri, key, v) =>
+  let current = useMemo(
+    () =>
+      currentPlanIndex === -1
+        ? []
+        : [calculate(data[currentPlanIndex], pays)],
+    [data, pays, currentPlanIndex],
+  );
+  let update = (_pi, ri, key, v) =>
     setData((ds) =>
       ds.map((p, i) =>
-        i !== pi
+        i !== currentPlanIndex
           ? p
           : {
               ...p,
@@ -1450,8 +2006,8 @@ function Plans({ company, type, onUpdate }) {
       <div className="pageHead">
         <Title
           eyebrow={`${company.name} · ${type}`}
-          title={`${type[0].toUpperCase() + type.slice(1)} year-over-year`}
-          sub="Edit highlighted fields to compare the current renewal against the prior year."
+          title={`${type[0].toUpperCase() + type.slice(1)} costs`}
+          sub={`Edit highlighted fields for the ${current[0]?.year || "current"} plan year.`}
         />
         <div className="controls">
           <label>
@@ -1470,53 +2026,15 @@ function Plans({ company, type, onUpdate }) {
   );
 }
 function Comparison({ plans, update }) {
-  const [selectedIndex, setSelectedIndex] = useState(() =>
-    Math.max(plans.length - 1, 0),
-  );
-  let all = plans.reduce(
-    (a, p) => ({
-      er: a.er + p.er,
-      ee: a.ee + p.ee,
-      total: a.total + p.total,
-      enrolled: a.enrolled + p.enrolled,
-    }),
-    { er: 0, ee: 0, total: 0, enrolled: 0 },
-  );
-  let last = plans[0],
-    now = plans[1] || plans[0],
-    delta = now.total - last.total,
-    selectedPlan = plans[selectedIndex] || now;
+  let selectedPlan = plans[0];
+  if (!selectedPlan) return null;
   return (
     <>
       <section className="stats">
-        <Stat label="Current annual premium" value={fmt(now.total)} />
-        <Stat label="Prior annual premium" value={fmt(last.total)} />
-        <Stat
-          label="Annual difference"
-          value={`${delta >= 0 ? "+" : ""}${fmt(delta)}`}
-          tone={delta > 0 ? "up" : "down"}
-        />
-        <Stat
-          label="Premium change"
-          value={`${last.total ? ((delta / last.total) * 100).toFixed(1) : "0.0"}%`}
-          tone={delta > 0 ? "up" : "down"}
-        />
-      </section>
-      <section className="comparisonPanel">
-        <div className="yearTabs" role="tablist" aria-label="Plan year">
-          {plans.map((plan, index) => (
-            <button
-              key={`${plan.year}-${index}`}
-              role="tab"
-              aria-selected={selectedIndex === index}
-              className={selectedIndex === index ? "active" : ""}
-              onClick={() => setSelectedIndex(index)}
-            >
-              {plan.year}
-            </button>
-          ))}
-        </div>
-        <CostComparisonChart plans={plans} />
+        <Stat label="Annual premium" value={fmt(selectedPlan.total)} />
+        <Stat label="Employer annual cost" value={fmt(selectedPlan.er)} />
+        <Stat label="Employee annual cost" value={fmt(selectedPlan.ee)} />
+        <Stat label="Total enrolled" value={selectedPlan.enrolled} />
       </section>
       <section className="tableCard">
         <div className="tableTitle">
@@ -1553,7 +2071,7 @@ function Comparison({ plans, update }) {
                     <NumberField
                       prefix="$"
                       value={r.premium}
-                      change={(v) => update(selectedIndex, ri, "premium", v)}
+                      change={(v) => update(0, ri, "premium", v)}
                     />
                   </td>
                   <td>{fmt2(r.er)}</td>
@@ -1563,13 +2081,13 @@ function Comparison({ plans, update }) {
                     <NumberField
                       suffix="%"
                       value={Math.round(r.erPercent * 10000) / 100}
-                      change={(v) => update(selectedIndex, ri, "erPercent", v / 100)}
+                      change={(v) => update(0, ri, "erPercent", v / 100)}
                     />
                   </td>
                   <td>
                     <NumberField
                       value={r.enrolled}
-                      change={(v) => update(selectedIndex, ri, "enrolled", v)}
+                      change={(v) => update(0, ri, "enrolled", v)}
                     />
                   </td>
                   <td>{fmt(r.erAnnual)}</td>
@@ -1592,44 +2110,6 @@ function Comparison({ plans, update }) {
         </table>
       </section>
     </>
-  );
-}
-function CostComparisonChart({ plans }) {
-  const metrics = [
-      ["Total premium", "total"],
-      ["Employer cost", "er"],
-      ["Employee cost", "ee"],
-    ],
-    max = Math.max(...plans.flatMap((plan) => metrics.map(([, key]) => plan[key] || 0)), 1);
-  return (
-    <div className="costChart" aria-label="Year-over-year annual cost comparison">
-      <div className="costChartHead">
-        <div>
-          <h2>Annual cost comparison</h2>
-          <p>Employer and employee contributions by plan year.</p>
-        </div>
-        <div className="chartLegend">
-          {plans.map((plan, index) => (
-            <span key={`${plan.year}-legend`}><i data-series={index} />{plan.year}</span>
-          ))}
-        </div>
-      </div>
-      <div className="chartRows">
-        {metrics.map(([label, key]) => (
-          <div className="chartRow" key={key}>
-            <span>{label}</span>
-            <div className="chartBars">
-              {plans.map((plan, index) => (
-                <div className="chartBarLine" key={`${key}-${plan.year}`}>
-                  <i data-series={index} style={{ width: `${((plan[key] || 0) / max) * 100}%` }} />
-                  <b>{fmt(plan[key])}</b>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 function NumberField({ value, change, prefix, suffix }) {

@@ -3,3 +3,6 @@ dist
 .vercel
 tmp
 .env
+.playwright-cli
+output
+public/local-guides

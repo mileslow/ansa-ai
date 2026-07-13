@@ -1,0 +1,9 @@
+tmp
+output
+dist
+.DS_Store
+*.log
+*.pdf
+*.txt
+node_modules
+coverage

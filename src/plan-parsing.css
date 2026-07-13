@@ -1,0 +1,106 @@
+.planDocumentGrid { grid-template-columns: repeat(auto-fill, minmax(calc(var(--space-8) * 8), 1fr)); }
+.planDocumentCard {
+  min-height: calc(var(--space-8) * 4);
+  grid-template-columns: calc(var(--space-6) * 2) minmax(0, 1fr) var(--space-4);
+  align-items: start;
+  align-content: center;
+  width: 100%;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.planDocumentCard > svg { width: var(--text-base); color: var(--subtle); align-self: center; }
+.planDocumentCard.parsing { border-color: var(--accent); background: var(--accent-soft); }
+.planDocumentSummary { min-width: 0; align-self: center; }
+.planDocumentSummary .planFailed { color: var(--danger); font-weight: var(--weight-semibold); }
+.planParseProgress { display: grid; gap: var(--space-2); width: 100%; padding: var(--space-4) 0 var(--space-5); }
+.planParseProgress > div { display: grid; grid-template-columns: var(--space-4) minmax(0,1fr) auto; align-items: center; gap: var(--space-2); }
+.planParseProgress svg { width: var(--text-base); height: var(--text-base); color: var(--accent-strong); animation: spin 1s linear infinite; }
+.planParseProgress > div > span,
+.planDocumentCard .planParseProgress > div > span { margin: 0; color: var(--ink); font-size: var(--text-xs); font-weight: var(--weight-semibold); text-transform: capitalize; white-space: normal; }
+.planParseProgress > div > b { color: var(--ink); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
+.planParseProgress > i,
+.bucketUploadProgress > i { position: relative; display: block; height: var(--space-1); overflow: hidden; border-radius: var(--radius-sm); background: var(--border); }
+.planParseProgress > i > span,
+.bucketUploadProgress > i > span { position: absolute; inset: 0 auto 0 0; border-radius: var(--radius-sm); background: var(--accent); transition: width .3s ease; }
+.planParseProgress.compact { gap: var(--space-1); padding: var(--space-2) 0 0; }
+.planParseProgress.compact > div { grid-template-columns: var(--space-3) minmax(0,1fr) auto; gap: var(--space-1); }
+.planParseProgress.compact svg { width: var(--text-sm); height: var(--text-sm); }
+.planDocumentCard .planParseProgress.compact span,
+.planDocumentCard .planParseProgress.compact b { font-size: var(--text-xs); }
+.planParseProgress.compact > i { height: var(--space-1); }
+.bucketUploadProgress { display: grid; grid-template-columns: 1fr auto; gap: var(--space-2); margin-top: var(--space-4); color: var(--muted); font-size: var(--text-xs); }
+.bucketUploadProgress > i { grid-column: 1 / -1; }
+.bucketUploadReady { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); color: var(--success); font-size: var(--text-xs); font-weight: var(--weight-semibold); }
+.bucketUploadReady svg { width: var(--text-base); height: var(--text-base); }
+.planDetail { display: grid; gap: var(--space-4); }
+.planDetailHead { display: grid; grid-template-columns: calc(var(--space-8) * 3) minmax(0,1fr) auto; align-items: start; gap: var(--space-5); padding: var(--space-4) 0; border-bottom: 1px solid var(--border); }
+.planDetailHead .back { margin: 0; }
+.planDetailHead > div > span { color: var(--accent-strong); font-size: var(--text-xs); font-weight: var(--weight-semibold); text-transform: uppercase; }
+.planDetailHead h2 { margin: var(--space-1) 0; font-size: var(--text-xl); font-weight: var(--weight-semibold); letter-spacing: 0; }
+.planDetailHead small { color: var(--muted); font-size: var(--text-xs); }
+.planDetailError { display: flex; align-items: center; gap: var(--space-2); margin: 0; padding: var(--space-2) var(--space-3); border: 1px solid var(--danger); border-radius: var(--radius-md); background: var(--danger-soft); color: var(--danger); font-size: var(--text-xs); }
+.planDetailError svg { width: var(--text-base); }
+.planDetailTabs { display: flex; gap: var(--space-5); border-bottom: 1px solid var(--border); }
+.planDetailTabs button { height: var(--control); display: flex; align-items: center; gap: var(--space-2); border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); font-size: var(--text-xs); font-weight: var(--weight-semibold); }
+.planDetailTabs button.active { border-bottom-color: var(--accent); color: var(--ink); }
+.planDetailTabs svg { width: var(--text-base); height: var(--text-base); }
+.sourcePdfViewer { height: 72vh; min-height: calc(var(--space-8) * 16); overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-selected); }
+.sourcePdfViewer iframe { width: 100%; height: 100%; border: 0; }
+.attributeEditor { display: grid; gap: var(--space-3); }
+.attributeEditorBar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: var(--space-2) 0; background: var(--canvas); }
+.attributeEditorBar > span { color: var(--muted); font-size: var(--text-xs); }
+.attributeGroup { display: grid; gap: var(--space-4); padding: var(--space-5) 0 var(--space-6); border-bottom: 1px solid var(--border); }
+.attributeGroup > h3 { margin: 0; color: var(--ink); font-size: var(--text-base); font-weight: var(--weight-semibold); letter-spacing: 0; }
+.attributeFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.attributeField { min-width: 0; display: grid; align-content: start; gap: var(--space-2); color: var(--muted); font-size: var(--text-xs); }
+.attributeField.long,
+.attributeObject,
+.attributeArray { grid-column: 1 / -1; }
+.attributeField input,
+.attributeField select,
+.attributeField textarea,
+.attributePrimitiveRow input { width: 100%; min-width: 0; min-height: var(--control); padding: 0 var(--space-3); border: 1px solid var(--border-strong); border-radius: var(--radius-md); outline: 0; background: var(--surface-selected); color: var(--ink); font: inherit; font-size: var(--text-sm); letter-spacing: 0; }
+.attributeField select { appearance: auto; }
+.attributeField textarea { min-height: calc(var(--space-8) * 3); padding: var(--space-3); resize: vertical; line-height: var(--leading-normal); }
+.attributeField input:focus,
+.attributeField select:focus,
+.attributeField textarea:focus,
+.attributePrimitiveRow input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.attributeBoolean { min-height: var(--control); display: flex; align-items: center; gap: var(--space-2); align-self: end; color: var(--ink); font-size: var(--text-sm); }
+.attributeBoolean input { width: var(--space-4); height: var(--space-4); margin: 0; accent-color: var(--accent); }
+.attributeObject.nested { padding-left: var(--space-4); border-left: 2px solid var(--border); }
+.attributeObject > h4 { margin: 0 0 var(--space-3); color: var(--ink); font-size: var(--text-xs); font-weight: var(--weight-semibold); letter-spacing: 0; }
+.attributeArray { min-width: 0; display: grid; gap: var(--space-2); }
+.attributeArrayHead { min-height: var(--control-sm); display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.attributeArrayHead > span { color: var(--ink); font-size: var(--text-xs); font-weight: var(--weight-semibold); }
+.attributeArrayHead > span:empty { display: none; }
+.attributeArrayHead > span:empty + .attributeAdd { margin-left: auto; }
+.attributeAdd { min-height: var(--control-sm); height: var(--control-sm); padding: 0 var(--space-2); font-size: var(--text-xs); }
+.attributeAdd svg,
+.attributePrimitiveRow button svg,
+.attributeArrayItem summary button svg { width: var(--text-base); height: var(--text-base); }
+.attributeArrayItem { border-top: 1px solid var(--border); }
+.attributeArrayItem:last-child { border-bottom: 1px solid var(--border); }
+.attributeArrayItem > summary { min-height: var(--control); display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; cursor: pointer; color: var(--ink); font-size: var(--text-sm); font-weight: var(--weight-medium); list-style: none; }
+.attributeArrayItem > summary::-webkit-details-marker { display: none; }
+.attributeArrayItem > summary::before { content: ""; width: var(--space-2); height: var(--space-2); flex: 0 0 auto; border-right: 1px solid var(--muted); border-bottom: 1px solid var(--muted); transform: rotate(-45deg); transition: transform .15s ease; }
+.attributeArrayItem[open] > summary::before { transform: rotate(45deg); }
+.attributeArrayItem > summary button,
+.attributePrimitiveRow button { width: var(--control-sm); height: var(--control-sm); display: grid; place-items: center; flex: 0 0 auto; margin-left: auto; padding: 0; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--muted); }
+.attributeArrayItem > summary button:hover,
+.attributePrimitiveRow button:hover { background: var(--danger-soft); color: var(--danger); }
+.attributeArrayItem > .attributeObject { padding: var(--space-3) 0 var(--space-5) var(--space-5); }
+.attributePrimitiveRow { display: grid; grid-template-columns: minmax(0, 1fr) var(--control-sm); gap: var(--space-2); align-items: center; }
+.attributeEmpty { color: var(--muted); font-size: var(--text-xs); font-style: italic; }
+.attributeWaiting { min-height: calc(var(--space-8) * 8); display: grid; place-content: center; justify-items: center; gap: var(--space-3); color: var(--muted); }
+.attributeWaiting svg { width: var(--text-xl); animation: spin 1s linear infinite; }
+.attributeWaiting b { font-size: var(--text-xs); }
+@media (max-width: 720px) {
+  .planDocumentCard { grid-template-columns: var(--control) minmax(0,1fr) var(--text-base); }
+  .planDetailHead { grid-template-columns: 1fr auto; }
+  .planDetailHead .back { grid-column: 1 / -1; }
+  .attributeFields { grid-template-columns: minmax(0, 1fr); }
+  .attributeObject.nested { padding-left: var(--space-3); }
+  .attributeArrayItem > .attributeObject { padding-left: var(--space-3); }
+  .sourcePdfViewer { min-height: calc(var(--space-8) * 12); }
+}
