@@ -1,0 +1,70 @@
+Employee name
+
+Please check the box for each coverage in which you or your dependents are enrolling.
+D. Product Selection If your employer offers a choice of plans, indicate which plan you are selecting. Benefit offerings
+are dependent upon employer selection.
+
+Person Medical Dental Vision
+Employee Oo Oo Oo
+Spouse/Domestic Partner oOo oOo Oo
+Dependent o oOo Oo
+
+E. Prior Medical Insurance Information
+
+Within the last 12 months, have you, your spouse, or your dependents had any other medical coverage?
+ONo OVes (if yes, please complete this section.)
+
+Prior medical carrier name Effective date ___/
+
+/__/___Enddate__/_/__
+Prior coverage type: C1 Employee OSpouse OChild(ren) O Family
+
+Ola (veltelmeelu-veteiMielurciicim This section must be completed. (Attach sheet if necessary.)
+
+On the day this coverage begins, will you, your spouse or any of your dependents be covered under any other medical health plan or policy,
+including another UnitedHealthcare plan or Medicare? OYES (continue completing this section) [INO (skip the rest of this section)
+
+Name of other carrier
+
+Other Group Medical Coverage Information | Type Effective Date] End Date Name and date of birth of policyholder
+(only list those covered by other plan) (B/S/F)* | MM/DD/YY | MM/DD/YY | for other coverage
+
+Employee:
+Spouse Name:
+
+Dependent Name:
+
+Dependent Name:
+
+Dependent Name:
+
+*B. Enter ‘B’ when this dependent is covered under both you and your spouse’s insurance plan (married)
+S. Enter ‘S’ if you are the parent awarded custody of this dependent and no other individual is required to pay for this dependent’s medical expenses.
+F. Enter ‘F’ if this dependent is covered by another individual (not a member of your household) required to pay for this dependent’s medical expenses.
+
+F. Other Medical Coverage Information (co
+
+(te) This section must be completed. (Attach sheet if necessary.)
+
+Medicare - Employee Information: If enrolled in Medicare, please attach a copy of your Medicare ID card.
+
+O Enrolled in Part A: Effective Date O Ineligible for Part A* ONot Enrolled in Part A (chose not to enroll)**
+OEnrolled in Part B: Effective Date Olneligible for Part B* OINot Enrolled in Part B (chose not to enroll)**
+O Enrolled in Part D: Effective Date O Ineligible for Part D* OINot Enrolled in Part D (chose not to enroll)**
+
+Reason for Medicare eligibility: [Over 65 O Kidney disease O Disabled O Disabled but actively at work
+Are you receiving Social Security Disability Insurance (SSDI)? OYes LINo Start Date__/__/__
+
+Medicare - Spouse/Dependent Name:
+
+O Enrolled in Part A: Effective Date Olneligible for Part A* ONot Enrolled in Part A (chose not to enroll)**
+OEnrolled in Part B: Effective Date O Ineligible for Part B* OINot Enrolled in Part B (chose not to enroll)**
+O Enrolled in Part D: Effective Date Olneligible for Part D* ONot Enrolled in Part D (chose not to enroll)**
+
+Reason for Medicare eligibility: [Over 65 O Kidney disease O Disabled O Disabled but actively at work
+
+*Only check “Ineligible” if you have received documentation from your Social Security benefits that indicate that you are not eligible for Medicare.
+** If you are eligible for Medicare on a primary basis (Medicare pays before benefits under the group policy), you should enroll in and
+maintain coverage under Medicare Part A, Part B, and/or Part D as applicable.
+
+page 3 of 4
