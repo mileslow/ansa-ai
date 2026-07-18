@@ -94,6 +94,7 @@ export default function GammaBookletPrototype() {
   const coreReady = ["employer", "rates", "documents", "template", "census"].every(
     (id) => completed.has(id),
   );
+  const allSourcesReady = coreReady && completed.has("instructions");
   const bookletReady = coreReady && !blockerOpen;
   const completedChecks = checkDefinitions.filter((check) =>
     completed.has(check.phase),
@@ -227,10 +228,24 @@ export default function GammaBookletPrototype() {
                 <RotateCcw /> Reset
               </button>
             )}
-            <button className="g-button g-button--primary tw:rounded-ansa tw:shadow-ansa-sm" onClick={runSample} disabled={sampleRunning || !!processingPhase}>
-              {sampleRunning ? <LoaderCircle className="g-spin" /> : <Sparkles />}
-              {sampleRunning ? "Building sample…" : completed.size ? "Continue with sample" : "Try sample benefits files"}
-              {!sampleRunning && <ArrowRight />}
+            <button
+              className="g-button g-button--primary tw:rounded-ansa tw:shadow-ansa-sm"
+              onClick={coreReady ? () => runPhase("instructions") : runSample}
+              disabled={sampleRunning || !!processingPhase || allSourcesReady}
+            >
+              {sampleRunning || processingPhase ? <LoaderCircle className="g-spin" /> : allSourcesReady ? <Check /> : <Sparkles />}
+              {sampleRunning
+                ? "Building sample…"
+                : processingPhase === "instructions"
+                  ? "Applying instructions…"
+                  : allSourcesReady
+                    ? "Booklet complete"
+                    : coreReady
+                      ? "Add final instructions"
+                      : completed.size
+                        ? "Continue with sample"
+                        : "Try sample benefits files"}
+              {!sampleRunning && !processingPhase && !allSourcesReady && <ArrowRight />}
             </button>
           </div>
         </section>
