@@ -170,6 +170,35 @@ Before merging UI changes:
 5. Confirm optional company data is not replaced by sample data.
 6. Run `npm run build` and resolve all errors before handoff.
 
+## Backend booklet generator status
+
+As of July 17, 2026, the backend-first booklet flow is a working MVP. It can
+create a thread, accept mixed files, classify and extract them, assemble a
+source-aware benefits package, ask blocker questions, resume from answers,
+render a PDF, and persist the run and output. The current local verification is
+178 deterministic tests passing, 74 paid/live tests gated, a passing production
+build, and a passing backend TypeScript check.
+
+The implementation is not yet ready for unrestricted use with sensitive real
+employer data. Detailed Life/AD&D, STD, LTD, voluntary/Aflac, HSA, HRA, and FSA
+generation remains incomplete; ancillary sections can be present without full
+source-backed policy detail. Authentication, tenant ownership checks, and
+private Firestore/Storage access also need to be completed.
+
+The `ansa-booklet-backend` Cloud Run service is deployed in `flux-ebfb0`. A
+live backend run generated and independently verified a corrected 12-page PDF
+using 26 payroll deductions. The Vercel frontend has not been rebuilt since
+`VITE_BACKEND_API_URL` was added, so the current production frontend still uses
+its previous Vercel-function architecture. Deployment work is currently paused.
+
+The canonical, exhaustive implementation and verification record is
+[`BENEFITS_BOOKLET_GENERATOR_IMPLEMENTATION_REPORT.md`](BENEFITS_BOOKLET_GENERATOR_IMPLEMENTATION_REPORT.md).
+
+The detailed and authoritative gap list is maintained in
+[`docs/booklet-generation-issues.md`](docs/booklet-generation-issues.md).
+Do not treat a section being renderable as proof that its extraction and
+source-completeness requirements are finished.
+
 ## Medical plan parser
 
 The complete field and provenance inventory is documented in

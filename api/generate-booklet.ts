@@ -1,7 +1,11 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import {
+  generateBookletPdf,
+  renderBookletPreviewPages,
+} from "../lib/booklet";
 
 export const config = {
-  includeFiles: "public/pdf-assets/**",
+  includeFiles: "lib/**",
 };
 
 function validateBookletCompany(company: any) {
@@ -16,7 +20,11 @@ function validateBookletCompany(company: any) {
   requireValue("Plan year start", company?.planDetails?.planYear?.start);
   requireValue("Plan year end", company?.planDetails?.planYear?.end);
   if (!company?.benefits?.health?.plans?.length) missing.push("Medical plan rates");
-  if (!company?.benefits?.dental?.plans?.length) missing.push("Dental plan rates");
+  if (
+    Number(company?.benefits?.dental?.uploadedPlanCount) > 0 &&
+    !company?.benefits?.dental?.plans?.length
+  )
+    missing.push("Dental plan rates");
   return [...new Set(missing)];
 }
 
@@ -39,25 +47,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       streamStarted = true;
       res.write(`${JSON.stringify(event)}\n`);
     };
-    const {
-      generateBigTowsStylePdf,
-      renderBigTowsStylePreviewPages,
-    } = await import("../scripts/generate-bigtows-2025-style.mjs");
-    const pages = await renderBigTowsStylePreviewPages(
+    const pages = renderBookletPreviewPages(
       company,
       Number(payPeriods),
     );
     send({
       type: "start",
       pageCount: pages.length,
-      message: "Building the 2025-style Big Tows benefits guide",
+      message: `Building ${company.name}'s benefits guide`,
     });
     for (const page of pages) {
       send({ type: "page", ...page, message: `Creating ${page.title}` });
-      await new Promise((resolve) => setTimeout(resolve, 180));
+      await new Promise((resolve) => setTimeout(resolve, 650));
     }
     send({ type: "rendering", message: "Typesetting the final PDF" });
-    const pdf = await generateBigTowsStylePdf(company, Number(payPeriods));
+    const pdf = await generateBookletPdf(company, Number(payPeriods));
     const filename = `${String(company.name || "benefits")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")

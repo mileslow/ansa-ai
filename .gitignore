@@ -6,3 +6,7 @@ tmp
 .playwright-cli
 output
 public/local-guides
+.env*
+source-docs/**/.tmp/
+source-docs/**/.verification/
+source-docs/**/_verification/
