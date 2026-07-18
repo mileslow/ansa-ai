@@ -21,15 +21,12 @@ import {
   LoaderCircle,
   MessageSquareText,
   MoreHorizontal,
-  PanelTop,
   RotateCcw,
   ScanLine,
   ShieldCheck,
   Sparkles,
   Upload,
   Users,
-  WandSparkles,
-  X,
   Zap,
 } from "lucide-react";
 import {
@@ -100,6 +97,20 @@ export default function GammaBookletPrototype() {
     completed.has(check.phase),
   ).length;
   const completion = Math.round((completed.size / phaseDefinitions.length) * 100);
+  const activePhaseIndex = Math.max(
+    0,
+    phaseDefinitions.findIndex((phase) => phase.id === activePhase),
+  );
+  const currentPhase = phaseDefinitions[activePhaseIndex];
+  const currentPhaseState = phaseState[currentPhase.id] || {
+    status: "idle",
+    stage: -1,
+  };
+  const phaseIsUnlocked = (index) =>
+    index === 0 ||
+    phaseDefinitions
+      .slice(0, index)
+      .every((phase) => ["processing", "complete"].includes(phaseState[phase.id]?.status));
 
   useEffect(() => {
     if (availablePages.length && !availablePages.some((page) => page.id === selectedPage)) {
@@ -141,6 +152,15 @@ export default function GammaBookletPrototype() {
       setNotice(`${addedPages.length} ${addedPages.length === 1 ? "page" : "pages"} added to your booklet`);
       window.setTimeout(() => setNotice(""), 2400);
     }
+    if (id !== "documents" || hsaAnswer) {
+      const currentIndex = phaseDefinitions.findIndex((phase) => phase.id === id);
+      const nextPhase = phaseDefinitions[currentIndex + 1];
+      if (nextPhase) {
+        await wait(620);
+        if (token !== runToken.current) return false;
+        setActivePhase((current) => (current === id ? nextPhase.id : current));
+      }
+    }
     return true;
   };
 
@@ -152,6 +172,10 @@ export default function GammaBookletPrototype() {
       if (token !== runToken.current) break;
       if (phaseState[id]?.status !== "complete") {
         await runPhase(id, token);
+        if (id === "documents" && !hsaAnswer) {
+          if (token === runToken.current) setSampleRunning(false);
+          return;
+        }
         await wait(260);
       }
     }
@@ -198,7 +222,6 @@ export default function GammaBookletPrototype() {
       <header className="g-topbar tw:flex tw:items-center tw:justify-between">
         <div className="g-topbar__left tw:flex tw:items-center">
           <button className="g-brand tw:flex tw:items-center" onClick={() => window.location.assign("/")} aria-label="Back to Ansa workspace">
-            <Logo />
             <b>ansa</b>
           </button>
           <span className="g-topbar__divider" />
@@ -218,8 +241,8 @@ export default function GammaBookletPrototype() {
       <main className="g-main">
         <section className="g-intro tw:flex tw:justify-between">
           <div>
-            <span className="g-eyebrow tw:text-ansa-primary"><WandSparkles /> Booklet studio</span>
-            <h1>Build the guide by adding<br />what you already have.</h1>
+            <span className="g-eyebrow tw:text-ansa-primary">Booklet studio</span>
+            <h1>Build the guide with what you already have.</h1>
             <p>Ansa reads each source, finds the facts, and shapes the booklet live. You only step in when a decision needs you.</p>
           </div>
           <div className="g-intro__actions tw:flex tw:items-center">
@@ -259,30 +282,37 @@ export default function GammaBookletPrototype() {
 
         <section className={`g-workspace tw:grid ${mobilePreview ? "show-preview" : ""}`}>
           <div className="g-flow-panel">
-            <div className="g-flow-head tw:flex tw:items-center tw:justify-between">
-              <div>
+            <div className="g-step-header">
+              <div className="g-step-header__meta">
                 <span>Your information</span>
-                <b>{completed.size} of {phaseDefinitions.length} sources ready</b>
+                <b>{completed.size} of {phaseDefinitions.length} ready</b>
               </div>
               <span className="g-flow-progress" aria-label={`${completion}% complete`}><i style={{ width: `${completion}%` }} /></span>
             </div>
-
-            <div className="g-phase-list">
-              {phaseDefinitions.map((phase) => (
-                <PhaseCard
-                  key={phase.id}
-                  phase={phase}
-                  state={phaseState[phase.id] || { status: "idle", stage: -1 }}
-                  active={activePhase === phase.id}
-                  busy={!!processingPhase}
-                  blocker={phase.id === "documents" && blockerOpen}
-                  hsaAnswer={hsaAnswer}
-                  onActivate={() => setActivePhase(phase.id)}
-                  onRun={() => runPhase(phase.id)}
-                  onAnswer={chooseHsaAnswer}
-                />
-              ))}
-            </div>
+            <PhaseTabs
+              activeIndex={activePhaseIndex}
+              phaseState={phaseState}
+              isUnlocked={phaseIsUnlocked}
+              onSelect={(index) => setActivePhase(phaseDefinitions[index].id)}
+            />
+            <FocusedPhase
+              phase={currentPhase}
+              state={currentPhaseState}
+              index={activePhaseIndex}
+              busy={!!processingPhase}
+              blocker={currentPhase.id === "documents" && blockerOpen}
+              hsaAnswer={hsaAnswer}
+              onRun={() => runPhase(currentPhase.id)}
+              onAnswer={chooseHsaAnswer}
+              onBack={() => setActivePhase(phaseDefinitions[activePhaseIndex - 1]?.id)}
+              onNext={() => setActivePhase(phaseDefinitions[activePhaseIndex + 1]?.id)}
+              canBack={activePhaseIndex > 0}
+              canNext={
+                activePhaseIndex < phaseDefinitions.length - 1 &&
+                currentPhaseState.status !== "idle" &&
+                phaseIsUnlocked(activePhaseIndex + 1)
+              }
+            />
           </div>
 
           <BookletPreview
@@ -307,32 +337,54 @@ export default function GammaBookletPrototype() {
   );
 }
 
-function PhaseCard({ phase, state, active, busy, blocker, hsaAnswer, onActivate, onRun, onAnswer }) {
+const phaseTabLabels = ["Employer", "Rates", "Plans", "Template", "Census", "Notes"];
+
+function PhaseTabs({ activeIndex, phaseState, isUnlocked, onSelect }) {
+  return (
+    <nav className="g-step-tabs" aria-label="Information phases">
+      {phaseDefinitions.map((phase, index) => {
+        const state = phaseState[phase.id]?.status || "idle";
+        const unlocked = isUnlocked(index);
+        return (
+          <button
+            key={phase.id}
+            className={`${activeIndex === index ? "active" : ""} ${state === "complete" ? "complete" : ""} ${state === "processing" ? "processing" : ""}`}
+            onClick={() => onSelect(index)}
+            disabled={!unlocked}
+            aria-current={activeIndex === index ? "step" : undefined}
+          >
+            <span>{state === "complete" ? <Check /> : String(index + 1).padStart(2, "0")}</span>
+            <b>{phaseTabLabels[index]}</b>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+function FocusedPhase({ phase, state, index, busy, blocker, hsaAnswer, onRun, onAnswer, onBack, onNext, canBack, canNext }) {
   const Icon = iconMap[phase.icon];
   const complete = state.status === "complete";
   const processing = state.status === "processing";
-  const expanded = active || processing || blocker;
 
   return (
-    <article className={`g-phase ${expanded ? "is-expanded" : ""} ${complete ? "is-complete" : ""} ${processing ? "is-processing" : ""}`}>
-      <button className="g-phase__summary tw:grid tw:items-center" onClick={onActivate} aria-expanded={expanded}>
-        <span className="g-phase__number">{complete ? <Check /> : phase.number}</span>
-        <span className="g-phase__icon"><Icon /></span>
-        <span className="g-phase__copy">
-          <b>{phase.title}</b>
-          <small>{complete ? phase.fileName : phase.description}</small>
-        </span>
-        <span className={`g-phase__status ${complete ? "complete" : processing ? "processing" : ""}`}>
-          {complete ? "Ready" : processing ? "Reading" : "Add"}
-        </span>
-        <ChevronDown className="g-phase__chevron" />
-      </button>
-
-      {expanded && (
-        <div className="g-phase__body">
+    <article className={`g-focused-phase ${complete ? "is-complete" : ""} ${processing ? "is-processing" : ""}`} key={phase.id}>
+      <div className="g-focused-phase__content">
+        <header className="g-focused-phase__intro">
+          <span className="g-focused-phase__icon"><Icon /></span>
+          <div>
+            <small>Step {index + 1} of {phaseDefinitions.length}</small>
+            <h2>{phase.title}</h2>
+            <p>{phase.description}</p>
+          </div>
+          <span className={`g-focused-phase__status ${complete ? "complete" : processing ? "processing" : ""}`}>
+            {complete ? <><Check /> Ready</> : processing ? <><LoaderCircle className="g-spin" /> Reading</> : "Not started"}
+          </span>
+        </header>
+        <div className="g-focused-phase__answer">
           {!complete && !processing && (
             <button
-              className="g-dropzone tw:rounded-ansa"
+              className="g-dropzone g-dropzone--focused tw:rounded-ansa"
               onClick={onRun}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => { event.preventDefault(); onRun(); }}
@@ -380,7 +432,12 @@ function PhaseCard({ phase, state, active, busy, blocker, hsaAnswer, onActivate,
             <div className="g-resolved"><CheckCircle2 /><span><b>HSA decision applied</b><small>{hsaAnswer}</small></span></div>
           )}
         </div>
-      )}
+      </div>
+      <footer className="g-focused-phase__nav">
+        <button onClick={onBack} disabled={!canBack}><ArrowLeft /> Back</button>
+        <span>{processing ? "You can review the next step while Ansa works." : complete ? "This source is ready." : "Add a source to unlock the next step."}</span>
+        <button className="next" onClick={onNext} disabled={!canNext}>Next step <ArrowRight /></button>
+      </footer>
     </article>
   );
 }
@@ -483,11 +540,10 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completed, compl
 function EmptyPreview() {
   return (
     <div className="g-preview-empty">
-      <div className="g-empty-orbit"><span><BookOpen /></span><i /><i /></div>
-      <span className="g-eyebrow"><Sparkles /> Your guide will build itself</span>
+      <div className="g-empty-booklet"><i /><i /><span><BookOpen /></span></div>
+      <span className="g-preview-kicker">Your guide will build itself</span>
       <h2>No booklet yet</h2>
       <p>Add employer setup or a prior template. Pages, checks, and source links will appear here as Ansa works.</p>
-      <div><span><Files /></span><span><ArrowRight /></span><span><PanelTop /></span></div>
     </div>
   );
 }
