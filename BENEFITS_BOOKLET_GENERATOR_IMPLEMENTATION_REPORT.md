@@ -47,13 +47,14 @@ That run produced a valid 12-page, 140,917-byte, portrait US Letter PDF. Its ext
 The work should still be described as a strong working MVP, not a fully production-complete benefits platform. Important limitations remain:
 
 - The current React company screen still calls the older assembled-company PDF endpoint, not the new mixed-file thread agent.
-- The grounded content agent covers the 17 conceptual sections requested in the section matrix, but does not yet generate grounded copy for HSA or STD.
+- The grounded content agent now covers the full 19-section outline, including HSA and STD. All eight added HSA/STD live-matrix assertions passed, and two real-document HSA/STD extraction-to-PDF tests also passed.
 - Dental and vision costs are supported more fully than their plan-design attributes.
 - Rich Life/AD&D, STD, LTD, EAP, telemedicine, voluntary, HSA, HRA, and FSA details do not all survive the normalized package-to-renderer path.
 - Some deterministic ancillary tests construct the legacy renderer input directly and therefore do not prove the full extraction-to-PDF path.
 - Authentication, tenant authorization, and private-by-default data access are intentionally not implemented.
 - The current Cloud Run endpoint is public and accepts CORS requests from every origin, following the explicit request for a low-security development configuration.
 - The Vercel frontend was not redeployed after its Cloud Run API base variable was added. No further deployment is being performed now.
+- The new local 19-section content, HSA-offering confirmation, and ancillary-only blocker fixes have not been deployed to the paused Cloud Run service.
 
 ## Current status at a glance
 
@@ -66,13 +67,13 @@ The work should still be described as a strong working MVP, not a fully producti
 | Rate and contribution workbook parsing | Implemented | Cost-summary, wide-table, and matrix layouts |
 | Normalized BenefitsPackage | Implemented | Source map, confidence, conflicts, plans, rates, accounts |
 | Exception-only blocker flow | Implemented for core blockers | Employer, dates, eligibility, selected plans, matches, contributions, conflicts |
-| Batched grounded content | Implemented for 17 requested IDs | Ready, blocked, and omitted states with grounding guards |
+| Batched grounded content | Implemented for all 19 IDs | Ready, blocked, and omitted states with grounding guards |
 | Dynamic outline | Implemented for up to 19 IDs | Includes HSA and STD when offered |
 | Real HTML/PDF rendering | Implemented | Puppeteer or Sparticuz Chromium |
 | PDF preflight and structural QA | Implemented | Required sections, placeholders, dimensions, page count |
 | Firestore and Storage persistence | Implemented | Threads, messages, uploads, runs, facts, events, signed PDF URL |
-| Deterministic tests | Passing | 178 passed across 15 files |
-| Paid/live suite | Previously completed | 74 section/extraction/pipeline assertions, with timeout detail documented below |
+| Deterministic tests | Passing | 187 passed across 15 files |
+| Paid/live suite | Passing across recorded runs | 84 assertions: prior 74 plus 8 HSA/STD matrix cases and 2 real-document pipelines |
 | Targeted GPT-5.6 content test | Passing | 17 complete-evidence section assertions |
 | Latest Cloud Run live PDF | Passing | Complete run, 12 pages, 140,917 bytes, 31 events |
 | Visual inspection | Completed for current live PDFs | Poppler rendering and page review |
@@ -80,6 +81,7 @@ The work should still be described as a strong working MVP, not a fully producti
 | Vercel frontend using Cloud Run | Not completed | Environment variable added, frontend not rebuilt/redeployed |
 | Authentication and tenant isolation | Not implemented | Public development posture |
 | Full ancillary source fidelity | Partial | Detailed gaps listed later |
+| Canonical benefit requirements | Registry implemented; pipeline wiring pending | 338 fields across 12 benefit types with separate extraction, safe-booklet, and formal-disclosure gates |
 
 ## Scope language used in this report
 
@@ -183,14 +185,14 @@ The Flower City guide has 19 physical PDF pages, but medical spans multiple page
 16. Contacts
 17. Legal notices
 
-This exact 17-ID baseline is what the grounded content-agent test matrix covers with insufficient, partial, complete, and multiple-value scenarios.
+This 17-ID baseline remains the Flower City classification reference. The grounded content-agent matrix now extends it with HSA and STD and covers all 19 IDs with insufficient, partial, complete, and multiple-value scenarios.
 
 The broader generator supports two additional conditional sections:
 
 - HSA
 - Short-term disability
 
-Therefore, the maximum outline/rendering universe currently contains 19 conceptual section IDs. The distinction matters because the outline and deterministic renderer support all 19, while the grounded content agent currently contains only the 17-ID baseline.
+Therefore, the maximum outline/rendering/content universe currently contains 19 conceptual section IDs. The outline, deterministic renderer, and grounded content agent now share that full coverage. A canonical 12-benefit requirements registry now exists, but those downstream components still need to enforce it instead of their separate completeness lists.
 
 ## Major implementation outcomes
 
@@ -665,7 +667,7 @@ Carrier rate sheets and renewal spreadsheets use deterministic workbook parsing.
 
 ### Stage 5: plan documents
 
-SBC, SPD, and plan-summary documents use the medical plan extraction path. The universal pipeline uses an in-memory plan store for incremental patches and transcript pages, retaining the final extracted attributes but not persisting those intermediate pages through this path.
+SBC and medical-looking SPD/plan-summary documents use the medical plan extraction path. Deterministic ancillary filename/reasoning signals route disability, life, account, dental, vision, and similar ancillary plan documents through the general source-backed extractor instead. The universal medical path uses an in-memory plan store for incremental patches and transcript pages, retaining the final extracted attributes but not persisting those intermediate pages through this path.
 
 ### Stage 6: prior guides and booklets
 
@@ -677,7 +679,7 @@ The pipeline converts:
 
 - Employer/guide/email extraction results
 - Rate workbook results
-- Medical plan attributes
+- Medical plan attributes and ancillary plan-document extractions
 - Manual answers
 
 into ExtractedFact records with provenance.
@@ -726,6 +728,7 @@ It recognizes:
 - SBC wording.
 - SPD wording.
 - Plan-summary wording.
+- Deterministic disability/STD/LTD and HSA/account document signals.
 - Prior booklet or guide names.
 - Benefit-guide language.
 - EML or email-export markers.
@@ -982,7 +985,7 @@ It can detect:
 - HRA
 - FSA
 
-One important limitation is that HSA eligibility of a medical plan currently implies an HSA offering. A plan being HSA-qualified does not prove the employer actually sponsors or administers an HSA, so this should eventually become an evidence-aware distinction.
+HSA eligibility of a medical plan no longer implies an HSA offering. When a selected medical plan is HSA-qualified but no employer HSA evidence exists, the question engine asks for a specific Yes/No offering decision. The manual answer is source-mapped and controls whether the HSA section appears.
 
 ### Contact and account assembly
 
@@ -1090,10 +1093,11 @@ Examples include:
 
 The question engine intentionally does not ask for an entire section to be manually rewritten.
 
+HSA-qualified medical plans trigger a targeted HSA-offering confirmation when employer sponsorship is otherwise unproven. Ancillary plans no longer require a medical-style rate row merely to render their sourced plan identity.
+
 Current limitations:
 
 - Every generated question is blocking; warning-only clarification is not implemented.
-- Ancillary-only packages can be incorrectly blocked by the general no-selected-plans rule.
 - It does not yet ask for missing rich Life, STD, LTD, account, voluntary, EAP, or telemedicine details.
 - It does not detect HSA/FSA compatibility questions.
 - It does not convert a content-agent blocked status into a thread question.
@@ -1213,7 +1217,7 @@ The states mean:
 
 Blocked and omitted sections must return empty copy and empty model-supplied source paths. The deterministic status layer attaches available known paths to blocked results for diagnosis.
 
-### Current 17 section IDs
+### Current 19 section IDs
 
 The content agent currently covers:
 
@@ -1224,18 +1228,20 @@ The content agent currently covers:
 - Eligibility
 - Medical
 - Telemedicine
+- HSA
 - HRA
 - FSA
 - Dental
 - Vision
 - Life and AD&D
+- STD
 - LTD
 - EAP
 - Voluntary
 - Contacts
 - Legal
 
-It does not yet include HSA or STD. Those sections can be outlined and rendered deterministically, but do not receive source-grounded generated copy.
+HSA and STD were added to the same closed-fact, missing-field, source-path, and literal-grounding flow as the original 17 sections.
 
 ### Closed fact sets
 
@@ -1336,12 +1342,12 @@ A deterministic regression test confirms that an active 26-period spreadsheet ru
 
 The adapter currently loses important detail:
 
-- Selected plans without matched rate rows do not reach plan tables.
-- Life, STD, and LTD usually become offered flags instead of rich policy fields.
+- Medical, dental, and vision plans without matched rate rows do not reach cost tables.
+- Life, STD, and LTD plan names/carriers now survive without rate rows, but rich policy fields still do not.
 - HRA contribution tiers are not mapped.
 - One administrator can be reused across account types.
 - Dental and vision plan-design fields are not rich structured types.
-- Carrier mappings are less precise for combined life/disability structures.
+- Combined life/disability carrier mapping remains one shared legacy slot.
 
 This adapter is the main boundary where richer normalized ancillary data should eventually be preserved.
 
@@ -1430,6 +1436,8 @@ The placeholder scan blocks:
 - pending confirmation
 - to be confirmed
 - not set
+- not specified
+- not provided
 - invalid date
 - lorem ipsum
 
@@ -1938,24 +1946,24 @@ This script creates real Firestore/Storage records and incurs model usage. It is
 
 The current Vitest discovery contains:
 
-- 19 test files total
+- 20 test files total
 - 15 deterministic files executed by npm test
-- 4 live-gated files skipped by normal npm test
-- 252 test assertions discovered
-- 178 deterministic assertions passing
-- 74 live-gated assertions skipped in the standard command
+- 5 live-gated files skipped by normal npm test
+- 271 test assertions discovered
+- 187 deterministic assertions passing
+- 84 live-gated assertions skipped in the standard command
 
 The exact deterministic arithmetic is:
 
-    18 + 4 + 1 + 1 + 4 + 27 + 17 + 43 + 1 + 7 + 15 + 14 + 6 + 3 + 17 = 178
+    20 + 5 + 1 + 2 + 5 + 29 + 17 + 43 + 1 + 7 + 15 + 16 + 6 + 3 + 17 = 187
 
 The exact live arithmetic is:
 
-    68 + 2 + 1 + 3 = 74
+    76 + 2 + 1 + 3 + 2 = 84
 
 ## Deterministic tests by file
 
-### tests/benefits-package-assembler.test.ts — 18 tests
+### tests/benefits-package-assembler.test.ts — 20 tests
 
 Covers:
 
@@ -1967,7 +1975,9 @@ Covers:
 - Plan/year/date normalization
 - Dental offering
 - HRA detection
-- HSA inference
+- HSA qualification/offering separation and manual confirmation
+- Ancillary-only package blocker behavior
+- HSA account-form titles cannot become selected medical plans
 - Differently named SBC attachment
 - Duplicate-plan prevention
 - Newest employer-specific rate fallback
@@ -1979,7 +1989,7 @@ Covers:
 - Dynamic dental/HRA outline
 - Trusted prior order
 
-### tests/booklet-content-agent.test.ts — 4 tests
+### tests/booklet-content-agent.test.ts — 5 tests
 
 Covers:
 
@@ -1988,6 +1998,7 @@ Covers:
 - Unknown source-path rejection
 - Unsupported numeric-literal rejection
 - Grounded date and comma-formatted amount acceptance
+- Grounded HSA and STD content readiness/source validation
 
 The OpenAI client is mocked. These tests validate prompt inputs and guardrails, not live prose quality.
 
@@ -1995,11 +2006,11 @@ The OpenAI client is mocked. These tests validate prompt inputs and guardrails, 
 
 Confirms text input is clearly labeled as source-document evidence. It does not make a real model call.
 
-### tests/booklet-package-adapter.test.ts — 1 test
+### tests/booklet-package-adapter.test.ts — 2 tests
 
-Confirms the active spreadsheet's 26-payroll rule beats a 52-period model default and an unrelated 24-period plan.
+Confirms the active spreadsheet's 26-payroll rule beats a 52-period model default and an unrelated 24-period plan. Also confirms an ancillary plan name and carrier survive the adapter without a rate row.
 
-### tests/booklet-pipeline.test.ts — 4 tests
+### tests/booklet-pipeline.test.ts — 5 tests
 
 Covers:
 
@@ -2009,10 +2020,11 @@ Covers:
 - Resume after answers
 - All-stage event flow
 - Complete pipeline with injected grounded content
+- Ancillary STD SPD routing through general extraction instead of the medical parser
 
 The employer PDF bytes and final six-page PDF are synthetic in this deterministic file. It proves orchestration rather than real Chromium layout.
 
-### tests/booklet-quality-checker.test.ts — 27 tests
+### tests/booklet-quality-checker.test.ts — 29 tests
 
 Covers:
 
@@ -2021,7 +2033,7 @@ Covers:
 - Offered benefit missing from outline
 - Unresolved blocker
 - Missing source paths
-- Six placeholder variants
+- Eight placeholder variants, including `not specified` and `not provided`
 - Missing employer
 - Missing plan
 - Missing rendered section
@@ -2102,7 +2114,7 @@ Covers:
 - Benefit fallback
 - Wrong-benefit no-match behavior
 
-### tests/document-classifier.test.ts — 14 tests
+### tests/document-classifier.test.ts — 16 tests
 
 Covers:
 
@@ -2120,6 +2132,8 @@ Covers:
 - CSV/workbook behavior
 - Renewal precedence
 - Invalid workbook fallback
+- Deterministic STD/disability document signals
+- Deterministic HSA/account document signals
 
 ### tests/extracted-facts.test.ts — 6 tests
 
@@ -2162,11 +2176,11 @@ Uses the real notion workbooks and covers:
 
 The normal npm test command does not spend money or require an OpenAI key. The following files are skipped unless their environment gates and OPENAI_API_KEY are present.
 
-### tests/booklet-content-agent.live.test.ts — 68 assertions
+### tests/booklet-content-agent.live.test.ts — 76 assertions
 
-The 68 total is:
+The 76 total is:
 
-    17 supported content section IDs x 4 package scenarios
+    19 supported content section IDs x 4 package scenarios
 
 The four scenarios are:
 
@@ -2175,7 +2189,7 @@ The four scenarios are:
 - Complete information
 - Multiple plans or variants
 
-The test caches one generated batch per scenario, so the 68 assertions represent four OpenAI generation calls rather than 68 separate calls.
+The test caches one generated batch per scenario, so the 76 assertions represent four OpenAI generation calls rather than 76 separate calls.
 
 It verifies:
 
@@ -2187,7 +2201,7 @@ It verifies:
 - Multiple medical, dental, and vision names survive the multiple-plan scenario.
 - Content remains grounded to the closed fact set.
 
-The 17 section IDs are:
+The 19 section IDs are:
 
 - cover
 - toc
@@ -2196,18 +2210,42 @@ The 17 section IDs are:
 - eligibility
 - medical
 - telemedicine
+- hsa
 - hra
 - fsa
 - dental
 - vision
 - life
+- std
 - ltd
 - eap
 - voluntary
 - contacts
 - legal
 
-HSA and STD are not included in this live matrix.
+All eight HSA and STD cases passed with the live content model.
+
+### tests/booklet-hsa-std-real-documents.live.test.ts — 2 tests
+
+The HSA scenario:
+
+- Uses the real Minnesota SEGIP 2026 HSA contribution-change form.
+- Classifies and extracts the PDF with the live model.
+- Treats the current form as explicit employer HSA evidence while preserving blank employee election fields as blank.
+- Prevents the account form title from being normalized as a selected medical plan.
+- Runs package assembly, the live 19-section content agent, Chromium PDF rendering, and shared QA.
+- Writes `output/pdf/live/real-minnesota-hsa-benefits-guide.pdf`.
+
+The STD scenario:
+
+- Uses the real University of California/Lincoln Basic Short-Term Disability summary.
+- Uses deterministic ancillary classification plus live source extraction.
+- Proves an ancillary plan document bypasses the medical-plan parser.
+- Preserves the plan name and Lincoln carrier through the legacy renderer adapter without a rate row.
+- Runs the live content agent, Chromium PDF rendering, and shared QA.
+- Writes `output/pdf/live/real-university-california-std-benefits-guide.pdf`.
+
+Both PDFs are eight-page portrait US Letter files. `pdftotext` and visual inspection confirm the expected employer, benefit, plan/carrier evidence, no placeholder/missing-value language, and no clipping or overlap.
 
 ### tests/booklet-document-extractor.live.test.ts — 2 tests
 
@@ -2281,15 +2319,16 @@ The paid/live matrix was run with the actual Flux OpenAI key.
 
 The aggregate outcome is:
 
-- 68 content-section assertions passed.
+- 76 content-section assertions passed.
+- 2 real HSA/STD document-to-PDF assertions passed.
 - 3 real medical extraction/PDF tests passed.
 - 2 real guide/booklet extraction/PDF tests passed.
 - 1 full mixed-file local pipeline/PDF test passed.
-- 74 live assertions passed in total.
+- 84 live assertions have passing evidence across the recorded executions.
 
 One combined execution reported 73 of 74 before the original 600-second timeout expired on the 25-page image-only Big Tows case.
 
-That test was given a 900-second OCR ceiling and rerun by itself. It passed in 286.79 seconds. Therefore, every one of the 74 live assertions passed on the current implementation, but not all 74 completed inside one original 10-minute combined process.
+That test was given a 900-second OCR ceiling and rerun by itself. It passed in 286.79 seconds. Therefore, all 74 assertions in the prior live inventory passed, but not all 74 completed inside one original 10-minute combined process. The ten later HSA/STD assertions also passed in targeted executions, bringing the live inventory to 84.
 
 ## Targeted gpt-5.6 content-model verification
 
@@ -2316,6 +2355,8 @@ Generated PDFs are intentionally ignored by Git. They remain local QA artifacts 
 | big-tows-input-derived-benefits-guide.pdf | 10 | Real image-only Big Tows visual/OCR extraction |
 | northstar-fabrication-2026-benefits-guide.pdf | 9 | Full mixed-file local pipeline |
 | production-backend-live-benefits-guide.pdf | 12 | Deployed Cloud Run, Firestore, Storage, OpenAI, and Chromium path |
+| real-minnesota-hsa-benefits-guide.pdf | 8 | Real Minnesota HSA form, live extraction/content, and Chromium rendering |
+| real-university-california-std-benefits-guide.pdf | 8 | Real UC/Lincoln STD summary, live extraction/content, and Chromium rendering |
 
 All of the generated artifacts were checked for:
 
@@ -2571,7 +2612,8 @@ Fix:
 
 - Dental workbook detection was added.
 - Offering evidence includes HRA, HSA, and FSA.
-- HSA-qualified medical evidence can currently create HSA offering behavior.
+- HSA accounts and explicit offering evidence create HSA sections.
+- HSA qualification alone now creates a targeted confirmation question instead of an HSA offering.
 - Outline and renderer tests cover conditional inclusion.
 
 ### Defect 8: 52 deductions overrode authoritative 26
@@ -3101,11 +3143,9 @@ The frontend build also reports the existing large JavaScript chunk warning, app
 ### Priority 0: source-fidelity correctness
 
 1. Create one canonical 19-ID section registry used by outline, content, renderer, adapter, and tests.
-2. Add HSA and STD to grounded content generation.
-3. Make the package-to-renderer path lossless or render directly from BenefitsPackage.
-4. Prevent a content-blocked material section from silently receiving unsupported deterministic claims.
-5. Distinguish an HSA-qualified plan from an employer-sponsored HSA.
-6. Expand field-level provenance to every material rendered value.
+2. Make the package-to-renderer path lossless or render directly from BenefitsPackage.
+3. Prevent a content-blocked material section from silently receiving unsupported deterministic claims.
+4. Expand field-level provenance to every material rendered value.
 
 ### Priority 1: typed benefit models
 
@@ -3291,17 +3331,16 @@ Turn the new source-docs corpus into gated live tests for:
 ## Recommended next implementation sequence
 
 1. Preserve and merge the current working MVP.
-2. Wire a minimal frontend client to /api/booklet-pipeline.
-3. Add HSA and STD to the content-agent registry and four-state live matrix.
-4. Define typed account, dental, vision, life, and disability schemas.
-5. Extend extraction and package assembly for those schemas.
-6. Replace lossy adapter behavior.
-7. Add per-benefit blocker rules.
-8. Add PDF-text and arithmetic checks to shared QA.
-9. Add source-docs live scenarios.
-10. Add authentication and tenant ownership before sensitive use.
-11. Move long runs to a durable job model.
-12. Redeploy the static frontend to Cloud Run wiring only when deployment work is resumed.
+2. Define typed account, dental, vision, life, and disability schemas.
+3. Extend extraction and package assembly for those schemas.
+4. Replace the remaining lossy adapter behavior.
+5. Add per-benefit blocker rules.
+6. Add PDF-text and arithmetic checks to shared QA.
+7. Expand source-docs live scenarios beyond HSA and STD.
+8. Add authentication and tenant ownership before sensitive use.
+9. Move long runs to a durable job model.
+10. Wire a minimal frontend client to /api/booklet-pipeline after the backend contracts stabilize.
+11. Redeploy the static frontend to Cloud Run wiring only when deployment work is resumed.
 
 ## Safe local verification commands
 
@@ -3365,7 +3404,7 @@ The first items are ignored because they contain secrets, generated artifacts, d
 - Core conflicts and blockers
 - Batch answer/resume
 - Conditional outline
-- 17-ID grounded content agent
+- 19-ID grounded content agent
 - GPT-5.6 default and verification
 - Real HTML/PDF generation
 - Preflight and PDF structure QA
@@ -3373,8 +3412,9 @@ The first items are ignored because they contain secrets, generated artifacts, d
 - Repeatable production smoke
 - Real Cloud Run generation
 - Public source corpus
-- 178 deterministic tests
-- 74 previously completed live assertions
+- 187 deterministic tests
+- 84 live assertions with passing evidence across recorded executions
+- Real Minnesota HSA and UC/Lincoln STD extraction-to-PDF validation
 - Latest 12-page corrected live PDF
 - Docker/Cloud Build/Cloud Run packaging
 
@@ -3393,8 +3433,8 @@ The first items are ignored because they contain secrets, generated artifacts, d
 ### Not complete
 
 - Frontend thread-agent UI
-- HSA and STD LLM copy
 - Rich typed ancillary schemas
+- Full HSA contribution and STD policy-detail extraction/rendering
 - Lossless package-to-renderer mapping
 - Durable background jobs
 - Authentication
@@ -3415,7 +3455,7 @@ The current code is substantially beyond the original 20 to 30 percent generator
 - Thread orchestration
 - Questions and resume
 - Dynamic section selection
-- Source-grounded 17-section content
+- Source-grounded 19-section content
 - Real PDF rendering
 - Live infrastructure verification
 

@@ -6,6 +6,16 @@ import type {
   SourceRef,
 } from "./booklet-types";
 import { findContributionRule } from "./contribution-engine";
+import {
+  BENEFIT_REQUIREMENTS_REGISTRY,
+  predicatePaths,
+} from "./benefit-requirements";
+import type {
+  BenefitGateReport,
+  BenefitRequirementSubject,
+  FieldResolution,
+  RequirementEvidence,
+} from "./benefit-requirements/types";
 
 const id = (path: string) =>
   `question_${createHash("sha1").update(path).digest("hex").slice(0, 12)}`;
@@ -73,7 +83,20 @@ export function buildBlockerQuestions(
         benefitsPackage.sourceMap["eligibility.waitingPeriod"] || [],
       ),
     );
-  if (!benefitsPackage.plans.length)
+  const offeredPlanBenefits = benefitsPackage.offeredBenefits.filter(
+    (offering) =>
+      offering.offered &&
+      ["medical", "dental", "vision", "life", "std", "ltd"].includes(
+        offering.benefitType,
+      ),
+  );
+  const hasAnyOffering = benefitsPackage.offeredBenefits.some(
+    (offering) => offering.offered,
+  );
+  if (
+    !benefitsPackage.plans.length &&
+    (!hasAnyOffering || offeredPlanBenefits.length > 0)
+  )
     questions.push(
       question(
         "plans.selected",
@@ -84,6 +107,7 @@ export function buildBlockerQuestions(
     );
 
   for (const plan of benefitsPackage.plans) {
+    if (!["medical", "dental", "vision"].includes(plan.benefitType)) continue;
     const rate = benefitsPackage.rates.find((item) => item.id === plan.ratePlanId);
     if (!rate) {
       questions.push(
@@ -136,6 +160,133 @@ export function buildBlockerQuestions(
     );
   }
   return [...new Map(questions.map((item) => [item.fieldPath, item])).values()];
+}
+
+function resolutionEvidence(resolution: FieldResolution | undefined) {
+  if (!resolution) return [];
+  if (
+    resolution.status === "known" ||
+    resolution.status === "explicit_none" ||
+    resolution.status === "not_applicable" ||
+    resolution.status === "not_offered" ||
+    resolution.status === "requires_legal_determination"
+  )
+    return resolution.evidence;
+  if (resolution.status === "conflicting")
+    return resolution.candidates.flatMap((item) => item.evidence);
+  return [];
+}
+
+function evidenceSourceRef(evidence: RequirementEvidence): SourceRef {
+  const locator = evidence.locator;
+  return {
+    fileId: evidence.sourceFileId,
+    fileName: evidence.sourceFileName || evidence.sourceFileId,
+    documentType:
+      evidence.authority === "manual_answer" ? "manual_answer" : "unknown",
+    ...(locator?.kind === "pdf" ? { page: locator.page } : {}),
+    ...(locator?.kind === "sheet"
+      ? { sheet: locator.sheet, row: locator.row }
+      : {}),
+    ...(locator?.quote ? { textRange: locator.quote } : {}),
+    extractionMethod:
+      evidence.extractionMethod === "manual"
+        ? "manual"
+        : evidence.extractionMethod === "spreadsheet"
+          ? "spreadsheet"
+          : evidence.extractionMethod === "ocr"
+            ? "ocr"
+            : "model",
+  };
+}
+
+function expectedAnswerKind(path: string, description: string) {
+  if (/date|period/i.test(`${path} ${description}`)) return "date_or_period";
+  if (/status|whether|yes\/no|boolean/i.test(`${path} ${description}`))
+    return "boolean";
+  if (/cost|rate|amount|limit|maximum|percentage|frequency/i.test(`${path} ${description}`))
+    return "structured_value";
+  if (/schedule|tiers|classes|options|services/i.test(`${path} ${description}`))
+    return "list_or_schedule";
+  return "text";
+}
+
+export function buildRequirementQuestions({
+  subjects,
+  reports,
+}: {
+  subjects: BenefitRequirementSubject[];
+  reports: BenefitGateReport[];
+}): BlockerQuestion[] {
+  const result: BlockerQuestion[] = [];
+  for (const report of reports) {
+    const subject = subjects.find((item) => item.id === report.subjectId);
+    if (!subject || subject.enforcementStatus !== "registry_enforced") continue;
+    const definition = BENEFIT_REQUIREMENTS_REGISTRY[subject.benefitType];
+    for (const issue of report.issues) {
+      // Legal/compliance review is not converted into an ordinary factual
+      // answer that could accidentally waive the determination.
+      if (issue.code === "legal_determination_required") continue;
+      const requirement = definition.fields.find(
+        (field) => field.id === issue.requirementId,
+      );
+      if (!requirement) continue;
+      let answerPath = `requirements.${subject.id}.${requirement.id}`;
+      let label = requirement.label;
+      let description = requirement.description;
+      let sourceResolution = subject.resolutions[requirement.path];
+      if (issue.code === "condition_unknown" && requirement.when) {
+        const dependencyPath = predicatePaths(requirement.when).find((path) => {
+          const resolution = subject.resolutions[path];
+          return (
+            !resolution ||
+            [
+              "not_found",
+              "unknown",
+              "conflicting",
+              "requires_legal_determination",
+            ].includes(resolution.status)
+          );
+        });
+        if (dependencyPath) {
+          answerPath = `requirements.${subject.id}.dependencies.${dependencyPath}`;
+          label = dependencyPath;
+          description = `This routing fact is needed to determine whether ${requirement.label} applies.`;
+          sourceResolution = subject.resolutions[dependencyPath];
+        }
+      }
+      const options = [
+        ...(requirement.acceptedExplicitNoneReasons || []).map(
+          (reasonCode) => `explicit_none:${reasonCode}`,
+        ),
+        ...(requirement.acceptedNotApplicableReasons || []).map(
+          (reasonCode) => `not_applicable:${reasonCode}`,
+        ),
+      ];
+      result.push({
+        id: id(answerPath),
+        fieldPath: answerPath,
+        question: `For ${subject.displayName}, what is the ${label.toLowerCase()}?`,
+        reason: `${issue.message} ${description}`,
+        ...(options.length ? { options } : {}),
+        sourceRefs: resolutionEvidence(sourceResolution).map(evidenceSourceRef),
+        blocking: true,
+        subjectId: subject.id,
+        benefitType: subject.benefitType,
+        requirementId: requirement.id,
+        blockerCode: issue.blockerCode || `${subject.benefitType.toUpperCase()}_REQUIREMENT_UNRESOLVED`,
+        expectedAnswerKind: expectedAnswerKind(requirement.path, description),
+      });
+    }
+  }
+  return [
+    ...new Map(
+      result.map((item) => [
+        `${item.subjectId}:${item.blockerCode}:${item.fieldPath}`,
+        item,
+      ]),
+    ).values(),
+  ];
 }
 
 export function contributionAnswerToRule(

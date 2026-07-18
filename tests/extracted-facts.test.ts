@@ -4,6 +4,7 @@ import {
   factsFromDocumentExtraction,
   factsFromManualAnswers,
   factsFromMedicalPlan,
+  requirementCandidatesFromMedicalPlan,
 } from "../lib/extracted-facts";
 
 const evidence = (value: string, page = 1) => ({
@@ -134,5 +135,69 @@ describe("extracted fact creation", () => {
       "plan.prescriptions",
     ]);
     expect(facts.find((fact) => fact.path === "plan.services")?.source.page).toBe(2);
+  });
+
+  it("projects medical parser facts needed by conditional registry routes", () => {
+    const candidates = requirementCandidatesFromMedicalPlan({
+      file: {
+        id: "sbc-routes",
+        companyId: "acme",
+        fileName: "plan.pdf",
+        storagePath: "plan.pdf",
+        mimeType: "application/pdf",
+        uploadedAt: "2026-07-17T00:00:00.000Z",
+        sha256: "fixture",
+        processingStatus: "uploaded",
+        data: Buffer.from("pdf"),
+      },
+      classification: {
+        fileId: "sbc-routes",
+        documentType: "sbc",
+        confidence: 0.99,
+        reasoningSummary: "SBC",
+        authority: "current_plan_document",
+      },
+      attributes: {
+        identity: {
+          planName: "Plan A",
+          hsaEligible: true,
+          sourcePages: [1],
+        },
+        financial: {
+          specificDeductibles: [],
+          specificDeductiblesStatus: "explicit_none",
+          servicesBeforeDeductible: [],
+          excludedFromOutOfPocket: [],
+          sourcePages: [1],
+        },
+        network: { sourcePages: [1] },
+        contacts: [],
+        services: [],
+        prescriptions: {
+          tiers: [{ name: "Generic", sourcePage: 3 }],
+          sourcePages: [3],
+        },
+        exclusions: [],
+        otherCoveredServices: [],
+        coverageExamples: [],
+      } as any,
+    });
+    expect(candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "plans.medical.compatibility.marketedAsHsaCompatible",
+          value: true,
+        }),
+        expect.objectContaining({
+          path: "plans.medical.prescriptions.covered",
+          value: true,
+        }),
+        expect.objectContaining({
+          path: "plans.medical.financial.specificDeductibles",
+          state: "explicit_none",
+          reasonCode: "NO_SERVICE_SPECIFIC_DEDUCTIBLES",
+        }),
+      ]),
+    );
   });
 });

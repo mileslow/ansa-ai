@@ -11,6 +11,7 @@ import type {
   LoadedUploadedFile,
   SourceRef,
 } from "./booklet-types";
+import { BENEFIT_REQUIREMENTS_REGISTRY_VERSION } from "./benefit-requirements";
 import {
   extractionSource,
   type BookletDocumentExtraction,
@@ -135,6 +136,27 @@ function bestRateMatch(planName: string, rates: CarrierRatePlan[]) {
     .sort((a, b) => b.score - a.score)[0];
 }
 
+function accountDocumentPlanMisclassification(
+  extraction: BookletDocumentExtraction,
+  plan: BookletDocumentExtraction["selectedPlans"][number],
+) {
+  if (plan.benefitType !== "medical") return false;
+  const hasMedicalOffering = extraction.offeredBenefits.some(
+    (offering) => offering.benefitType === "medical" && offering.offered,
+  );
+  const hasAccountOffering = extraction.offeredBenefits.some(
+    (offering) =>
+      ["hsa", "hra", "fsa"].includes(offering.benefitType) && offering.offered,
+  );
+  return (
+    !hasMedicalOffering &&
+    hasAccountOffering &&
+    /\b(?:health savings account|health reimbursement account|flexible spending account|hsa contribution|hra contribution|fsa contribution)\b/i.test(
+      plan.planName,
+    )
+  );
+}
+
 function planYearFromRate(rate: CarrierRatePlan | undefined) {
   const value = rate?.effectiveDate || rate?.planName.match(/\b20\d{2}\b/)?.[0] || "";
   const year = value.match(/\b20\d{2}\b/)?.[0];
@@ -150,6 +172,19 @@ function applyManual<T>(
   return Object.prototype.hasOwnProperty.call(answers, path)
     ? (answers[path] as T)
     : existing;
+}
+
+function manualBooleanAnswer(
+  path: string,
+  answers: Record<string, unknown>,
+): boolean | undefined {
+  if (!Object.prototype.hasOwnProperty.call(answers, path)) return undefined;
+  const value = answers[path];
+  if (typeof value === "boolean") return value;
+  const normalizedValue = normalized(value);
+  if (["yes", "true", "offered"].includes(normalizedValue)) return true;
+  if (["no", "false", "not offered"].includes(normalizedValue)) return false;
+  return undefined;
 }
 
 export function assembleBenefitsPackage({
@@ -198,11 +233,13 @@ export function assembleBenefitsPackage({
   const selectedPlanEvidence = documentExtractions
     .filter((item) => item.templateRole !== "master_template")
     .flatMap((item) =>
-      item.selectedPlans.map((plan) => ({
+      item.selectedPlans
+        .filter((plan) => !accountDocumentPlanMisclassification(item, plan))
+        .map((plan) => ({
         ...plan,
         sourceRefs: [extractionSource(item, plan.page, plan.quote)],
         priority: sourcePriority(item.documentType),
-      })),
+        })),
     );
   const manualSelections = manualAnswers["plans.selected"];
   if (Array.isArray(manualSelections)) {
@@ -430,28 +467,52 @@ export function assembleBenefitsPackage({
         priority: sourcePriority(item.documentType),
       })),
     );
+  const accountEvidence = documentExtractions
+    .filter((item) => item.templateRole !== "master_template")
+    .flatMap((item) =>
+      item.accounts.map((account) => ({
+        type: account.type,
+        administrator: account.administrator,
+        sourceRef: extractionSource(item, account.page),
+        confidence: account.confidence,
+      })),
+    );
+  const manualHsaOffering = manualBooleanAnswer(
+    "offeredBenefits.hsa",
+    manualAnswers,
+  );
   const benefitTypes = new Set<BenefitType>([
     ...plans.map((plan) => plan.benefitType),
-    ...offeringEvidence.filter((item) => item.offered).map((item) => item.benefitType),
-    ...plans
-      .filter((plan) => plan.benefitType === "medical" && plan.attributes?.identity.hsaEligible)
-      .map(() => "hsa" as const),
+    ...offeringEvidence.map((item) => item.benefitType),
+    ...accountEvidence.map((item) => item.type),
+    ...(manualHsaOffering === undefined ? [] : (["hsa"] as const)),
   ]);
   const offeredBenefits = [...benefitTypes].map((type) => {
     const evidence = offeringEvidence
       .filter((item) => item.benefitType === type)
       .sort((a, b) => b.priority - a.priority || b.confidence - a.confidence);
     const selected = plans.filter((plan) => plan.benefitType === type);
-    const hsaPlans =
-      type === "hsa"
-        ? plans.filter(
-            (plan) => plan.benefitType === "medical" && plan.attributes?.identity.hsaEligible,
-          )
-        : [];
+    const accountEntries = accountEvidence.filter((account) => account.type === type);
+    const manualOffering =
+      type === "hsa" ? manualHsaOffering : undefined;
+    const manualSource: SourceRef[] =
+      manualOffering === undefined
+        ? []
+        : [
+            {
+              fileId: `manual:${sha("offeredBenefits.hsa")}`,
+              fileName: "User answer",
+              documentType: "manual_answer",
+              extractionMethod: "manual",
+            },
+          ];
     return {
       benefitType: type,
       offered:
-        selected.length > 0 || hsaPlans.length > 0 || evidence[0]?.offered === true,
+        manualOffering ??
+        (selected.length > 0 ||
+          accountEntries.length > 0 ||
+          evidence[0]?.offered === true),
       selectedPlans: selected.map((plan) => plan.id),
       eligibilityRule: pick(waitingCandidates)?.value || null,
       contributionRules: contributions.filter((rule) => rule.benefitType === type),
@@ -459,12 +520,14 @@ export function assembleBenefitsPackage({
       sourceRefs: [
         ...evidence.map((item) => item.sourceRef),
         ...selected.flatMap((plan) => plan.sourceRefs),
-        ...hsaPlans.flatMap((plan) => plan.sourceRefs),
+        ...accountEntries.map((account) => account.sourceRef),
+        ...manualSource,
       ],
       confidence: Math.max(
+        manualOffering === undefined ? 0 : 1,
         evidence[0]?.confidence || 0,
         ...selected.map((plan) => plan.confidence),
-        ...hsaPlans.map((plan) => plan.confidence),
+        ...accountEntries.map((account) => account.confidence),
         0.5,
       ),
     };
@@ -483,15 +546,11 @@ export function assembleBenefitsPackage({
         sourceRefs: [extractionSource(item, contact.page)],
       })),
     );
-  const accounts = documentExtractions
-    .filter((item) => item.templateRole !== "master_template")
-    .flatMap((item) =>
-      item.accounts.map((account) => ({
-        type: account.type,
-        administrator: account.administrator,
-        sourceRefs: [extractionSource(item, account.page)],
-      })),
-    );
+  const accounts = accountEvidence.map((account) => ({
+    type: account.type,
+    administrator: account.administrator,
+    sourceRefs: [account.sourceRef],
+  }));
   const styleSource = documentExtractions.find((item) => item.templateRole === "master_template") ||
     documentExtractions.find((item) => item.templateRole === "employer_prior_context");
 
@@ -627,6 +686,13 @@ export function assembleBenefitsPackage({
         : [],
       conflicts,
       manualAnswers: Object.keys(manualAnswers),
+    },
+    requirements: {
+      registryVersion: BENEFIT_REQUIREMENTS_REGISTRY_VERSION,
+      subjects: [],
+      extractionReports: [],
+      safeBookletReports: [],
+      renderedPathsBySubject: {},
     },
   };
 }

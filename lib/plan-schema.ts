@@ -62,6 +62,11 @@ export const IdentityPhaseSchema = z.object({
         notes: nullableText,
       }),
     ),
+    specificDeductiblesStatus: z.enum([
+      "present",
+      "explicit_none",
+      "not_found",
+    ]),
     outOfPocketLimit: LimitSchema,
     familyOutOfPocketRule: nullableText,
     excludedFromOutOfPocket: z.array(z.string()),

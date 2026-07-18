@@ -62,6 +62,11 @@ async function executeRun(run: BookletGenerationRun) {
     });
     run.questions = result.questions;
     run.benefitsPackageSnapshot = result.benefitsPackage;
+    run.requirementsSnapshot = result.benefitsPackage.requirements;
+    run.renderManifest = result.renderManifest || null;
+    run.claimLedger = result.content?.claims || [];
+    run.contentModel = result.content?.model || null;
+    run.qualityReport = result.qualityReport || null;
     run.confidenceReport = result.benefitsPackage.confidenceReport;
     await saveExtractedFacts(run.id, result.facts);
     if (result.status === "blocked") {

@@ -233,16 +233,52 @@ describe("benefits package assembler and question engine", () => {
       ],
       accounts: [{ type: "hra", administrator: "HealthEquity", page: 2, confidence: 0.96 }],
     });
-    const result = assemble([current]);
+    const result = assemble([current], [], []);
     expect(result.accounts).toEqual(
       expect.arrayContaining([expect.objectContaining({ type: "hra", administrator: "HealthEquity" })]),
     );
     expect(result.offeredBenefits.find((item) => item.benefitType === "hra")?.offered).toBe(
       true,
     );
+    expect(buildBlockerQuestions(result).some((item) => item.fieldPath === "plans.selected")).toBe(
+      false,
+    );
   });
 
-  it("infers an HSA offering from an HSA-eligible medical plan", () => {
+  it("does not turn an HSA account form title into a selected medical plan", () => {
+    const current = extraction({
+      offeredBenefits: [
+        {
+          benefitType: "hsa",
+          offered: true,
+          page: 1,
+          quote: "Health Savings Account (HSA) Change in Contribution Form",
+          confidence: 0.98,
+        },
+      ],
+      selectedPlans: [
+        {
+          planName: "Health Savings Account (HSA)",
+          benefitType: "medical",
+          carrier: null,
+          page: 1,
+          quote: "Health Savings Account (HSA) Change in Contribution Form",
+          confidence: 0.8,
+        },
+      ],
+      accounts: [{ type: "hsa", administrator: null, page: 1, confidence: 0.98 }],
+    });
+    const result = assemble([current], [], []);
+    expect(result.plans).toEqual([]);
+    expect(result.offeredBenefits.find((item) => item.benefitType === "hsa")).toMatchObject({
+      offered: true,
+    });
+    expect(buildBlockerQuestions(result).some((item) => item.fieldPath === "plans.selected")).toBe(
+      false,
+    );
+  });
+
+  it("does not infer an HSA program or block the medical booklet from plan qualification alone", () => {
     const inputFile: LoadedUploadedFile = {
       id: "sbc",
       companyId: "acme",
@@ -279,9 +315,70 @@ describe("benefits package assembler and question engine", () => {
         },
       ],
     });
-    expect(result.offeredBenefits.find((item) => item.benefitType === "hsa")?.offered).toBe(
-      true,
+    expect(result.offeredBenefits.find((item) => item.benefitType === "hsa")).toBeUndefined();
+    expect(
+      buildBlockerQuestions(result).some(
+        (question) => question.fieldPath === "offeredBenefits.hsa",
+      ),
+    ).toBe(false);
+    expect(generateBookletOutline(result).sections.map((section) => section.id)).not.toContain(
+      "hsa",
     );
+  });
+
+  it("applies a manual HSA offering decision without treating qualification as the answer", () => {
+    const inputFile: LoadedUploadedFile = {
+      id: "sbc-manual-hsa",
+      companyId: "acme",
+      fileName: "hsa-plan.pdf",
+      storagePath: "hsa-plan.pdf",
+      mimeType: "application/pdf",
+      uploadedAt: "2026-07-17T00:00:00.000Z",
+      sha256: "fixture",
+      processingStatus: "uploaded",
+      data: Buffer.from("pdf"),
+    };
+    const assembleWithAnswer = (answer: boolean) =>
+      assembleBenefitsPackage({
+        companyId: "acme",
+        documentExtractions: [extraction()],
+        rates: [rate()],
+        rateContributions: [contribution(rate())],
+        medicalPlans: [
+          {
+            file: inputFile,
+            classification: {
+              fileId: inputFile.id,
+              documentType: "sbc",
+              confidence: 0.98,
+              reasoningSummary: "SBC",
+            },
+            attributes: {
+              identity: {
+                planName: "Acme Gold 2026",
+                carrier: "Excellus",
+                hsaEligible: true,
+                sourcePages: [1],
+              },
+            } as any,
+          },
+        ],
+        manualAnswers: { "offeredBenefits.hsa": answer },
+      });
+
+    const offered = assembleWithAnswer(true);
+    expect(offered.offeredBenefits.find((item) => item.benefitType === "hsa")).toMatchObject({
+      offered: true,
+      confidence: 1,
+    });
+    expect(buildBlockerQuestions(offered).some((item) => item.fieldPath === "offeredBenefits.hsa")).toBe(false);
+
+    const notOffered = assembleWithAnswer(false);
+    expect(notOffered.offeredBenefits.find((item) => item.benefitType === "hsa")).toMatchObject({
+      offered: false,
+      confidence: 1,
+    });
+    expect(generateBookletOutline(notOffered).sections.map((section) => section.id)).not.toContain("hsa");
   });
 
   it("attaches a differently named SBC to one explicit medical selection without duplicating it", () => {
@@ -299,7 +396,26 @@ describe("benefits package assembler and question engine", () => {
     const selectedRate = rate("Acme Gold 2026");
     const result = assembleBenefitsPackage({
       companyId: "acme",
-      documentExtractions: [extraction()],
+      documentExtractions: [
+        extraction({
+          offeredBenefits: [
+            {
+              benefitType: "medical",
+              offered: true,
+              page: 1,
+              quote: "Medical",
+              confidence: 0.95,
+            },
+            {
+              benefitType: "hsa",
+              offered: true,
+              page: 1,
+              quote: "HSA",
+              confidence: 0.95,
+            },
+          ],
+        }),
+      ],
       rates: [selectedRate],
       rateContributions: [contribution(selectedRate)],
       medicalPlans: [

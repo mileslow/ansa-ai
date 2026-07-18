@@ -190,6 +190,89 @@ describe("generateBookletContent", () => {
       expect(prompt).toContain(`\\\"id\\\":\\\"${id}\\\"`);
   });
 
+  it("generates grounded HSA and STD content when those outline sections are offered", async () => {
+    const input = benefitsPackage();
+    input.offeredBenefits.push(
+      {
+        benefitType: "hsa",
+        offered: true,
+        selectedPlans: [],
+        contributionRules: [],
+        contacts: [],
+        sourceRefs: [],
+        confidence: 0.98,
+      },
+      {
+        benefitType: "std",
+        offered: true,
+        selectedPlans: ["std-1"],
+        contributionRules: [],
+        contacts: [],
+        sourceRefs: [],
+        confidence: 0.98,
+      },
+    );
+    input.accounts.push({
+      type: "hsa",
+      administrator: "Example HSA Bank",
+      sourceRefs: [],
+    });
+    input.plans.push({
+      id: "std-1",
+      benefitType: "std",
+      name: "Acme Short-Term Disability",
+      carrier: "Example Disability",
+      year: "2026",
+      sourceRefs: [],
+      confidence: 0.98,
+      attributes: null,
+    });
+    input.contacts.push({
+      role: "STD disability carrier",
+      organization: "Example Disability",
+      phone: "800-555-0100",
+      sourceRefs: [],
+    });
+
+    const sections = emptyBatch();
+    Object.assign(sections.find((section) => section.id === "toc")!, {
+      copy: "Review the HSA and short-term disability sections.",
+      sourcePaths: ["outline.sections"],
+    });
+    Object.assign(sections.find((section) => section.id === "hsa")!, {
+      copy: "Example HSA Bank administers the health savings account.",
+      sourcePaths: ["accounts[0].administrator"],
+    });
+    Object.assign(sections.find((section) => section.id === "std")!, {
+      copy: "Acme Short-Term Disability is provided by Example Disability.",
+      sourcePaths: ["plans[1].name", "plans[1].carrier"],
+    });
+    const parse = vi.fn(async () => ({ output_parsed: { sections } }));
+
+    const result = await generateBookletContent(
+      input,
+      {
+        sections: [
+          { id: "hsa", title: "Health savings account", benefitType: "hsa", sourceRefs: [] },
+          { id: "std", title: "Short-term disability", benefitType: "std", sourceRefs: [] },
+        ],
+      },
+      "standard",
+      { client: { responses: { parse } } as any },
+    );
+
+    expect(result.sections.find((section) => section.id === "hsa")).toMatchObject({
+      status: "ready",
+      missingFields: [],
+      sourcePaths: ["accounts[0].administrator"],
+    });
+    expect(result.sections.find((section) => section.id === "std")).toMatchObject({
+      status: "ready",
+      missingFields: [],
+      sourcePaths: ["plans[1].name", "plans[1].carrier"],
+    });
+  });
+
   it("rejects copy that cites a source path outside the section fact set", async () => {
     const sections = emptyBatch();
     Object.assign(sections.find((section) => section.id === "cover")!, {

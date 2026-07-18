@@ -47,6 +47,8 @@ describe("document classifier", () => {
       file("medical-plan.pdf", "application/pdf", "Benefit Plan Summary"),
       "plan_summary",
     ],
+    [file("yale_employer_administered_std_plan.pdf"), "spd"],
+    [file("2026_hsa_contribution_change_form.pdf"), "plan_summary"],
     [file("2025 prior benefit booklet.pdf"), "prior_booklet"],
     [file("2025 Benefit Guide.pdf"), "benefit_guide"],
     [file("broker-thread.eml", "message/rfc822"), "email_export"],
@@ -109,6 +111,43 @@ describe("document classifier", () => {
     expect(result.detectedEmployer).toBe("Acme Manufacturing");
     expect(result.detectedCarrier).toBe("Excellus");
     expect(result.detectedPlanYear).toBe("2026");
+    expect(result).toMatchObject({
+      scope: "current_employer",
+      authority: "employer_selection",
+      effectiveStart: "2026-01-01",
+      effectiveEnd: "2026-12-31",
+    });
+  });
+
+  it("keeps classification role, benefit family, scope, and authority orthogonal", () => {
+    expect(
+      classifyDocument(
+        file(
+          "carrier-product-flyer.pdf",
+          "application/pdf",
+          "Generic overview marketing brochure for a dental DHMO",
+        ),
+      ),
+    ).toMatchObject({
+      documentType: "plan_summary",
+      benefitTypes: ["dental"],
+      scope: "generic_reference",
+      authority: "generic_marketing",
+    });
+  });
+
+  it("does not activate standalone pediatric benefits from a medical SBC", () => {
+    const result = classifyDocument(
+      file(
+        "medical.sbc.pdf",
+        "application/pdf",
+        "Summary of Benefits and Coverage. Medical health coverage includes pediatric dental and pediatric vision EHB rows.",
+      ),
+    );
+    expect(result.documentType).toBe("sbc");
+    expect(result.benefitTypes).toContain("medical");
+    expect(result.benefitTypes).not.toContain("dental");
+    expect(result.benefitTypes).not.toContain("vision");
   });
 
   it("does not crash on an invalid workbook", () => {

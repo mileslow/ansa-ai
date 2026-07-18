@@ -32,11 +32,13 @@ const source: SourceRef = {
 const benefitSections = [
   "medical",
   "telemedicine",
+  "hsa",
   "hra",
   "fsa",
   "dental",
   "vision",
   "life",
+  "std",
   "ltd",
   "eap",
   "voluntary",
@@ -218,13 +220,19 @@ function completePackage(multiple = false): BenefitsPackage {
     "Employer Basic Life and AD&D",
     "Guardian Life",
   );
+  const std = plan(
+    "std-core",
+    "std",
+    "Core Short-Term Disability",
+    "Guardian Life",
+  );
   const ltd = plan(
     "ltd-core",
     "ltd",
     "Core Long-Term Disability",
     "Guardian Life",
   );
-  const plans = [medical, dental, vision, life, ltd];
+  const plans = [medical, dental, vision, life, std, ltd];
   if (multiple) {
     plans.push(
       plan(
@@ -273,6 +281,12 @@ function completePackage(multiple = false): BenefitsPackage {
       sourceRefs: [source],
     },
     {
+      role: "STD disability carrier",
+      organization: "Guardian Life",
+      phone: "800-555-2424",
+      sourceRefs: [source],
+    },
+    {
       role: "EAP",
       organization: "Guidance Support",
       phone: "800-555-3434",
@@ -313,6 +327,7 @@ function completePackage(multiple = false): BenefitsPackage {
     contributions: rated.map(contribution),
     contacts,
     accounts: [
+      { type: "hsa", administrator: "HealthEquity", sourceRefs: [source] },
       { type: "hra", administrator: "HealthEquity", sourceRefs: [source] },
       { type: "fsa", administrator: "HealthEquity", sourceRefs: [source] },
     ],

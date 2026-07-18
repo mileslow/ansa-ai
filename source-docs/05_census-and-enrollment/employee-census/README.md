@@ -108,6 +108,20 @@ Across the set, the documents exercise DOB/age, employee and dependent relations
 
 ## Privacy and ingestion notes
 
+### Reclassified census inputs added by the corpus audit
+
+- `06_oca_master_pretax_enrollment_census_template.xlsx` is a blank bulk
+  enrollment/census template for HRA, HSA, FSA, dependent-care, and commuter
+  elections. It was removed from `current-enrollment-exports` because it is an
+  input template, not an export.
+- `07_s4_wired_quote_census_waiver_codes.xlsx` is a person-level quote census
+  with fictional sample rows and waiver/status codes. Tier counts can be
+  derived from it, but it is not itself a completed tier-count report.
+
+The leaf now contains seven meaningful census shapes. Category sampling should
+use manifest roles rather than assuming the filename prefix defines a fixed set
+of five.
+
 - Treat employee censuses as sensitive even when a template is blank. Completed versions may contain SSNs, Medicare IDs, DOBs, addresses, compensation, and dependent information.
 - For benefits-booklet generation, collect only fields needed for eligibility, tier counts, costs, and plan presentation. Redact direct identifiers whenever aggregate counts are sufficient.
 - Preserve the source document and provenance, but separate raw sensitive uploads from normalized booklet facts and generated outputs.

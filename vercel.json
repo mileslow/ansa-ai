@@ -1,11 +1,8 @@
 {
-  "functions": {
-    "api/generate-booklet.ts": {
-      "includeFiles": "public/pdf-assets/**",
-      "maxDuration": 60
-    },
-    "api/parse-plan.ts": {
-      "maxDuration": 300
+  "rewrites": [
+    {
+      "source": "/companies/:path*",
+      "destination": "/index.html"
     }
-  }
+  ]
 }

@@ -72,7 +72,7 @@ export default function BookletStudio() {
   const [companyProfile, setCompanyProfile] = useState(initialCompanyProfile);
   const runToken = useRef(0);
 
-  const completed = useMemo(
+  const processed = useMemo(
     () =>
       new Set(
         Object.entries(phaseState)
@@ -81,15 +81,20 @@ export default function BookletStudio() {
       ),
     [phaseState],
   );
+  const documentsProcessed = processed.has("documents");
+  const blockerOpen = documentsProcessed && !hsaAnswer;
+  const completed = useMemo(() => {
+    const ready = new Set(processed);
+    if (blockerOpen) ready.delete("documents");
+    return ready;
+  }, [processed, blockerOpen]);
   const processingPhase = Object.entries(phaseState).find(
     ([, state]) => state?.status === "processing",
   )?.[0];
   const availablePages = useMemo(
-    () => bookletPages.filter((page) => completed.has(page.phase)),
-    [completed],
+    () => bookletPages.filter((page) => processed.has(page.phase)),
+    [processed],
   );
-  const documentsReady = completed.has("documents");
-  const blockerOpen = documentsReady && !hsaAnswer;
   const coreReady = ["employer", "rates", "documents", "template", "census"].every(
     (id) => completed.has(id),
   );
@@ -232,6 +237,7 @@ export default function BookletStudio() {
               <PhaseTabs
                 activeIndex={activePhaseIndex}
                 phaseState={phaseState}
+                completed={completed}
                 isUnlocked={phaseIsUnlocked}
                 onSelect={(index) => setActivePhase(phaseDefinitions[index].id)}
               />
@@ -262,6 +268,8 @@ export default function BookletStudio() {
             selectedPage={selectedPage}
             setSelectedPage={setSelectedPage}
             completed={completed}
+            processed={processed}
+            completion={completion}
             completedChecks={completedChecks}
             mode={previewMode}
             setMode={setPreviewMode}
@@ -291,7 +299,7 @@ const phasePrompts = {
   instructions: "Anything else the guide should know?",
 };
 
-function PhaseTabs({ activeIndex, phaseState, isUnlocked, onSelect }) {
+function PhaseTabs({ activeIndex, phaseState, completed, isUnlocked, onSelect }) {
   const activeTabRef = useRef(null);
 
   useEffect(() => {
@@ -302,17 +310,18 @@ function PhaseTabs({ activeIndex, phaseState, isUnlocked, onSelect }) {
     <nav className="bs-step-tabs" aria-label="Information phases">
       {phaseDefinitions.map((phase, index) => {
         const state = phaseState[phase.id]?.status || "idle";
+        const complete = completed.has(phase.id);
         const unlocked = isUnlocked(index);
         return (
           <button
             key={phase.id}
             ref={activeIndex === index ? activeTabRef : null}
-            className={`${activeIndex === index ? "active" : ""} ${state === "complete" ? "complete" : ""} ${state === "processing" ? "processing" : ""}`}
+            className={`${activeIndex === index ? "active" : ""} ${complete ? "complete" : ""} ${state === "processing" ? "processing" : ""}`}
             onClick={() => onSelect(index)}
             disabled={!unlocked}
             aria-current={activeIndex === index ? "step" : undefined}
           >
-            <span>{state === "complete" ? <Check /> : String(index + 1).padStart(2, "0")}</span>
+            <span>{complete ? <Check /> : String(index + 1).padStart(2, "0")}</span>
             <b>{phaseTabLabels[index]}</b>
           </button>
         );
@@ -322,7 +331,8 @@ function PhaseTabs({ activeIndex, phaseState, isUnlocked, onSelect }) {
 }
 
 function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, onCompanyProfileChange, onRun, onAnswer, onBack, onNext, canBack, canNext }) {
-  const complete = state.status === "complete";
+  const processed = state.status === "complete";
+  const complete = processed && !blocker;
   const processing = state.status === "processing";
 
   return (
@@ -335,14 +345,14 @@ function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, 
           </div>
         </header>
         <div className="bs-focused-phase__answer">
-          {phase.id === "employer" && complete && (
+          {phase.id === "employer" && processed && (
             <CompanyProfileFields
               profile={companyProfile}
               onChange={onCompanyProfileChange}
               disabled={processing}
             />
           )}
-          {phase.id === "employer" && !complete && !processing && (
+          {phase.id === "employer" && !processed && !processing && (
             <CompanySourceInput
               website={companyProfile.website}
               onWebsiteChange={(website) => onCompanyProfileChange((current) => ({ ...current, website }))}
@@ -351,7 +361,7 @@ function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, 
               accepted={phase.accepted}
             />
           )}
-          {phase.id !== "employer" && !complete && !processing && (
+          {phase.id !== "employer" && !processed && !processing && (
             <button
               className="bs-dropzone bs-dropzone--focused tw:rounded-ansa"
               onClick={onRun}
@@ -367,7 +377,7 @@ function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, 
 
           {processing && <ProcessingState phase={phase} stage={state.stage} />}
 
-          {complete && (
+          {processed && (
             <>
               <div className="bs-source-file tw:grid tw:items-center">
                 <span><FileText /></span>
@@ -404,7 +414,7 @@ function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, 
         </div>
       </div>
       <footer className="bs-focused-phase__nav">
-        <span>{processing ? "You can review the next step while Ansa works." : complete ? "This source is ready." : "Add a source to unlock the next step."}</span>
+        <span>{processing ? "You can review the next step while Ansa works." : blocker ? "Resolve the decision to finish this section." : complete ? "This source is ready." : "Add a source to unlock the next step."}</span>
         <div className="bs-step-arrows" aria-label="Move between steps">
           <button onClick={onBack} disabled={!canBack} aria-label="Previous step"><ArrowUp /></button>
           <button className="next" onClick={onNext} disabled={!canNext} aria-label="Next step"><ArrowDown /></button>
@@ -489,11 +499,12 @@ function ProcessingState({ phase, stage }) {
   );
 }
 
-function BookletPreview({ pages, selectedPage, setSelectedPage, completed, completedChecks, mode, setMode, blockerOpen, bookletReady, hsaAnswer, processingPhase, companyProfile, onDownload, onBack }) {
+function BookletPreview({ pages, selectedPage, setSelectedPage, completed, processed, completion, completedChecks, mode, setMode, blockerOpen, bookletReady, hsaAnswer, processingPhase, companyProfile, onDownload, onBack }) {
   const page = pages.find((item) => item.id === selectedPage) || pages[0];
   const warnings = completed.has("rates") ? 2 : 0;
   const streamingPhase = phaseDefinitions.find((phase) => phase.id === processingPhase);
   const guideYear = companyProfile.planYear?.match(/\b20\d{2}\b/)?.[0];
+  const completionHue = Math.round(217 - completion * 0.62);
 
   return (
     <aside className={`bs-preview-panel ${processingPhase ? "is-streaming" : ""}`}>
@@ -513,7 +524,7 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completed, compl
         {[
           ["pages", "Pages", pages.length],
           ["checks", "Checks", completedChecks],
-          ["sources", "Sources", completed.size],
+          ["sources", "Sources", processed.size],
         ].map(([key, label, count]) => (
           <button key={key} className={mode === key ? "active" : ""} onClick={() => setMode(key)}>{label}<span>{count}</span></button>
         ))}
@@ -541,7 +552,16 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completed, compl
               <div className="bs-canvas-wrap">
                 <div className="bs-canvas-meta">
                   <div><span>Page {page.number} of 14</span><b>{page.title}</b></div>
-                  <span className="bs-confidence"><ShieldCheck /> 98% source confidence</span>
+                  <div className="bs-canvas-status">
+                    {blockerOpen && <button className="bs-missing-status" onClick={() => setMode("checks")}><AlertCircle /> 1 detail missing</button>}
+                    <span
+                      className="bs-completion-status"
+                      style={{ "--bs-completion": `${completion}%`, "--bs-completion-hue": completionHue }}
+                    >
+                      <i><span /></i>
+                      <b>{completion}% complete</b>
+                    </span>
+                  </div>
                 </div>
                 <div className="bs-canvas-stage">
                   <PageCanvas page={page} completed={completed} hsaAnswer={hsaAnswer} companyProfile={companyProfile} />
@@ -562,7 +582,7 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completed, compl
         </div>
       )}
       {mode === "checks" && <ChecksView completed={completed} blockerOpen={blockerOpen} />}
-      {mode === "sources" && <SourcesView completed={completed} />}
+      {mode === "sources" && <SourcesView processed={processed} blockerOpen={blockerOpen} />}
     </aside>
   );
 }
@@ -725,18 +745,19 @@ function ChecksView({ completed, blockerOpen }) {
   );
 }
 
-function SourcesView({ completed }) {
+function SourcesView({ processed, blockerOpen }) {
   return (
     <div className="bs-inspection-view">
       <div className="bs-inspection-head"><span><Files /></span><div><small>Source of truth</small><h3>Connected evidence</h3><p>Review exactly where each booklet fact came from.</p></div></div>
       <div className="bs-sources-list">
         {sourceDefinitions.map((source) => {
-          const ready = completed.has(source.phase);
+          const ready = processed.has(source.phase);
+          const missing = ready && blockerOpen && source.phase === "documents";
           return (
-            <div key={source.phase} className={ready ? "ready" : ""}>
-              <span>{ready ? <FileCheck2 /> : <FileText />}</span>
-              <div><b>{source.label}</b><small>{ready ? source.detail : "Not added yet"}</small></div>
-              {ready ? <em>{source.confidence}%</em> : <i>Pending</i>}
+            <div key={source.phase} className={`${ready ? "ready" : ""} ${missing ? "missing" : ""}`}>
+              <span>{missing ? <AlertCircle /> : ready ? <FileCheck2 /> : <FileText />}</span>
+              <div><b>{source.label}</b><small>{missing ? "Missing employer HSA contribution" : ready ? source.detail : "Not added yet"}</small></div>
+              {missing ? <em>Review</em> : ready ? <em>{source.confidence}%</em> : <i>Pending</i>}
             </div>
           );
         })}

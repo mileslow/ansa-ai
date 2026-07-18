@@ -1,0 +1,76 @@
+                    TABLE 1. SUMMARY OF FEHB PROGRAM ENROLLMENT
+
+FREQUENCY: Annual
+
+Cut-Off Date: March 31                                                               Due Date: April 15
+
+Purpose: Summarizes the number of enrollees and dependents by type of enrollment for a
+specific enrollment code and gives certain disenrollment data.
+
+Employees – Active employees covered in the FEHB Program. For the purposes of this table, all
+enrollees in payroll offices not listed below are employees. Please do not combine employee and
+annuitant numbers.
+
+Annuitants – Retired employees and other annuitants covered by the FEHB Program. For the purposes
+of this table, all enrollees in the following payroll offices are annuitants:
+
+10 01 5697             24 02 9901             24 57 9901             60 00 9301             99 00 4860
+16 00 9919             24 03 9901             24 77 7777             60 47 0001             99 00 4861
+19 00 0001             24 04 9901             24 90 0002             69 02 5356             99 00 4862
+20 74 9901             24 17 9901             24 90 0003             70 06 0002             99 00 4863
+23 90 0001             24 21 9901             28 00 3334             99 00 4859             99 99 0001
+
+The above list of Annuitant payroll offices reflects what is contained in the FEHB CLER Program. If
+you have an annuitant reported under a payroll office number that is not on this list, please include that
+data in your Table 1 Report under the Annuitant Section
+
+Plan Code – Your Plan Code is the first two characters of your FEHB enrollment code. For example, if
+your enrollment codes are XX1 and XX2, your plan code is XX.
+
+Contracts – Report the number of employee contract holders and annuitant contract holders in your
+plan at the end of the reporting period (March 31 of the current year).
+
+Persons Covered – Report the number of enrollees plus all covered dependents in your plan at the end
+of the reporting period.
+
+Disenrollments – Report the number of contracts that transferred out of your plan during Open Season.
+Do not report the net results of Open Season.
+
+
+
+
+                                                                                                             1
+Reporting Information in Benefits Plus - Instructions:
+
+   1. Navigate to the Benefits Plus Portal:
+      https://www.opm.gov/healthcare-insurance/benefits-plus/
+   2. Navigate to your Plan Code(s) via selection of the
+      hyperlinked Plan Code(s)
+   3. Navigate to Table 1 via the left-hand content panel beneath
+      each Plan Code
+   4. Populate Table 1
+           Enter numerical data by Option and employment
+              status (Employees/Annuitants) for Contracts, Persons
+              Covered, and Disenrollments, with attention to
+              Enrollment Code (1 – Self, 2 – Self & Family, 3 – Self
+              Plus One, 4 – Self, 5 – Self & Family, 6 – Self Plus
+              One)
+           Select Save
+           Complete one Table 1 report for each Plan Code
+           Table 1 enrollment data must come from your internal
+              enrollment files. Do not use CLER or 1523 headcount
+              report data when completing Table 1
+
+
+
+
+Who has access to Benefits Plus Table 1 data entry screen?
+
+Benefits Plus Table 1 is accessible to all current Benefits Plus users. To add a new user, please contact
+your Health Insurance Specialist.
+
+Note: Populate Table 1 by April 15. If you need to modify Table 1 data post April 15, please contact
+your OPM Health Insurance Specialist.
+
+                                                                                                            2
+

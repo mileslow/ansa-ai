@@ -846,6 +846,74 @@ main.wide {
   height: 54px;
   font-size: 13px;
 }
+.bookletEmptyActions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.bookletEmptyActions .outline {
+  width: 230px;
+  justify-content: center;
+}
+.guideDetailsTab {
+  padding: 24px;
+}
+.guideDetailsHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.guideDetailsHead > div > span {
+  color: #71717a;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.guideDetailsHead h2 {
+  margin: 5px 0;
+  font-size: 22px;
+}
+.guideDetailsHead p {
+  margin: 0;
+  color: #71717a;
+  font-size: 12px;
+}
+.guideDetailsFields {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 14px;
+}
+.guideDetailsGroup + .guideDetailsGroup {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid #e4e4e7;
+}
+.guideDetailsGroup h3 {
+  margin: 0 0 12px;
+  color: #3f3f46;
+  font-size: 12px;
+}
+.guideDetailsGroup h3 span {
+  margin-left: 6px;
+  color: #a1a1aa;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.guideDetailsFields.enrollment {
+  grid-template-columns: 1fr 1fr;
+  max-width: 680px;
+}
+@media (max-width: 760px) {
+  .guideDetailsHead { flex-direction: column; }
+  .guideDetailsFields,
+  .guideDetailsFields.enrollment { grid-template-columns: 1fr; }
+}
 .bookletDownload {
   display: flex;
   justify-content: flex-end;
@@ -853,6 +921,20 @@ main.wide {
 }
 .bookletDownload a {
   text-decoration: none;
+}
+.bookletRegenerateBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.bookletRegenerateBar span {
+  color: #6a7a8c;
+  font-size: 10px;
+}
+.bookletRegenerateBar .outline {
+  flex-shrink: 0;
 }
 .generationStatus {
   display: grid;
@@ -921,6 +1003,310 @@ main.wide {
   background: linear-gradient(90deg, #0B5FFF, #00a09a);
   transition: width 0.3s ease;
   box-shadow: 0 0 18px #0b5fff66;
+}
+.bookletGenerationStage {
+  min-height: 680px;
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  border: 1px solid #d3dbe4;
+  border-radius: 12px;
+  background: #eef2f5;
+  overflow: hidden;
+  box-shadow: 0 14px 38px #102a4512;
+}
+.generationRail {
+  padding: 28px 22px;
+  border-right: 1px solid #dce3e9;
+  background: rgba(255, 255, 255, 0.78);
+}
+.generationRail > span {
+  color: #0B5FFF;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.generationRail h3 {
+  margin: 7px 0 5px;
+  color: #153453;
+  font-size: 17px;
+}
+.generationRail > p {
+  min-height: 34px;
+  margin: 0;
+  color: #6a7a8c;
+  font-size: 10px;
+  line-height: 1.55;
+}
+.generationSteps {
+  display: grid;
+  gap: 20px;
+  margin: 30px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.generationSteps li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  color: #8a97a6;
+}
+.generationSteps li:not(:last-child):after {
+  content: "";
+  position: absolute;
+  top: 30px;
+  bottom: -18px;
+  left: 13px;
+  width: 1px;
+  background: #d8e0e7;
+}
+.generationSteps li > i {
+  position: relative;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d2dbe3;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+}
+.generationSteps li > i svg {
+  width: 13px;
+}
+.generationSteps li.active > i {
+  border-color: #0B5FFF;
+  color: #0B5FFF;
+  box-shadow: 0 0 0 4px #e7efff;
+  animation: generationStepPulse 1.6s ease-in-out infinite;
+}
+.generationSteps li.done > i {
+  border-color: #0B5FFF;
+  background: #0B5FFF;
+  color: #fff;
+}
+.generationSteps li.done:not(:last-child):after {
+  background: #8eb3ff;
+}
+.generationSteps li.active b,
+.generationSteps li.done b {
+  color: #163450;
+}
+.generationSteps b,
+.generationSteps small {
+  display: block;
+}
+.generationSteps b {
+  margin-top: 1px;
+  font-size: 10px;
+}
+.generationSteps small {
+  margin-top: 3px;
+  font-size: 8px;
+  line-height: 1.4;
+}
+.generationRecentPages {
+  display: grid;
+  gap: 7px;
+  margin-top: 38px;
+  padding-top: 18px;
+  border-top: 1px solid #e0e6eb;
+}
+.generationRecentPages > small {
+  margin-bottom: 2px;
+  color: #8a97a6;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.generationRecentPages span {
+  overflow: hidden;
+  color: #526679;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.generationRecentPages svg {
+  width: 10px;
+  vertical-align: -2px;
+  color: #0B5FFF;
+}
+.generationCanvas {
+  position: relative;
+  min-width: 0;
+  padding: 18px 24px 28px;
+  overflow: hidden;
+}
+.generationCanvasHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  color: #6a7a8c;
+  font-size: 9px;
+}
+.generationCanvasHead span {
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.generationCanvasHead b {
+  color: #37546f;
+  font-weight: 600;
+}
+.generationPageViewport {
+  min-height: 610px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border: 1px solid #d4dde5;
+  border-radius: 9px;
+  background: #e2e8ed;
+  overflow: hidden;
+}
+.liveDocumentPage {
+  position: relative;
+  width: min(100%, 438px);
+  aspect-ratio: 8.5 / 11;
+  background: #fff;
+  border: 1px solid #cfd8df;
+  box-shadow: 0 18px 42px #102a4524;
+  overflow: hidden;
+  animation: documentPageArrive 0.48s cubic-bezier(.2,.8,.2,1);
+}
+.liveDocumentPage iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: 0;
+  pointer-events: none;
+}
+.liveDocumentSkeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 26px;
+  padding: 58px 54px;
+  color: #718294;
+}
+.generationDocumentMark {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 14px;
+  border: 1px solid #d5dfe7;
+  border-radius: 50%;
+  background: #f5f8fa;
+  color: #0B5FFF;
+  animation: generationStepPulse 1.6s ease-in-out infinite;
+}
+.generationDocumentMark svg {
+  width: 24px;
+}
+.generationSkeletonLines {
+  display: grid;
+  gap: 15px;
+}
+.generationSkeletonLines i {
+  height: 10px;
+  display: block;
+  border-radius: 5px;
+  background: #e6ebef;
+  animation: skeletonBreathe 1.5s ease-in-out infinite;
+}
+.generationSkeletonLines i:nth-child(2) { width: 87%; }
+.generationSkeletonLines i:nth-child(3) { width: 94%; }
+.generationSkeletonLines i:nth-child(4) { width: 72%; }
+.generationSkeletonLines i:nth-child(5) { width: 82%; }
+.liveDocumentSkeleton > span {
+  margin-top: auto;
+  font-size: 10px;
+  text-align: center;
+}
+.liveDraftPage .copyDraftHtml {
+  height: 100%;
+  padding: 64px 52px;
+}
+.renderingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 248, 250, 0.9);
+  color: #153453;
+  text-align: center;
+  backdrop-filter: blur(3px);
+}
+.renderingOverlay svg {
+  width: 28px;
+  margin-bottom: 12px;
+  color: #0B5FFF;
+  animation: spin 1s linear infinite;
+}
+.renderingOverlay b {
+  font-size: 12px;
+}
+.renderingOverlay span {
+  margin-top: 5px;
+  color: #6a7a8c;
+  font-size: 9px;
+}
+.liveDocumentError {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 48px;
+  color: #b42318;
+  text-align: center;
+}
+.liveDocumentError svg {
+  width: 28px;
+}
+.liveDocumentError span {
+  color: #6a4c49;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.generationScanLine {
+  position: absolute;
+  z-index: 3;
+  left: 24px;
+  right: 24px;
+  top: 54px;
+  height: 2px;
+  display: block;
+  background: rgba(11, 95, 255, 0.26);
+  box-shadow: 0 0 16px rgba(11, 95, 255, 0.26);
+  animation: generationScan 3s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes documentPageArrive {
+  from { opacity: 0; transform: translateY(20px) scale(.975); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes generationStepPulse {
+  50% { box-shadow: 0 0 0 7px rgba(11, 95, 255, 0.08); }
+}
+@keyframes skeletonBreathe {
+  50% { background: #d9e2e9; }
+}
+@keyframes generationScan {
+  0%, 100% { transform: translateY(0); opacity: 0; }
+  15%, 85% { opacity: 1; }
+  50% { transform: translateY(580px); opacity: .65; }
 }
 .bookletPages {
   display: grid;
@@ -1027,6 +1413,12 @@ main.wide {
   .bookletPage iframe {
     width: 280px;
   }
+  .bookletGenerationStage {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+  .generationCanvas {
+    padding-inline: 16px;
+  }
 }
 @media (max-width: 650px) {
   .workspaceTabs {
@@ -1076,6 +1468,50 @@ main.wide {
   }
   .generationStatus .companyAction {
     width: 100%;
+  }
+  .bookletRegenerateBar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .bookletRegenerateBar .outline {
+    width: 100%;
+  }
+  .bookletGenerationStage {
+    min-height: 0;
+    grid-template-columns: 1fr;
+  }
+  .generationRail {
+    padding: 20px;
+    border-right: 0;
+    border-bottom: 1px solid #dce3e9;
+  }
+  .generationSteps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .generationSteps li {
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 6px;
+  }
+  .generationSteps li:not(:last-child):after {
+    display: none;
+  }
+  .generationSteps li > i {
+    width: 24px;
+    height: 24px;
+  }
+  .generationSteps small,
+  .generationRecentPages {
+    display: none;
+  }
+  .generationPageViewport {
+    min-height: 480px;
+    padding: 12px;
+  }
+  .generationScanLine {
+    left: 16px;
+    right: 16px;
   }
 }
 .bookletPages {
@@ -1328,5 +1764,15 @@ main.wide {
 @keyframes typingCaret {
   50% {
     opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .liveDocumentPage,
+  .generationSteps li.active > i,
+  .generationDocumentMark,
+  .generationSkeletonLines i,
+  .generationScanLine,
+  .renderingOverlay svg {
+    animation: none;
   }
 }

@@ -2,7 +2,20 @@ import { createHash } from "node:crypto";
 import type { ExtractedMedicalPlan } from "./benefits-package-assembler";
 import type { BookletDocumentExtraction } from "./booklet-document-extractor";
 import { extractionSource } from "./booklet-document-extractor";
-import type { ExtractedFact, LoadedUploadedFile } from "./booklet-types";
+import type {
+  CarrierRatePlan,
+  ContributionRule,
+  ExtractedFact,
+  LoadedUploadedFile,
+} from "./booklet-types";
+import type {
+  ExtractedRequirementCandidate,
+  RequirementEvidence,
+} from "./benefit-requirements/types";
+import {
+  calculateContribution,
+  findContributionRule,
+} from "./contribution-engine";
 
 const id = (...parts: string[]) =>
   createHash("sha1").update(parts.join("|")).digest("hex").slice(0, 24);
@@ -160,6 +173,309 @@ export function factsFromMedicalPlan(plan: ExtractedMedicalPlan): ExtractedFact[
     extractionMethod: "model",
     createdAt: new Date().toISOString(),
   }));
+}
+
+function present(value: unknown) {
+  if (value === null || value === undefined || value === "") return false;
+  if (Array.isArray(value)) return value.length > 0;
+  return true;
+}
+
+/** Projects the detailed medical parser into canonical registry paths. */
+export function requirementCandidatesFromMedicalPlan(
+  plan: ExtractedMedicalPlan,
+): ExtractedRequirementCandidate[] {
+  const attributes = plan.attributes;
+  const hint = {
+    benefitType: "medical" as const,
+    planOrProgramName: attributes.identity.planName,
+    ...(attributes.identity.planId
+      ? { planOrProgramId: attributes.identity.planId }
+      : {}),
+  };
+  const authority = plan.classification.authority || "current_plan_document";
+  const result: ExtractedRequirementCandidate[] = [];
+  const evidenceFor = (path: string, pages: number[]) => {
+    const page = pages[0];
+    return {
+      id: `${plan.file.id}:medical:${id(path)}`,
+      sourceFileId: plan.file.id,
+      sourceFileName: plan.file.fileName,
+      authority,
+      authorityDomain: /identity/.test(path)
+        ? "identity"
+        : /contact|directory/.test(path)
+          ? "contact"
+          : "plan_design",
+      ...(plan.classification.effectiveStart
+        ? { effectiveStart: plan.classification.effectiveStart }
+        : {}),
+      ...(plan.classification.effectiveEnd
+        ? { effectiveEnd: plan.classification.effectiveEnd }
+        : {}),
+      ...(plan.classification.employerOrGroupId
+        ? { employerOrGroupId: plan.classification.employerOrGroupId }
+        : {}),
+      ...(attributes.identity.planId
+        ? { planOrProgramId: attributes.identity.planId }
+        : {}),
+      ...(page
+        ? { locator: { kind: "pdf" as const, page } }
+        : {}),
+      extractionMethod: "text",
+      extractorVersion: "medical-plan-schema-v1",
+      confidence: 0.95,
+    } satisfies RequirementEvidence;
+  };
+  const add = (path: string, value: unknown, pages: number[]) => {
+    if (!present(value)) return;
+    result.push({
+      subjectHint: hint,
+      path,
+      state: "known",
+      value,
+      rawValue: typeof value === "string" ? value : JSON.stringify(value),
+      evidence: evidenceFor(path, pages),
+      confidence: 0.95,
+    });
+  };
+  const addExplicitNone = (path: string, reasonCode: string, pages: number[]) =>
+    result.push({
+      subjectHint: hint,
+      path,
+      state: "explicit_none",
+      reasonCode,
+      evidence: evidenceFor(path, pages),
+      confidence: 0.95,
+    });
+
+  const identityPages = attributes.identity.sourcePages;
+  const financialPages = attributes.financial.sourcePages;
+  const networkPages = attributes.network.sourcePages;
+  const servicePages = [...new Set(attributes.services.map((item) => item.sourcePage))];
+  const prescriptionPages = attributes.prescriptions.sourcePages;
+  const memberContact = attributes.contacts.find((contact) =>
+    [contact.phone, contact.email, contact.url].some(present),
+  );
+  const networkTiers = [
+    ...new Set(
+      attributes.services.flatMap((service) =>
+        [...service.inNetwork, ...service.outOfNetwork].map(
+          (cost) => cost.networkTier,
+        ),
+      ),
+    ),
+  ].filter(Boolean);
+
+  add("plans.medical.identity.planName", attributes.identity.planName, identityPages);
+  add("plans.medical.identity.carrierOrAdministrator", attributes.identity.carrier, identityPages);
+  add("plans.medical.identity.planOrOptionId", attributes.identity.planId, identityPages);
+  add(
+    "plans.medical.identity.coveragePeriod",
+    {
+      start: attributes.identity.coverageStart,
+      end: attributes.identity.coverageEnd,
+    },
+    identityPages,
+  );
+  add("plans.medical.identity.planDesign", attributes.identity.planType, identityPages);
+  add("plans.medical.identity.serviceArea", attributes.identity.state, identityPages);
+  add("plans.medical.coverage.coverageFor", attributes.identity.coverageFor, identityPages);
+  add("plans.medical.compatibility.hsaEligible", attributes.identity.hsaEligible, identityPages);
+  add(
+    "plans.medical.compatibility.marketedAsHsaCompatible",
+    attributes.identity.hsaEligible,
+    identityPages,
+  );
+  add("plans.medical.network.usesNetwork", attributes.network.usesProviderNetwork, networkPages);
+  add("plans.medical.network.tiers", networkTiers, networkPages.length ? networkPages : servicePages);
+  add("plans.medical.network.outOfNetworkStatus", attributes.network.outOfNetworkCoverage, networkPages);
+  add("plans.medical.network.providerDirectory", attributes.network.providerDirectoryUrl, networkPages);
+  add(
+    "plans.medical.network.referralRule",
+    {
+      required: attributes.network.referralRequired,
+      notes: attributes.network.referralNotes,
+    },
+    networkPages,
+  );
+  add("plans.medical.financial.deductible", attributes.financial.deductible, financialPages);
+  add(
+    "plans.medical.financial.outOfPocketLimit",
+    attributes.financial.outOfPocketLimit,
+    financialPages,
+  );
+  add(
+    "plans.medical.financial.servicesBeforeDeductible",
+    attributes.financial.servicesBeforeDeductible,
+    financialPages,
+  );
+  add(
+    "plans.medical.financial.specificDeductibles",
+    attributes.financial.specificDeductibles,
+    financialPages,
+  );
+  if (
+    !attributes.financial.specificDeductibles.length &&
+    attributes.financial.specificDeductiblesStatus === "explicit_none"
+  )
+    addExplicitNone(
+      "plans.medical.financial.specificDeductibles",
+      "NO_SERVICE_SPECIFIC_DEDUCTIBLES",
+      financialPages,
+    );
+  add(
+    "plans.medical.financial.excludedFromOutOfPocket",
+    attributes.financial.excludedFromOutOfPocket,
+    financialPages,
+  );
+  add("plans.medical.services.commonEventSchedule", attributes.services, servicePages);
+  add("plans.medical.services.coreBookletSchedule", attributes.services, servicePages);
+  add("plans.medical.services.costSharingCells", attributes.services, servicePages);
+  add(
+    "plans.medical.services.qualifiers",
+    attributes.services.map((service) => ({
+      service: service.service,
+      limitations: service.limitations,
+      preauthorization: service.preauthorization,
+      visitOrUnitLimit: service.visitOrUnitLimit,
+      ageLimit: service.ageLimit,
+    })),
+    servicePages,
+  );
+  add(
+    "plans.medical.prescriptions.tierSchedule",
+    attributes.prescriptions.tiers,
+    prescriptionPages,
+  );
+  if (attributes.prescriptions.tiers.length)
+    add(
+      "plans.medical.prescriptions.covered",
+      true,
+      prescriptionPages,
+    );
+  add(
+    "plans.medical.prescriptions.formularyContact",
+    {
+      url: attributes.prescriptions.drugListUrl,
+      pharmacyNetworkNotes: attributes.prescriptions.pharmacyNetworkNotes,
+    },
+    prescriptionPages,
+  );
+  add(
+    "plans.medical.coverage.exclusionsAndOtherServices",
+    { exclusions: attributes.exclusions, otherCoveredServices: attributes.otherCoveredServices },
+    [...new Set([
+      ...attributes.exclusions.flatMap((item) => item.sourcePages),
+      ...attributes.otherCoveredServices.flatMap((item) => item.sourcePages),
+    ])],
+  );
+  add("plans.medical.formal.coverageExamples", attributes.coverageExamples, attributes.coverageExamples.map((item) => item.sourcePage));
+  add(
+    "plans.medical.contacts.memberServices",
+    memberContact,
+    identityPages,
+  );
+  add(
+    "plans.medical.documents.governingTerms",
+    { fileId: plan.file.id, fileName: plan.file.fileName },
+    identityPages,
+  );
+  return result;
+}
+
+export function requirementCandidatesFromRates({
+  companyId,
+  rates,
+  contributions,
+  selectedRatePlanIds = [],
+}: {
+  companyId: string;
+  rates: CarrierRatePlan[];
+  contributions: ContributionRule[];
+  selectedRatePlanIds?: string[];
+}): ExtractedRequirementCandidate[] {
+  const result: ExtractedRequirementCandidate[] = [];
+  const selected = new Set(selectedRatePlanIds.filter(Boolean));
+  for (const rate of rates) {
+    if (!["medical", "dental", "vision"].includes(rate.benefitType)) continue;
+    if (!rate.employerSpecific || (selected.size && !selected.has(rate.id)))
+      continue;
+    const root = `plans.${rate.benefitType}`;
+    const evidence = (path: string): RequirementEvidence => ({
+      id: `${rate.sourceFileId}:rate:${id(rate.id, path)}`,
+      sourceFileId: rate.sourceFileId,
+      sourceFileName: rate.sourceFile,
+      authority: "rate_or_contribution",
+      authorityDomain: /offering/.test(path) ? "offering" : "rate",
+      employerOrGroupId: companyId,
+      planOrProgramId: rate.id,
+      ...(rate.effectiveDate ? { effectiveStart: rate.effectiveDate } : {}),
+      locator: {
+        kind: "sheet",
+        sheet: rate.sourceSheet,
+        row: rate.sourceRow,
+      },
+      extractionMethod: "spreadsheet",
+      extractorVersion: "rate-sheet-v1",
+      confidence: rate.confidence,
+    });
+    const add = (path: string, value: unknown) =>
+      result.push({
+        subjectHint: {
+          benefitType: rate.benefitType,
+          planOrProgramName: rate.planName,
+          planOrProgramId: rate.id,
+        },
+        path,
+        state: "known",
+        value,
+        rawValue: JSON.stringify(value),
+        evidence: evidence(path),
+        confidence: rate.confidence,
+      });
+    add(`${root}.offering.selectedByEmployer`, true);
+    const costs = rate.tiers.map((tier) => {
+      const rule = findContributionRule(
+        contributions,
+        rate.benefitType,
+        rate.id,
+        rate.planName,
+        tier.tier,
+      );
+      return {
+        tier: tier.tier,
+        monthlyPremium: tier.monthlyPremium,
+        ...(rule
+          ? calculateContribution(tier.monthlyPremium, rule)
+          : {
+              employerMonthly: tier.employerMonthly,
+              employeeMonthly: tier.employeeMonthly,
+            }),
+      };
+    });
+    if (costs.some((item) => present(item.employeeMonthly)))
+      add(`${root}.rates.employeeCost`, costs);
+    const payPeriods = [
+      ...new Set(
+        contributions
+          .filter(
+            (rule) =>
+              rule.planId === rate.id ||
+              rule.planName?.toLowerCase() === rate.planName.toLowerCase(),
+          )
+          .map((rule) => rule.payPeriods),
+      ),
+    ];
+    add(`${root}.rates.includesPerPayAmounts`, payPeriods.length > 0);
+    if (payPeriods.length)
+      add(`${root}.rates.payFrequency`, {
+        payPeriodsPerYear: payPeriods,
+      });
+    add(`${root}.rates.requiresPlanJoin`, true);
+    add(`${root}.rates.providedSeparately`, false);
+  }
+  return result;
 }
 
 export function factsFromManualAnswers(
