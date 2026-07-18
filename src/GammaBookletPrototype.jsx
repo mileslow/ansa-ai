@@ -1,32 +1,28 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
   BookOpen,
-  Building2,
   Check,
   CheckCircle2,
   ChevronDown,
   Circle,
-  CloudUpload,
   Download,
   Eye,
   FileCheck2,
-  FileSpreadsheet,
   FileText,
   Files,
   Gauge,
-  LayoutTemplate,
   LoaderCircle,
-  MessageSquareText,
   MoreHorizontal,
   RotateCcw,
   ScanLine,
   ShieldCheck,
   Sparkles,
   Upload,
-  Users,
   Zap,
 } from "lucide-react";
 import {
@@ -37,15 +33,6 @@ import {
   sourceDefinitions,
 } from "./gammaPrototypeData";
 import "./gammaPrototype.css";
-
-const iconMap = {
-  building: Building2,
-  sheet: FileSpreadsheet,
-  document: FileCheck2,
-  template: LayoutTemplate,
-  users: Users,
-  message: MessageSquareText,
-};
 
 const wait = (duration) => new Promise((resolve) => setTimeout(resolve, duration));
 
@@ -289,30 +276,32 @@ export default function GammaBookletPrototype() {
               </div>
               <span className="g-flow-progress" aria-label={`${completion}% complete`}><i style={{ width: `${completion}%` }} /></span>
             </div>
-            <PhaseTabs
-              activeIndex={activePhaseIndex}
-              phaseState={phaseState}
-              isUnlocked={phaseIsUnlocked}
-              onSelect={(index) => setActivePhase(phaseDefinitions[index].id)}
-            />
-            <FocusedPhase
-              phase={currentPhase}
-              state={currentPhaseState}
-              index={activePhaseIndex}
-              busy={!!processingPhase}
-              blocker={currentPhase.id === "documents" && blockerOpen}
-              hsaAnswer={hsaAnswer}
-              onRun={() => runPhase(currentPhase.id)}
-              onAnswer={chooseHsaAnswer}
-              onBack={() => setActivePhase(phaseDefinitions[activePhaseIndex - 1]?.id)}
-              onNext={() => setActivePhase(phaseDefinitions[activePhaseIndex + 1]?.id)}
-              canBack={activePhaseIndex > 0}
-              canNext={
-                activePhaseIndex < phaseDefinitions.length - 1 &&
-                currentPhaseState.status !== "idle" &&
-                phaseIsUnlocked(activePhaseIndex + 1)
-              }
-            />
+            <div className="g-flow-body">
+              <PhaseTabs
+                activeIndex={activePhaseIndex}
+                phaseState={phaseState}
+                isUnlocked={phaseIsUnlocked}
+                onSelect={(index) => setActivePhase(phaseDefinitions[index].id)}
+              />
+              <FocusedPhase
+                phase={currentPhase}
+                state={currentPhaseState}
+                index={activePhaseIndex}
+                busy={!!processingPhase}
+                blocker={currentPhase.id === "documents" && blockerOpen}
+                hsaAnswer={hsaAnswer}
+                onRun={() => runPhase(currentPhase.id)}
+                onAnswer={chooseHsaAnswer}
+                onBack={() => setActivePhase(phaseDefinitions[activePhaseIndex - 1]?.id)}
+                onNext={() => setActivePhase(phaseDefinitions[activePhaseIndex + 1]?.id)}
+                canBack={activePhaseIndex > 0}
+                canNext={
+                  activePhaseIndex < phaseDefinitions.length - 1 &&
+                  currentPhaseState.status !== "idle" &&
+                  phaseIsUnlocked(activePhaseIndex + 1)
+                }
+              />
+            </div>
           </div>
 
           <BookletPreview
@@ -338,8 +327,22 @@ export default function GammaBookletPrototype() {
 }
 
 const phaseTabLabels = ["Employer", "Rates", "Plans", "Template", "Census", "Notes"];
+const phasePrompts = [
+  "Start with the employer setup.",
+  "Add the plans and rates.",
+  "Add the official plan documents.",
+  "Bring in the booklet template.",
+  "Add the employee census.",
+  "Anything else the guide should know?",
+];
 
 function PhaseTabs({ activeIndex, phaseState, isUnlocked, onSelect }) {
+  const activeTabRef = useRef(null);
+
+  useEffect(() => {
+    activeTabRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [activeIndex]);
+
   return (
     <nav className="g-step-tabs" aria-label="Information phases">
       {phaseDefinitions.map((phase, index) => {
@@ -348,6 +351,7 @@ function PhaseTabs({ activeIndex, phaseState, isUnlocked, onSelect }) {
         return (
           <button
             key={phase.id}
+            ref={activeIndex === index ? activeTabRef : null}
             className={`${activeIndex === index ? "active" : ""} ${state === "complete" ? "complete" : ""} ${state === "processing" ? "processing" : ""}`}
             onClick={() => onSelect(index)}
             disabled={!unlocked}
@@ -363,7 +367,6 @@ function PhaseTabs({ activeIndex, phaseState, isUnlocked, onSelect }) {
 }
 
 function FocusedPhase({ phase, state, index, busy, blocker, hsaAnswer, onRun, onAnswer, onBack, onNext, canBack, canNext }) {
-  const Icon = iconMap[phase.icon];
   const complete = state.status === "complete";
   const processing = state.status === "processing";
 
@@ -371,15 +374,11 @@ function FocusedPhase({ phase, state, index, busy, blocker, hsaAnswer, onRun, on
     <article className={`g-focused-phase ${complete ? "is-complete" : ""} ${processing ? "is-processing" : ""}`} key={phase.id}>
       <div className="g-focused-phase__content">
         <header className="g-focused-phase__intro">
-          <span className="g-focused-phase__icon"><Icon /></span>
-          <div>
-            <small>Step {index + 1} of {phaseDefinitions.length}</small>
-            <h2>{phase.title}</h2>
+          <span className="g-question-number">{index + 1}<ArrowRight /></span>
+          <div className="g-question-copy">
+            <h2>{phasePrompts[index]}</h2>
             <p>{phase.description}</p>
           </div>
-          <span className={`g-focused-phase__status ${complete ? "complete" : processing ? "processing" : ""}`}>
-            {complete ? <><Check /> Ready</> : processing ? <><LoaderCircle className="g-spin" /> Reading</> : "Not started"}
-          </span>
         </header>
         <div className="g-focused-phase__answer">
           {!complete && !processing && (
@@ -390,10 +389,9 @@ function FocusedPhase({ phase, state, index, busy, blocker, hsaAnswer, onRun, on
               onDrop={(event) => { event.preventDefault(); onRun(); }}
               disabled={busy}
             >
-              <span><CloudUpload /></span>
-              <b>Drop files here or add a sample</b>
+              <b><Upload /> Choose a file</b>
+              <span>or drop it here</span>
               <small>{phase.accepted}</small>
-              <em><Upload /> Add sample source</em>
             </button>
           )}
 
@@ -434,9 +432,11 @@ function FocusedPhase({ phase, state, index, busy, blocker, hsaAnswer, onRun, on
         </div>
       </div>
       <footer className="g-focused-phase__nav">
-        <button onClick={onBack} disabled={!canBack}><ArrowLeft /> Back</button>
         <span>{processing ? "You can review the next step while Ansa works." : complete ? "This source is ready." : "Add a source to unlock the next step."}</span>
-        <button className="next" onClick={onNext} disabled={!canNext}>Next step <ArrowRight /></button>
+        <div className="g-step-arrows" aria-label="Move between steps">
+          <button onClick={onBack} disabled={!canBack} aria-label="Previous step"><ArrowUp /></button>
+          <button className="next" onClick={onNext} disabled={!canNext} aria-label="Next step"><ArrowDown /></button>
+        </div>
       </footer>
     </article>
   );
