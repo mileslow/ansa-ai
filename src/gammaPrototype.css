@@ -1,3 +1,24 @@
+@import "tailwindcss/theme.css" layer(theme) prefix(tw);
+@import "tailwindcss/utilities.css" layer(utilities) prefix(tw);
+
+/*
+ * Tailwind owns structural composition; these semantic tokens remain the
+ * source of truth for the prototype's material, color, radius, and depth.
+ */
+@theme inline {
+  --color-ansa-ink: var(--g-ink);
+  --color-ansa-muted: var(--g-muted);
+  --color-ansa-primary: var(--g-primary);
+  --color-ansa-primary-soft: var(--g-primary-soft);
+  --color-ansa-success: var(--g-green);
+  --color-ansa-canvas: var(--g-canvas);
+  --radius-ansa-sm: var(--g-radius-sm);
+  --radius-ansa: var(--g-radius-md);
+  --radius-ansa-lg: var(--g-radius-lg);
+  --shadow-ansa-sm: var(--g-shadow-sm);
+  --shadow-ansa: var(--g-shadow-md);
+}
+
 /* Gamma booklet prototype — a self-contained, token-driven glass workspace. */
 .g-studio {
   --g-ink: #141419;

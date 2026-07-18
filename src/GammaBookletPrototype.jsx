@@ -194,40 +194,40 @@ export default function GammaBookletPrototype() {
 
   return (
     <div className="g-studio">
-      <header className="g-topbar">
-        <div className="g-topbar__left">
-          <button className="g-brand" onClick={() => window.location.assign("/")} aria-label="Back to Ansa workspace">
+      <header className="g-topbar tw:flex tw:items-center tw:justify-between">
+        <div className="g-topbar__left tw:flex tw:items-center">
+          <button className="g-brand tw:flex tw:items-center" onClick={() => window.location.assign("/")} aria-label="Back to Ansa workspace">
             <Logo />
             <b>ansa</b>
           </button>
           <span className="g-topbar__divider" />
-          <div className="g-breadcrumb">
+          <div className="g-breadcrumb tw:flex tw:items-center">
             <span>Benefits</span>
             <ChevronDown />
             <b>Big Tows, Inc.</b>
           </div>
         </div>
-        <div className="g-topbar__right">
-          <span className="g-saved"><Check /> Prototype saved locally</span>
+        <div className="g-topbar__right tw:flex tw:items-center">
+          <span className="g-saved tw:flex tw:items-center"><Check /> Prototype saved locally</span>
           <button className="g-icon-button" aria-label="More options"><MoreHorizontal /></button>
           <button className="g-avatar" aria-label="Account menu">ML</button>
         </div>
       </header>
 
       <main className="g-main">
-        <section className="g-intro">
+        <section className="g-intro tw:flex tw:justify-between">
           <div>
-            <span className="g-eyebrow"><WandSparkles /> Booklet studio</span>
+            <span className="g-eyebrow tw:text-ansa-primary"><WandSparkles /> Booklet studio</span>
             <h1>Build the guide by adding<br />what you already have.</h1>
             <p>Ansa reads each source, finds the facts, and shapes the booklet live. You only step in when a decision needs you.</p>
           </div>
-          <div className="g-intro__actions">
+          <div className="g-intro__actions tw:flex tw:items-center">
             {(completed.size > 0 || sampleRunning) && (
               <button className="g-button g-button--quiet" onClick={resetDemo}>
                 <RotateCcw /> Reset
               </button>
             )}
-            <button className="g-button g-button--primary" onClick={runSample} disabled={sampleRunning || !!processingPhase}>
+            <button className="g-button g-button--primary tw:rounded-ansa tw:shadow-ansa-sm" onClick={runSample} disabled={sampleRunning || !!processingPhase}>
               {sampleRunning ? <LoaderCircle className="g-spin" /> : <Sparkles />}
               {sampleRunning ? "Building sample…" : completed.size ? "Continue with sample" : "Try sample benefits files"}
               {!sampleRunning && <ArrowRight />}
@@ -235,16 +235,16 @@ export default function GammaBookletPrototype() {
           </div>
         </section>
 
-        <div className="g-mobile-switcher" role="tablist" aria-label="Booklet studio panels">
+        <div className="g-mobile-switcher tw:grid tw:grid-cols-2" role="tablist" aria-label="Booklet studio panels">
           <button className={!mobilePreview ? "active" : ""} onClick={() => setMobilePreview(false)}>Sources</button>
           <button className={mobilePreview ? "active" : ""} onClick={() => setMobilePreview(true)}>
             Preview <span>{availablePages.length}</span>
           </button>
         </div>
 
-        <section className={`g-workspace ${mobilePreview ? "show-preview" : ""}`}>
+        <section className={`g-workspace tw:grid ${mobilePreview ? "show-preview" : ""}`}>
           <div className="g-flow-panel">
-            <div className="g-flow-head">
+            <div className="g-flow-head tw:flex tw:items-center tw:justify-between">
               <div>
                 <span>Your information</span>
                 <b>{completed.size} of {phaseDefinitions.length} sources ready</b>
@@ -287,7 +287,7 @@ export default function GammaBookletPrototype() {
         </section>
       </main>
 
-      {notice && <div className="g-toast"><CheckCircle2 /> {notice}</div>}
+      {notice && <div className="g-toast tw:rounded-ansa tw:shadow-ansa"><CheckCircle2 /> {notice}</div>}
     </div>
   );
 }
@@ -300,7 +300,7 @@ function PhaseCard({ phase, state, active, busy, blocker, hsaAnswer, onActivate,
 
   return (
     <article className={`g-phase ${expanded ? "is-expanded" : ""} ${complete ? "is-complete" : ""} ${processing ? "is-processing" : ""}`}>
-      <button className="g-phase__summary" onClick={onActivate} aria-expanded={expanded}>
+      <button className="g-phase__summary tw:grid tw:items-center" onClick={onActivate} aria-expanded={expanded}>
         <span className="g-phase__number">{complete ? <Check /> : phase.number}</span>
         <span className="g-phase__icon"><Icon /></span>
         <span className="g-phase__copy">
@@ -317,7 +317,7 @@ function PhaseCard({ phase, state, active, busy, blocker, hsaAnswer, onActivate,
         <div className="g-phase__body">
           {!complete && !processing && (
             <button
-              className="g-dropzone"
+              className="g-dropzone tw:rounded-ansa"
               onClick={onRun}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => { event.preventDefault(); onRun(); }}
@@ -334,7 +334,7 @@ function PhaseCard({ phase, state, active, busy, blocker, hsaAnswer, onActivate,
 
           {complete && (
             <>
-              <div className="g-source-file">
+              <div className="g-source-file tw:grid tw:items-center">
                 <span><FileText /></span>
                 <div><b>{phase.fileName}</b><small>{phase.fileMeta}</small></div>
                 <i><ShieldCheck /> Verified source</i>
@@ -352,9 +352,9 @@ function PhaseCard({ phase, state, active, busy, blocker, hsaAnswer, onActivate,
 
           {blocker && !hsaAnswer && (
             <div className="g-blocker">
-              <div className="g-blocker__head"><span><Zap /></span><div><small>One decision needed</small><b>HSA contribution</b></div></div>
+              <div className="g-blocker__head tw:flex tw:items-center"><span><Zap /></span><div><small>One decision needed</small><b>HSA contribution</b></div></div>
               <p>This plan is HSA-qualified, but I didn’t find whether Big Tows contributes to an HSA. What should the booklet say?</p>
-              <div className="g-blocker__answers">
+              <div className="g-blocker__answers tw:flex tw:flex-wrap">
                 {["No employer contribution", "Contributes by tier", "Skip HSA section"].map((answer) => (
                   <button key={answer} onClick={() => onAnswer(answer)}>{answer}<ArrowRight /></button>
                 ))}
@@ -374,7 +374,7 @@ function ProcessingState({ phase, stage }) {
   const progress = ((stage + 1) / parsingStages.length) * 100;
   return (
     <div className="g-processing-card">
-      <div className="g-processing-file">
+            <div className="g-processing-file tw:grid tw:items-center">
         <span><ScanLine /></span>
         <div><b>{phase.fileName}</b><small>{phase.steps[stage] || "Preparing source…"}</small></div>
         <LoaderCircle className="g-spin" />
@@ -398,19 +398,19 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completed, compl
 
   return (
     <aside className="g-preview-panel">
-      <div className="g-preview-top">
+      <div className="g-preview-top tw:flex tw:items-center tw:justify-between">
         <button className="g-preview-back" onClick={onBack}><ArrowLeft /> Sources</button>
         <div>
           <span className="g-live-dot"><i /> Live booklet</span>
           <b>{pages.length ? `${pages.length} pages` : "Waiting for a source"}</b>
         </div>
-        <div className="g-preview-actions">
+        <div className="g-preview-actions tw:flex tw:items-center">
           <button className="g-icon-button g-icon-button--light" aria-label="Open preview"><Eye /></button>
           <button className="g-button g-button--light" onClick={onDownload} disabled={!pages.length}><Download /> Draft</button>
         </div>
       </div>
 
-      <nav className="g-preview-tabs" aria-label="Preview sections">
+      <nav className="g-preview-tabs tw:flex" aria-label="Preview sections">
         {[
           ["pages", "Pages", pages.length],
           ["checks", "Checks", completedChecks],
