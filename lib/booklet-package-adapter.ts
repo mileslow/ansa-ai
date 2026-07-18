@@ -103,7 +103,10 @@ export function benefitsPackageToLegacyCompany(
   ];
   return {
     name: benefitsPackage.employer.name,
-    description: benefitsPackage.eligibility.description || "Employee benefits guide",
+    description:
+      benefitsPackage.employer.publicProfile?.description ||
+      benefitsPackage.eligibility.description ||
+      "Employee benefits guide",
     website: benefitsPackage.employer.website || "",
     renewalLabel: benefitsPackage.planYear.label,
     benefits,

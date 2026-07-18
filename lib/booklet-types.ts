@@ -11,6 +11,7 @@ export const DOCUMENT_TYPES = [
   "census",
   "renewal_spreadsheet",
   "email_export",
+  "company_website",
   "unknown",
 ] as const;
 
@@ -39,12 +40,16 @@ export type ProcessingStatus =
 export type UploadedFile = {
   id: string;
   companyId: string;
+  ownerId?: string;
   fileName: string;
   storagePath: string;
   mimeType: string;
   uploadedAt: string;
   sha256: string;
   processingStatus: ProcessingStatus;
+  sourceKind?: "file_upload" | "company_website" | "thread_message";
+  sourceUrl?: string | null;
+  intakeCategory?: "employer" | "rates" | "documents" | "template" | "census" | "instructions";
 };
 
 export type LoadedUploadedFile = UploadedFile & {
@@ -67,6 +72,7 @@ export type SourceRef = {
 export type ClassifiedDocument = {
   fileId: string;
   documentType: DocumentType;
+  detectedBenefitTypes?: BenefitType[];
   confidence: number;
   detectedEmployer?: string | null;
   detectedCarrier?: string | null;
@@ -191,6 +197,12 @@ export type BenefitsPackage = {
     legalName?: string | null;
     address?: string | null;
     website?: string | null;
+    publicProfile?: {
+      description?: string | null;
+      industry?: string | null;
+      headquarters?: string | null;
+      employeeRange?: string | null;
+    } | null;
   };
   planYear: { start: string; end: string; label: string };
   eligibility: {
@@ -225,6 +237,20 @@ export type BookletSection = {
 };
 
 export type BookletOutline = { sections: BookletSection[] };
+
+export type BookletSectionArtifact = {
+  id: string;
+  runId: string;
+  sectionId: string;
+  title: string;
+  pageIndex: number;
+  status: "ready" | "blocked" | "omitted";
+  contentStatus?: "ready" | "provisional" | "blocked" | "omitted";
+  html: string;
+  sourceRefs: SourceRef[];
+  sourcePaths: string[];
+  createdAt: string;
+};
 
 export type BlockerQuestion = {
   id: string;
@@ -269,6 +295,7 @@ export type BookletGenerationRun = {
   id: string;
   threadId: string;
   companyId: string;
+  ownerId: string;
   status: "queued" | "processing" | "blocked" | "complete" | "failed";
   uploadedFileIds: string[];
   stages: PipelineEvent[];
@@ -279,6 +306,20 @@ export type BookletGenerationRun = {
   pdfStoragePath?: string | null;
   pdfUrl?: string | null;
   confidenceReport?: ConfidenceReport | null;
+  classifications?: ClassifiedDocument[];
+  extractedFactCount?: number;
+  sectionArtifactCount?: number;
+  qualityReport?: {
+    passed: boolean;
+    pageCount?: number;
+    issues: Array<{
+      code: string;
+      message: string;
+      blocking: boolean;
+      sectionId?: string;
+      fieldPath?: string;
+    }>;
+  } | null;
   createdAt: string;
   completedAt?: string | null;
   error?: string | null;

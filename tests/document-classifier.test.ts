@@ -122,4 +122,20 @@ describe("document classifier", () => {
     );
     expect(["unknown", "carrier_rate_sheet"]).toContain(result.documentType);
   });
+
+  it("preserves first-class website and thread-message provenance", () => {
+    expect(
+      classifyDocument({
+        ...file("company-website-evidence.txt", "text/plain", '{"name":"Acme"}'),
+        sourceKind: "company_website",
+        sourceUrl: "https://acme.example",
+      }).documentType,
+    ).toBe("company_website");
+    expect(
+      classifyDocument({
+        ...file("booklet-thread-instructions.txt", "text/plain", "Use the final rates."),
+        sourceKind: "thread_message",
+      }).documentType,
+    ).toBe("email_export");
+  });
 });

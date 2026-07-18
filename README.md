@@ -172,18 +172,20 @@ Before merging UI changes:
 
 ## Backend booklet generator status
 
-As of July 17, 2026, the backend-first booklet flow is a working MVP. It can
+As of July 17, 2026, the backend-first booklet flow is a connected MVP. It can
 create a thread, accept mixed files, classify and extract them, assemble a
 source-aware benefits package, ask blocker questions, resume from answers,
-render a PDF, and persist the run and output. The current local verification is
-178 deterministic tests passing, 74 paid/live tests gated, a passing production
+stream and persist modular HTML pages as their sections become ready, compose
+those pages into a PDF, and persist the run and output. The current local
+verification is 183 deterministic tests passing, 82 paid/live tests gated, a passing production
 build, and a passing backend TypeScript check.
 
-The implementation is not yet ready for unrestricted use with sensitive real
-employer data. Detailed Life/AD&D, STD, LTD, voluntary/Aflac, HSA, HRA, and FSA
-generation remains incomplete; ancillary sections can be present without full
-source-backed policy detail. Authentication, tenant ownership checks, and
-private Firestore/Storage access also need to be completed.
+The booklet pipeline requires Firebase authentication and enforces owner IDs on
+threads, uploads, runs, answers, and status reads. Booklet inputs and generated
+PDFs deny direct client Storage access; the authenticated API issues a
+short-lived signed PDF URL. Detailed Life/AD&D, STD, LTD, voluntary/Aflac, HSA,
+HRA, and FSA generation remains incomplete; ancillary sections can be present
+without full source-backed policy detail.
 
 The `ansa-booklet-backend` Cloud Run service is deployed in `flux-ebfb0`. A
 live backend run generated and independently verified a corrected 12-page PDF

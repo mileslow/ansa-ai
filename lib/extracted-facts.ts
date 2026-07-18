@@ -66,6 +66,20 @@ export function factsFromDocumentExtraction(
   pushEvidence("employer.legalName", extraction.employer.legalName);
   pushEvidence("employer.address", extraction.employer.address);
   pushEvidence("employer.website", extraction.employer.website);
+  for (const [key, value] of Object.entries(extraction.companyProfile || {})) {
+    if (value)
+      facts.push(
+        fact(
+          companyId,
+          extraction,
+          `employer.publicProfile.${key}`,
+          value,
+          0.85,
+          null,
+          `${key}: ${value}`,
+        ),
+      );
+  }
   pushEvidence("planYear.start", extraction.planYear.start);
   pushEvidence("planYear.end", extraction.planYear.end);
   pushEvidence("planYear.label", extraction.planYear.label);

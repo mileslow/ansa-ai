@@ -121,7 +121,57 @@ export type BookletDocumentExtraction = z.infer<typeof BookletDocumentExtraction
   fileId: string;
   fileName: string;
   documentType: ClassifiedDocument["documentType"];
+  companyProfile?: {
+    description?: string | null;
+    industry?: string | null;
+    headquarters?: string | null;
+    employeeRange?: string | null;
+  };
 };
+
+export function extractionFromCompanyWebsite(
+  file: LoadedUploadedFile,
+  classification: ClassifiedDocument,
+): BookletDocumentExtraction {
+  const profile = JSON.parse(file.textContent || file.data.toString("utf8")) as Record<
+    string,
+    unknown
+  >;
+  const evidence = (key: string) => {
+    const value = typeof profile[key] === "string" ? String(profile[key]).trim() : "";
+    return value
+      ? { value, page: null, quote: `${key}: ${value}`, confidence: 0.85 }
+      : null;
+  };
+  return {
+    fileId: file.id,
+    fileName: file.fileName,
+    documentType: classification.documentType,
+    employer: {
+      name: evidence("name"),
+      legalName: null,
+      address: null,
+      website: evidence("website"),
+    },
+    companyProfile: {
+      description: evidence("description")?.value || null,
+      industry: evidence("industry")?.value || null,
+      headquarters: evidence("headquarters")?.value || null,
+      employeeRange: evidence("employeeRange")?.value || null,
+    },
+    planYear: { start: null, end: null, label: null },
+    eligibility: { waitingPeriod: null, description: null, employeeClasses: [] },
+    offeredBenefits: [],
+    selectedPlans: [],
+    contributions: [],
+    contacts: [],
+    accounts: [],
+    sectionOrder: [],
+    templateRole: "none",
+    extractionMethod: "model",
+    warnings: [],
+  };
+}
 
 const SYSTEM_PROMPT = `You extract source-backed facts for an employee benefits booklet.
 Use only the supplied document. Never infer checked boxes, filled values, employer identity,
@@ -140,6 +190,8 @@ function promptFor(classification: ClassifiedDocument) {
       "Determine whether this is an employer-specific current guide or a master template. Extract section order and style role. Do not copy one employer's facts to another.",
     email_export:
       "Extract explicit employer instructions, plan selections, contribution decisions, dates, eligibility, and contacts from the email body and quoted thread.",
+    company_website:
+      "Extract only public employer identity, address, website, and company context. Do not infer plan offerings, eligibility, plan year, contributions, or contacts that are not explicitly present.",
     plan_summary:
       "Extract plan identity, carrier, plan year, benefit type, and any explicit employer setup or contribution facts.",
   }[classification.documentType];

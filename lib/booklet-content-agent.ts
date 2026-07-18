@@ -16,11 +16,13 @@ export const BOOKLET_CONTENT_SECTION_IDS = [
   "eligibility",
   "medical",
   "telemedicine",
+  "hsa",
   "hra",
   "fsa",
   "dental",
   "vision",
   "life",
+  "std",
   "ltd",
   "eap",
   "voluntary",
@@ -56,6 +58,17 @@ export type GenerateBookletContentOptions = {
   model?: string;
 };
 
+export type GenerateBookletContentIncrementallyOptions =
+  GenerateBookletContentOptions & {
+    batchSize?: number;
+    concurrency?: number;
+    onSection?: (section: BookletSectionContent) => void | Promise<void>;
+    onSectionError?: (
+      sections: BookletContentSectionId[],
+      error: unknown,
+    ) => void | Promise<void>;
+  };
+
 type GroundedFact = { path: string; value: unknown };
 type PreparedSection = {
   id: BookletContentSectionId;
@@ -73,11 +86,13 @@ const SECTION_TITLES: Record<BookletContentSectionId, string> = {
   eligibility: "Eligibility",
   medical: "Medical",
   telemedicine: "Telemedicine",
+  hsa: "Health savings account",
   hra: "Health reimbursement account",
   fsa: "Flexible spending account",
   dental: "Dental",
   vision: "Vision",
   life: "Life and AD&D",
+  std: "Short-term disability",
   ltd: "Long-term disability",
   eap: "Employee assistance program",
   voluntary: "Voluntary benefits",
@@ -126,6 +141,21 @@ function addEmployerFacts(facts: GroundedFact[], benefitsPackage: BenefitsPackag
   addFact(facts, "employer.legalName", benefitsPackage.employer.legalName);
   addFact(facts, "employer.address", benefitsPackage.employer.address);
   addFact(facts, "employer.website", benefitsPackage.employer.website);
+  addFact(
+    facts,
+    "employer.publicProfile.description",
+    benefitsPackage.employer.publicProfile?.description,
+  );
+  addFact(
+    facts,
+    "employer.publicProfile.industry",
+    benefitsPackage.employer.publicProfile?.industry,
+  );
+  addFact(
+    facts,
+    "employer.publicProfile.headquarters",
+    benefitsPackage.employer.publicProfile?.headquarters,
+  );
   addFact(facts, "planYear.start", benefitsPackage.planYear.start);
   addFact(facts, "planYear.end", benefitsPackage.planYear.end);
   addFact(facts, "planYear.label", benefitsPackage.planYear.label);
@@ -248,7 +278,7 @@ function hasPlan(benefitsPackage: BenefitsPackage, benefitType: BenefitType) {
 function addAccountFacts(
   facts: GroundedFact[],
   benefitsPackage: BenefitsPackage,
-  accountType: "hra" | "fsa",
+  accountType: "hsa" | "hra" | "fsa",
 ) {
   benefitsPackage.accounts.forEach((account, index) => {
     if (account.type !== accountType) return;
@@ -381,6 +411,7 @@ function factsAndMissing(
       if (!hasPlan(benefitsPackage, id))
         missingFields.push(`plans[benefitType=${id}]`);
       break;
+    case "hsa":
     case "hra":
     case "fsa":
       addAccountFacts(facts, benefitsPackage, id);
@@ -392,6 +423,7 @@ function factsAndMissing(
       break;
     case "telemedicine":
     case "life":
+    case "std":
     case "ltd":
     case "eap":
     case "voluntary":
@@ -402,6 +434,8 @@ function factsAndMissing(
           new RegExp(
             id === "life"
               ? "life|ad&d"
+              : id === "std"
+                ? "disability|std|short.term"
               : id === "ltd"
                 ? "disability|ltd"
                 : id,
@@ -463,6 +497,22 @@ function prepareSections(
       facts,
     };
   });
+}
+
+export function assessBookletContentSections(
+  benefitsPackage: BenefitsPackage,
+  outline: BookletOutline,
+): BookletSectionContent[] {
+  return prepareSections(benefitsPackage, outline).map((section) => ({
+    id: section.id,
+    title: section.title,
+    status: section.status,
+    missingFields: section.missingFields,
+    sourcePaths: section.status === "omitted"
+      ? []
+      : section.facts.map((fact) => fact.path),
+    copy: "",
+  }));
 }
 
 function numericValues(value: unknown) {
@@ -641,6 +691,123 @@ export async function generateBookletContent(
     variant: normalizedVariant,
     model,
     sections: validateAndMerge(prepared, parsed),
+  };
+}
+
+export async function generateBookletContentIncrementally(
+  benefitsPackage: BenefitsPackage,
+  outline: BookletOutline,
+  variant: string,
+  options: GenerateBookletContentIncrementallyOptions = {},
+): Promise<BookletContentResult> {
+  const normalizedVariant = variant.trim();
+  if (!normalizedVariant) throw new Error("A booklet content variant is required");
+  if (!outline || !Array.isArray(outline.sections))
+    throw new Error("A valid booklet outline is required");
+  if (!benefitsPackage?.employer || !benefitsPackage?.planYear)
+    throw new Error("A valid benefits package is required");
+
+  const prepared = prepareSections(benefitsPackage, outline);
+  const results = new Map<BookletContentSectionId, BookletSectionContent>();
+  const publish = async (section: BookletSectionContent) => {
+    results.set(section.id, section);
+    await options.onSection?.(section);
+  };
+
+  for (const section of prepared.filter((item) => item.status !== "ready")) {
+    const [resolved] = validateAndMerge([section], {
+      sections: [{ id: section.id, copy: "", sourcePaths: [] }],
+    });
+    await publish(resolved);
+  }
+
+  const ready = prepared.filter((section) => section.status === "ready");
+  if (ready.length) {
+    const client =
+      options.client ||
+      (options.apiKey ? new OpenAI({ apiKey: options.apiKey }) : undefined);
+    if (!client)
+      throw new Error("OPENAI_API_KEY or an injected OpenAI client is required");
+    const model =
+      options.model ||
+      process.env.OPENAI_BOOKLET_CONTENT_MODEL ||
+      "gpt-5.6";
+    const batchSize = Math.max(1, Math.min(6, Math.floor(options.batchSize || 3)));
+    const batches: PreparedSection[][] = [];
+    for (let offset = 0; offset < ready.length; offset += batchSize)
+      batches.push(ready.slice(offset, offset + batchSize));
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < batches.length) {
+        const batch = batches[cursor++];
+        try {
+          const response = await client.responses.parse({
+            model,
+            reasoning: { effort: "low" },
+            input: [
+              { role: "system", content: SYSTEM_PROMPT },
+              {
+                role: "user",
+                content: `Variant: ${normalizedVariant}\n\nSection batch:\n${JSON.stringify(
+                  batch.map((section) => ({
+                    id: section.id,
+                    title: section.title,
+                    status: section.status,
+                    missingFields: section.missingFields,
+                    facts: section.facts,
+                  })),
+                )}`,
+              },
+            ],
+            text: {
+              format: zodTextFormat(
+                BatchOutputSchema,
+                "booklet_section_content_batch",
+              ),
+            },
+          });
+          if (!response.output_parsed)
+            throw new Error("OpenAI returned no parsed booklet section content");
+          const generated = validateAndMerge(
+            batch,
+            BatchOutputSchema.parse(response.output_parsed),
+          );
+          for (const section of generated) await publish(section);
+        } catch (error) {
+          await options.onSectionError?.(
+            batch.map((section) => section.id),
+            error,
+          );
+          for (const section of batch) {
+            await publish({
+              id: section.id,
+              title: section.title,
+              status: "blocked",
+              missingFields: ["content_generation"],
+              sourcePaths: section.facts.map((fact) => fact.path),
+              copy: "",
+            });
+          }
+        }
+      }
+    };
+    await Promise.all(
+      Array.from(
+        { length: Math.min(Math.max(1, Math.floor(options.concurrency || 2)), batches.length) },
+        () => worker(),
+      ),
+    );
+    return {
+      variant: normalizedVariant,
+      model,
+      sections: prepared.map((section) => results.get(section.id)!),
+    };
+  }
+
+  return {
+    variant: normalizedVariant,
+    model: options.model || "deterministic",
+    sections: prepared.map((section) => results.get(section.id)!),
   };
 }
 

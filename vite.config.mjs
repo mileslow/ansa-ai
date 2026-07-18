@@ -6,6 +6,7 @@ import { getApps, initializeApp } from "firebase/app";
 import { doc, getDoc, getFirestore, setDoc } from "firebase/firestore";
 import { generateCompanyProfile } from "./lib/company-profile.js";
 import { extractMedicalPlan } from "./lib/plan-extractor.ts";
+import { cloudRunApiBasePlugin } from "./cloud-run/vite-api-base-plugin.mjs";
 function validateBookletCompany(company) {
   const missing = [];
   const requireValue = (label, value) => {
@@ -53,10 +54,62 @@ function getLocalDb(mode) {
     );
   return getFirestore(app);
 }
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode, command }) => {
+  const localOpenAIKey = getKey(mode);
+  if (command === "serve" && !process.env.OPENAI_API_KEY && localOpenAIKey)
+    process.env.OPENAI_API_KEY = localOpenAIKey;
+  return {
   plugins: [
+    cloudRunApiBasePlugin({
+      baseUrl: loadEnv(mode, process.cwd(), "").VITE_BACKEND_API_URL,
+      required: Boolean(process.env.VERCEL),
+    }),
     tailwindcss(),
     react(),
+    {
+      name: "local-booklet-pipeline-api",
+      configureServer(server) {
+        server.middlewares.use("/api/booklet-pipeline", (req, res) => {
+          let body = "";
+          let tooLarge = false;
+          req.on("data", (chunk) => {
+            if (tooLarge) return;
+            body += chunk;
+            if (Buffer.byteLength(body) > 60 * 1024 * 1024) {
+              tooLarge = true;
+              res.statusCode = 413;
+              res.setHeader("Content-Type", "application/json");
+              res.end(JSON.stringify({ error: "Request body exceeds 60 MiB" }));
+            }
+          });
+          req.on("end", async () => {
+            if (tooLarge) return;
+            try {
+              req.bookletDevUserId = "local-booklet-studio";
+              req.body = body ? JSON.parse(body) : {};
+              req.query = {};
+              res.status = (code) => {
+                res.statusCode = code;
+                return res;
+              };
+              res.json = (payload) => {
+                if (!res.headersSent)
+                  res.setHeader("Content-Type", "application/json; charset=utf-8");
+                res.end(JSON.stringify(payload));
+                return res;
+              };
+              const module = await server.ssrLoadModule("/api/booklet-pipeline.ts");
+              await module.default(req, res);
+            } catch (error) {
+              if (res.writableEnded) return;
+              res.statusCode = 500;
+              res.setHeader("Content-Type", "application/json");
+              res.end(JSON.stringify({ error: error.message || "Local booklet API failed" }));
+            }
+          });
+        });
+      },
+    },
     {
       name: "local-company-profile-api",
       configureServer(server) {
@@ -228,4 +281,5 @@ export default defineConfig(({ mode }) => ({
       },
     },
   ],
-}));
+  };
+});

@@ -2,6 +2,7 @@ import type { BenefitsPackage, BookletOutline } from "./booklet-types";
 import type { BookletContentResult } from "./booklet-content-agent";
 import {
   generateBookletPdf,
+  generateBookletPdfFromHtml,
   renderBookletHtml,
   renderBookletPreviewPages,
 } from "./booklet";
@@ -35,4 +36,8 @@ export async function generateBenefitsPackagePdf(
 ) {
   const company = benefitsPackageToLegacyCompany(benefitsPackage, outline, content);
   return generateBookletPdf(company, packagePayPeriods(benefitsPackage));
+}
+
+export function generateBenefitsPackagePdfFromHtml(html: string) {
+  return generateBookletPdfFromHtml(html);
 }

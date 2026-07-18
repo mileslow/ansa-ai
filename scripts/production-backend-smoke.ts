@@ -7,11 +7,15 @@ import * as XLSX from "xlsx";
 const baseUrl = (
   process.env.PRODUCTION_BASE_URL || "https://ansa-benefits-studio.vercel.app"
 ).replace(/\/$/, "");
+const firebaseIdToken = process.env.FIREBASE_ID_TOKEN || "";
 
 async function request(body: Record<string, unknown>) {
   const response = await fetch(`${baseUrl}/api/booklet-pipeline`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${firebaseIdToken}`,
+    },
     body: JSON.stringify(body),
   });
   const text = await response.text();
@@ -147,6 +151,8 @@ function answersFor(questions: any[]) {
 }
 
 async function main() {
+  if (!firebaseIdToken)
+    throw new Error("FIREBASE_ID_TOKEN is required for the authenticated production smoke test");
   const medicalSbc = await fs.readFile(
     path.join(process.cwd(), "tests/fixtures/plans/uhc-bronze-2026.pdf"),
   );
