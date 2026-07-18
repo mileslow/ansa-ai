@@ -40,6 +40,7 @@ import {
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import { db, storage } from "./firebase";
 import AddCompany from "./AddCompany";
+import GammaBookletPrototype from "./GammaBookletPrototype";
 import "./styles.css";
 import "./inline.css";
 import "./add-company.css";
@@ -147,6 +148,7 @@ function Sidebar({ onHome, company, directoryActive }) {
       <nav className="sidebarNav" aria-label="Main navigation">
         <small>Workspace</small>
         <button className={directoryActive ? "active" : ""} onClick={onHome}><LayoutGrid />Companies</button>
+        <button onClick={() => window.location.assign("/booklet-studio")}><BookOpen />Booklet studio</button>
         {company && <div className="sidebarCompany"><span>{company.name.slice(0, 1)}</span><div><b>{company.name}</b><small>{company.renewalLabel}</small></div></div>}
       </nav>
       <div className="sidebarFoot"><button><Settings />Settings</button><span>Benefits workspace</span></div>
@@ -2151,4 +2153,12 @@ function Stat({ label, value, tone }) {
     </div>
   );
 }
-createRoot(document.getElementById("root")).render(<App />);
+function Root() {
+  return window.location.pathname === "/booklet-studio" ? (
+    <GammaBookletPrototype />
+  ) : (
+    <App />
+  );
+}
+
+createRoot(document.getElementById("root")).render(<Root />);
