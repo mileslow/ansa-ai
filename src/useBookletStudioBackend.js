@@ -251,32 +251,6 @@ export function useBookletStudioBackend(companyId) {
     }
   };
 
-  const researchWebsite = async (websiteUrl) => {
-    if (!websiteUrl.trim()) return;
-    setBusyPhase("employer");
-    setError("");
-    try {
-      const message = "Added the public company website as employer identity evidence.";
-      const payload = threadId
-        ? await bookletStudioApi.addMessage({ threadId, message, websiteUrl: websiteUrl.trim() })
-        : await bookletStudioApi.createThread({ companyId, message, websiteUrl: websiteUrl.trim() });
-      const nextThreadId = payload.thread?.id || threadId;
-      if (nextThreadId) {
-        setThreadId(nextThreadId);
-        updateRecoveryUrl(nextThreadId, run?.id);
-      }
-      setFiles(payload.files || []);
-      showNotice("Company information added");
-      void generate(nextThreadId);
-      return payload.websiteProfile;
-    } catch (websiteError) {
-      setError(websiteError.message);
-      return null;
-    } finally {
-      setBusyPhase("");
-    }
-  };
-
   const addNote = async (note) => {
     if (!note.trim()) return;
     setBusyPhase("instructions");
@@ -349,7 +323,7 @@ export function useBookletStudioBackend(companyId) {
   return {
     threadId, run, events, facts, files, filesByPhase, classifications, pages,
     busyPhase, processing, textStreaming, restoring, error, setError, notice,
-    completion, questions: run?.questions || [], uploadSources, researchWebsite,
+    completion, questions: run?.questions || [], uploadSources,
     addNote, deleteSource, answerQuestion, downloadPdf,
   };
 }

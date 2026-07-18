@@ -389,7 +389,6 @@ export default function BookletStudio({
                 processing={backend.processing}
                 phaseBusy={backend.busyPhase === currentPhase.id}
                 onFiles={(selectedFiles) => backend.uploadSources(currentPhase.id, selectedFiles)}
-                onResearchWebsite={backend.researchWebsite}
                 onDeleteFile={backend.deleteSource}
                 onAnswer={backend.answerQuestion}
                 onBack={() => setActivePhase(phaseDefinitions[activePhaseIndex - 1]?.id)}
@@ -731,7 +730,7 @@ function PhaseTabs({ activeIndex, phaseState, completed, isUnlocked, onSelect })
   );
 }
 
-function FocusedPhase({ phase, state, busy, companyProfile, onCompanyProfileChange, onSaveCompanyProfile, companyProfileDirty, savingCompanyProfile, connectedCompany, files, classifications, facts, questions, processing, phaseBusy, onFiles, onResearchWebsite, onDeleteFile, onAnswer, onBack, onNext, canBack, canNext }) {
+function FocusedPhase({ phase, state, busy, companyProfile, onCompanyProfileChange, onSaveCompanyProfile, companyProfileDirty, savingCompanyProfile, connectedCompany, files, classifications, facts, questions, processing, phaseBusy, onFiles, onDeleteFile, onAnswer, onBack, onNext, canBack, canNext }) {
   const inputRef = useRef(null);
   const contentRef = useRef(null);
   const dragDepth = useRef(0);
@@ -757,9 +756,8 @@ function FocusedPhase({ phase, state, busy, companyProfile, onCompanyProfileChan
         <header className="bs-focused-phase__intro"><div className="bs-question-copy"><h2>{phase.title}</h2><p>{phase.description}</p></div></header>
         <div className={`bs-focused-phase__answer is-${panel}`}>
           {(questions.length > 0 || phaseFacts.length > 0) && <nav className="bs-phase-subtabs" aria-label={`${phase.title} views`}><button className={panel === "sources" ? "active" : ""} onClick={() => setPanel("sources")}>Sources</button>{phaseFacts.length > 0 && <button className={panel === "extracted" ? "active" : ""} onClick={() => setPanel("extracted")}>Extracted <span>{phaseFacts.length}</span></button>}{questions.length > 0 && <button className={panel === "details" ? "active" : ""} onClick={() => setPanel("details")}>Details <span>{questions.length}</span></button>}</nav>}
-          {phase.id === "employer" && !files.length && <ConnectedCompanySourceInput website={companyProfile.website} onWebsiteChange={(website) => onCompanyProfileChange((current) => ({ ...current, website }))} onResearch={() => onResearchWebsite(companyProfile.website)} onChooseFiles={() => inputRef.current?.click()} onFiles={onFiles} busy={busy} accepted={phase.accepted} connectedCompany={connectedCompany} />}
           {phase.id === "employer" && files.length > 0 && <CompanyProfileFields profile={companyProfile} onChange={onCompanyProfileChange} onSave={onSaveCompanyProfile} dirty={companyProfileDirty} saving={savingCompanyProfile} disabled={processing} />}
-          {phase.id !== "employer" && <button className={`bs-dropzone bs-dropzone--focused tw:rounded-ansa ${dragging ? "is-dragging" : ""}`} onClick={() => inputRef.current?.click()} {...dropHandlers} disabled={busy}><b>{phaseBusy ? <LoaderCircle className="bs-spin" /> : <Upload />} {phaseBusy ? "Saving sources…" : dragging ? "Drop files" : "Choose files"}</b><span>{dragging ? "Release to add them" : "or drop them here"}</span><small>{phase.accepted}</small></button>}
+          {(phase.id !== "employer" || !files.length) && <button className={`bs-dropzone bs-dropzone--focused tw:rounded-ansa ${dragging ? "is-dragging" : ""}`} onClick={() => inputRef.current?.click()} {...dropHandlers} disabled={busy}><b>{phaseBusy ? <LoaderCircle className="bs-spin" /> : <Upload />} {phaseBusy ? "Saving sources…" : dragging ? "Drop files" : "Choose files"}</b><span>{dragging ? "Release to add them" : "or drop them here"}</span><small>{phase.accepted}</small></button>}
           {phase.id === "employer" && files.length > 0 && <button className={`bs-add-source-row ${dragging ? "is-dragging" : ""}`} onClick={() => inputRef.current?.click()} {...dropHandlers} disabled={busy}><Upload />{dragging ? "Drop employer files" : "Add another employer source"}</button>}
           <input ref={inputRef} className="bs-hidden-input" type="file" multiple accept=".pdf,.xlsx,.xls,.csv,.eml,.txt" onChange={(event) => { onFiles(event.target.files); event.target.value = ""; }} />
           {files.map((file) => {
@@ -876,18 +874,6 @@ function LegacyFocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyPro
         </div>
       </footer>
     </article>
-  );
-}
-
-function ConnectedCompanySourceInput({ website, onWebsiteChange, onResearch, onChooseFiles, onFiles, busy, accepted, connectedCompany }) {
-  const [dragging, setDragging] = useState(false);
-  return (
-    <section className={`bs-company-source ${dragging ? "is-dragging" : ""}`} aria-labelledby="company-source-title" onDragEnter={(event) => { event.preventDefault(); setDragging(true); }} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }} onDragLeave={(event) => { event.preventDefault(); if (!event.currentTarget.contains(event.relatedTarget)) setDragging(false); }} onDrop={(event) => { event.preventDefault(); setDragging(false); if (event.dataTransfer.files.length) onFiles(event.dataTransfer.files); }}>
-      <div className="bs-company-source__head"><b id="company-source-title">Start with {connectedCompany?.name || "the company"}</b><span>Add either source—or both.</span></div>
-      <label className="bs-company-source__website"><span>Company website</span><input type="url" value={website} onChange={(event) => onWebsiteChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && website.trim()) onResearch(); }} placeholder="https://company.com" disabled={busy} /></label>
-      <div className="bs-company-source__actions"><button className="primary" onClick={onResearch} disabled={busy || !website.trim()}><Sparkles /> Find company info <ArrowRight /></button><button onClick={onChooseFiles} disabled={busy}><Upload /><span><b>Import an employer document</b><small>{accepted}</small></span></button></div>
-      <p>{dragging ? "Drop the employer document here." : "We’ll combine public company information with the employer facts found in your documents. You can review every field before it reaches the booklet."}</p>
-    </section>
   );
 }
 
