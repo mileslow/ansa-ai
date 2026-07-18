@@ -262,6 +262,7 @@ export default function BookletStudio() {
             selectedPage={selectedPage}
             setSelectedPage={setSelectedPage}
             completed={completed}
+            completion={completion}
             completedChecks={completedChecks}
             mode={previewMode}
             setMode={setPreviewMode}
@@ -489,11 +490,12 @@ function ProcessingState({ phase, stage }) {
   );
 }
 
-function BookletPreview({ pages, selectedPage, setSelectedPage, completed, completedChecks, mode, setMode, blockerOpen, bookletReady, hsaAnswer, processingPhase, companyProfile, onDownload, onBack }) {
+function BookletPreview({ pages, selectedPage, setSelectedPage, completed, completion, completedChecks, mode, setMode, blockerOpen, bookletReady, hsaAnswer, processingPhase, companyProfile, onDownload, onBack }) {
   const page = pages.find((item) => item.id === selectedPage) || pages[0];
   const warnings = completed.has("rates") ? 2 : 0;
   const streamingPhase = phaseDefinitions.find((phase) => phase.id === processingPhase);
   const guideYear = companyProfile.planYear?.match(/\b20\d{2}\b/)?.[0];
+  const completionHue = Math.round(217 - completion * 0.62);
 
   return (
     <aside className={`bs-preview-panel ${processingPhase ? "is-streaming" : ""}`}>
@@ -541,7 +543,16 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completed, compl
               <div className="bs-canvas-wrap">
                 <div className="bs-canvas-meta">
                   <div><span>Page {page.number} of 14</span><b>{page.title}</b></div>
-                  <span className="bs-confidence"><ShieldCheck /> 98% source confidence</span>
+                  <div className="bs-canvas-status">
+                    {blockerOpen && <button className="bs-missing-status" onClick={() => setMode("checks")}><AlertCircle /> 1 detail missing</button>}
+                    <span
+                      className="bs-completion-status"
+                      style={{ "--bs-completion": `${completion}%`, "--bs-completion-hue": completionHue }}
+                    >
+                      <i><span /></i>
+                      <b>{completion}% complete</b>
+                    </span>
+                  </div>
                 </div>
                 <div className="bs-canvas-stage">
                   <PageCanvas page={page} completed={completed} hsaAnswer={hsaAnswer} companyProfile={companyProfile} />
@@ -562,7 +573,7 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completed, compl
         </div>
       )}
       {mode === "checks" && <ChecksView completed={completed} blockerOpen={blockerOpen} />}
-      {mode === "sources" && <SourcesView completed={completed} />}
+      {mode === "sources" && <SourcesView completed={completed} blockerOpen={blockerOpen} />}
     </aside>
   );
 }
@@ -725,18 +736,19 @@ function ChecksView({ completed, blockerOpen }) {
   );
 }
 
-function SourcesView({ completed }) {
+function SourcesView({ completed, blockerOpen }) {
   return (
     <div className="bs-inspection-view">
       <div className="bs-inspection-head"><span><Files /></span><div><small>Source of truth</small><h3>Connected evidence</h3><p>Review exactly where each booklet fact came from.</p></div></div>
       <div className="bs-sources-list">
         {sourceDefinitions.map((source) => {
           const ready = completed.has(source.phase);
+          const missing = ready && blockerOpen && source.phase === "documents";
           return (
-            <div key={source.phase} className={ready ? "ready" : ""}>
-              <span>{ready ? <FileCheck2 /> : <FileText />}</span>
-              <div><b>{source.label}</b><small>{ready ? source.detail : "Not added yet"}</small></div>
-              {ready ? <em>{source.confidence}%</em> : <i>Pending</i>}
+            <div key={source.phase} className={`${ready ? "ready" : ""} ${missing ? "missing" : ""}`}>
+              <span>{missing ? <AlertCircle /> : ready ? <FileCheck2 /> : <FileText />}</span>
+              <div><b>{source.label}</b><small>{missing ? "Missing employer HSA contribution" : ready ? source.detail : "Not added yet"}</small></div>
+              {missing ? <em>Review</em> : ready ? <em>{source.confidence}%</em> : <i>Pending</i>}
             </div>
           );
         })}
