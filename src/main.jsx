@@ -37,7 +37,12 @@ import {
   query,
   setDoc,
 } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
+import {
+  getDownloadURL,
+  ref,
+  uploadBytes,
+  uploadBytesResumable,
+} from "firebase/storage";
 import { db, storage } from "./firebase";
 import AddCompany from "./AddCompany";
 import BookletStudio from "./BookletStudio";
@@ -271,6 +276,27 @@ const mergeDetails = (d) => ({
     ...d?.planDocuments,
   },
 });
+const inferredCompanyPlanYear = (company) => {
+  const benefitYears = Object.values(company.benefits || {}).flatMap((benefit) => [
+      ...(benefit?.years || []),
+      ...(benefit?.plans || []).map((plan) => plan.year),
+    ]),
+    renewalYear = Number(String(company.renewalDate || "").slice(0, 4)),
+    years = [...benefitYears, renewalYear]
+      .map(Number)
+      .filter((year) => Number.isFinite(year) && year > 2000);
+  return years.length ? Math.max(...years) : new Date().getFullYear();
+};
+const guideDetailsForCompany = (company) => {
+  const details = mergeDetails(company.planDetails),
+    year = inferredCompanyPlanYear(company);
+  if (!details.employer.cover) details.employer.cover = company.name || "";
+  if (!details.planYear.start) details.planYear.start = `${year}-01-01`;
+  if (!details.planYear.end) details.planYear.end = `${year}-12-31`;
+  if (!details.enrollment.start) details.enrollment.start = `${year - 1}-11-01`;
+  if (!details.enrollment.end) details.enrollment.end = `${year - 1}-11-15`;
+  return details;
+};
 const dateLabel = (v) =>
   v
     ? new Date(`${v}T12:00:00`).toLocaleDateString("en-US", {
@@ -280,45 +306,32 @@ const dateLabel = (v) =>
       })
     : "Not set";
 function Company({ company, onUpdate, back }) {
-  const [expanded, setExpanded] = useState(() =>
-      company.benefits?.health ? "health" : null,
-    ),
-    [generating, setGenerating] = useState(false),
+  const [generating, setGenerating] = useState(false),
     [activeTab, setActiveTab] = useState("plans"),
-    [generation, setGeneration] = useState({
-      status: "idle",
-      message: "",
-      pageCount: 0,
-      pages: [],
-      pdfUrl: "",
-      filename: "",
-      error: "",
-      draftCopy: null,
+    [preferredBenefitType, setPreferredBenefitType] = useState("health"),
+    [generation, setGeneration] = useState(() => {
+      const saved = company.lastGeneratedBooklet;
+      return {
+        status: saved?.url ? "complete" : "idle",
+        message: saved?.url ? "Booklet ready" : "",
+        pageCount: 0,
+        pages: [],
+        pdfUrl: saved?.url || "",
+        filename: saved?.filename || "",
+        error: "",
+        draftCopy: null,
+      };
     });
   let details = mergeDetails(company.planDetails),
-    cards = [
-      [
-        "health",
-        "Medical",
-        HeartPulse,
-        "Premiums, employer share, and employee deductions",
-      ],
-      [
-        "dental",
-        "Dental",
-        Smile,
-        "Premiums, employer share, and employee deductions",
-      ],
-      ["vision", "Vision", Eye, "Premiums, employer share, and employee deductions"],
-    ];
-  let planYear =
+    planYear =
     details.planYear.start || details.planYear.end
       ? `${dateLabel(details.planYear.start)} – ${dateLabel(details.planYear.end)}`
       : company.renewalLabel;
-  let generateBooklet = async () => {
+  let generateBooklet = async (bookletCompany = company) => {
     setActiveTab("booklet");
     setGenerating(true);
-    if (generation.pdfUrl) URL.revokeObjectURL(generation.pdfUrl);
+    if (generation.pdfUrl?.startsWith("blob:"))
+      URL.revokeObjectURL(generation.pdfUrl);
     setGeneration({
       status: "starting",
       message: "Connecting to the booklet generator…",
@@ -333,7 +346,7 @@ function Company({ company, onUpdate, back }) {
       let response = await fetch("/api/generate-booklet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ company, payPeriods: 52 }),
+        body: JSON.stringify({ company: bookletCompany, payPeriods: 52 }),
       });
       if (!response.ok) {
         let error = await response.json().catch(() => ({}));
@@ -401,19 +414,47 @@ function Company({ company, onUpdate, back }) {
               status: "rendering",
               message: event.message,
             }));
+          if (event.type === "error")
+            setGeneration((g) => ({
+              ...g,
+              status: "error",
+              error: event.message || "Could not generate booklet",
+              message: "Generation stopped",
+            }));
           if (event.type === "complete") {
             let bytes = Uint8Array.from(atob(event.pdf), (c) =>
                 c.charCodeAt(0),
               ),
-              href = URL.createObjectURL(
-                new Blob([bytes], { type: "application/pdf" }),
-              );
+              pdf = new Blob([bytes], { type: "application/pdf" }),
+              safeFilename = String(event.filename || "benefits-guide.pdf")
+                .replace(/[^a-zA-Z0-9._-]+/g, "-")
+                .replace(/^-+|-+$/g, ""),
+              storagePath = `benefitsCompanies/${company.id}/booklets/latest-${safeFilename}`,
+              bookletRef = ref(storage, storagePath);
+            setGeneration((g) => ({
+              ...g,
+              status: "rendering",
+              message: "Saving the latest booklet…",
+            }));
+            await uploadBytes(bookletRef, pdf, { contentType: "application/pdf" });
+            const href = await getDownloadURL(bookletRef),
+              savedBooklet = {
+                url: href,
+                filename: safeFilename,
+                storagePath,
+                generatedAt: new Date().toISOString(),
+              };
+            await setDoc(
+              doc(db, "benefitsCompanies", company.id),
+              { lastGeneratedBooklet: savedBooklet },
+              { merge: true },
+            );
             setGeneration((g) => ({
               ...g,
               status: "complete",
               message: event.message,
               pdfUrl: href,
-              filename: event.filename,
+              filename: safeFilename,
             }));
           }
         }
@@ -458,6 +499,7 @@ function Company({ company, onUpdate, back }) {
         {[
           ["plans", "Plans"],
           ["costs", "Costs"],
+          ["details", "Plan setup"],
           ["booklet", "Booklet"],
           ["people", "People"],
         ].map(([key, label]) => (
@@ -478,85 +520,140 @@ function Company({ company, onUpdate, back }) {
           company={company}
           details={details}
           onUpdate={onUpdate}
+          preferredBenefitType={preferredBenefitType}
         />
       )}
       {activeTab === "costs" && (
-        <>
-          <CoverageSelector
-            cards={cards}
-            selected={expanded}
-            onSelect={(key) => setExpanded(expanded === key ? null : key)}
-            company={company}
-            mode="costs"
-          />
-          {expanded && (
-            <div className="expandedForm">
-              {company.benefits?.[expanded] ? (
-                <Plans
-                  key={expanded}
-                  company={company}
-                  type={expanded}
-                  onUpdate={onUpdate}
-                />
-              ) : (
-                <div className="emptyCoverageCosts">
-                  <b>No employee cost table</b>
-                  <span>
-                    Upload a source document now. Employee premium and
-                    contribution rows can be added after the plan is parsed.
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-        </>
+        <CostSummariesSection
+          company={company}
+          onUploadPlan={(type) => {
+            setPreferredBenefitType(type);
+            setActiveTab("plans");
+          }}
+        />
       )}
       {activeTab === "people" && (
         <PeopleTab company={company} details={details} onUpdate={onUpdate} />
       )}
+      {activeTab === "details" && (
+        <GuideDetailsTab company={company} onUpdate={onUpdate} />
+      )}
       {activeTab === "booklet" && (
         <BookletTab
+          company={company}
           generation={generation}
           generating={generating}
           generate={generateBooklet}
+          onOpenDetails={() => setActiveTab("details")}
         />
       )}
     </main>
   );
 }
 
-function CoverageSelector({ cards, selected, onSelect, company, mode }) {
+const benefitTypeCards = [
+  ["health", "Medical", HeartPulse],
+  ["dental", "Dental", Smile],
+  ["vision", "Vision", Eye],
+];
+const planBenefitType = (plan) =>
+  plan.benefitType ||
+  (benefitTypeCards.some(([key]) => key === plan.id) ? plan.id : "health");
+const planDisplayName = (plan) =>
+  plan.attributes?.identity?.planName || plan.name || plan.fileName || "Untitled plan";
+const planYearFromDocument = (plan) => {
+  const coverageStart = plan.attributes?.identity?.coverageStart,
+    savedYear = Number(plan.costSummary?.planYear),
+    coverageYear = Number(String(coverageStart || "").slice(0, 4));
+  if (Number.isFinite(savedYear) && savedYear > 0) return savedYear;
+  if (Number.isFinite(coverageYear) && coverageYear > 0) return coverageYear;
+  return null;
+};
+const hasPlanRates = (plan) =>
+  Array.isArray(plan.costSummary?.tiers) &&
+  plan.costSummary.tiers.some((row) => Number(row.premium) > 0);
+const companyWithUploadedRates = (company, uploadedPlans) => {
+  const benefits = { ...(company.benefits || {}) };
+  for (const [benefitType] of benefitTypeCards) {
+    const uploadedForType = uploadedPlans.filter(
+        (plan) => planBenefitType(plan) === benefitType,
+      ),
+      plans = uploadedForType
+      .filter(hasPlanRates)
+      .map((plan) => ({
+        name: planDisplayName(plan),
+        year: Number(plan.costSummary.planYear) || planYearFromDocument(plan),
+        tiers: plan.costSummary.tiers.map((row) => ({
+          tier: row.tier,
+          premium: Number(row.premium) || 0,
+          erPercent: Number(row.erPercent) || 0,
+          enrolled: Number(row.enrolled) || 0,
+        })),
+      }));
+    benefits[benefitType] = {
+      ...(benefits[benefitType] || {}),
+      uploadedPlanCount: uploadedForType.length,
+      years: [...new Set(plans.map((plan) => plan.year).filter(Boolean))],
+      plans,
+    };
+  }
+  return {
+    ...company,
+    benefits,
+    planDetails: guideDetailsForCompany(company),
+  };
+};
+const bookletMissingRequirements = (company) => {
+  const missing = [],
+    requireValue = (label, value) => {
+      if (value === undefined || value === null || value === "") missing.push(label);
+    };
+  requireValue("Company name", company?.name);
+  requireValue("Company description", company?.description);
+  requireValue("Company website", company?.website);
+  requireValue("Employer cover name", company?.planDetails?.employer?.cover);
+  requireValue("Plan year start", company?.planDetails?.planYear?.start);
+  requireValue("Plan year end", company?.planDetails?.planYear?.end);
+  if (!company?.benefits?.health?.plans?.length) missing.push("Medical plan rates");
+  if (
+    Number(company?.benefits?.dental?.uploadedPlanCount) > 0 &&
+    !company?.benefits?.dental?.plans?.length
+  )
+    missing.push("Dental plan rates");
+  return [...new Set(missing)];
+};
+function BenefitTypeSelector({ company, plans = [], selected, onSelect }) {
   return (
-    <div className="benefitStack">
-      {cards.map(([key, name, Icon, sub]) => {
-        let hasCosts = !!company.benefits?.[key],
-          isSelected = selected === key,
-          planYears = (company.benefits?.[key]?.plans || [])
-            .map((plan) => Number(plan.year))
-            .filter(Number.isFinite),
-          currentYear = planYears.length ? Math.max(...planYears) : null;
+    <div className="benefitStack" aria-label="Benefit type">
+      {benefitTypeCards.map(([key, name, Icon]) => {
+        const benefit = company.benefits?.[key],
+          matchingPlans = plans.filter((plan) => planBenefitType(plan) === key),
+          offered = !!benefit || matchingPlans.length > 0,
+          years = [
+            ...(benefit?.years || []),
+            ...matchingPlans.map(planYearFromDocument),
+          ]
+            .map(Number)
+            .filter((year) => Number.isFinite(year) && year > 0),
+          year = years.length ? Math.max(...years) : null,
+          isSelected = selected === key;
         return (
           <button
             key={key}
-            className={`benefitCard ${isSelected ? "selected" : ""}`}
-            onClick={() => onSelect(key)}
+            className={`benefitCard ${isSelected ? "selected" : ""} ${offered ? "" : "disabled"}`}
+            disabled={!offered}
+            onClick={() => onSelect(isSelected ? null : key)}
           >
-            <span className={`benefitIcon ${key}`}>
-              <Icon />
-            </span>
+            <span className={`benefitIcon ${key}`}><Icon /></span>
             <div>
               <b>{name}</b>
-              <p>{sub}</p>
-              {hasCosts ? (
-                <span>
-                  {currentYear || "Current year"} ·{" "}
-                  {isSelected ? "Hide costs" : "Edit costs"}
-                </span>
-              ) : (
-                <span>Not offered</span>
-              )}
+              <span>
+                {offered
+                  ? `${year || "Current year"} · ${isSelected ? "Hide costs" : "Edit costs"}`
+                  : "Not offered"}
+              </span>
             </div>
-            <ChevronRight />
+            {offered && <ChevronRight />}
           </button>
         );
       })}
@@ -578,12 +675,423 @@ const normalizePlanDocuments = (store = {}) => {
     (doc, index, docs) => docs.findIndex((item) => item.id === doc.id) === index,
   );
 };
-function PlanDocumentsSection({ company, details, onUpdate }) {
+const normalizeCostSummary = (plan) => {
+  return normalizeCostSummaryValue(plan.costSummary || {}, plan);
+};
+const normalizeCostSummaryValue = (saved = {}, plan = {}) => {
+  const
+    savedTiers = Array.isArray(saved.tiers) ? saved.tiers : [];
+  return {
+    planYear: Number(saved.planYear || planYearFromDocument(plan)) || "",
+    payPeriods: Number(saved.payPeriods) || 52,
+    tiers: tiers.map((tier) => {
+      const row = savedTiers.find((item) => item.tier === tier) || {};
+      return {
+        tier,
+        premium: Number(row.premium) || 0,
+        erPercent: Number(row.erPercent) || 0,
+        enrolled: Number(row.enrolled) || 0,
+      };
+    }),
+  };
+};
+const blankCostSummary = (planYear, payPeriods = 52) => ({
+  planYear: Number(planYear),
+  payPeriods: Number(payPeriods) || 52,
+  tiers: tiers.map((tier) => ({ tier, premium: 0, erPercent: 0, enrolled: 0 })),
+});
+const normalizeCostSummaries = (plan) => {
+  const savedHistory = Array.isArray(plan.costSummaries)
+      ? plan.costSummaries.map((summary) => normalizeCostSummaryValue(summary, plan))
+      : [],
+    current = normalizeCostSummary(plan),
+    byYear = new Map();
+  for (const summary of [...savedHistory, current]) {
+    if (summary.planYear) byYear.set(Number(summary.planYear), summary);
+  }
+  if (byYear.size === 1) {
+    const onlyYear = [...byYear.keys()][0];
+    byYear.set(onlyYear - 1, blankCostSummary(onlyYear - 1, current.payPeriods));
+  }
+  return [...byYear.values()].sort(
+    (a, b) => Number(a.planYear) - Number(b.planYear),
+  );
+};
+const calculateCostSummary = (summary) =>
+  calculate(
+    {
+      name: "",
+      year: summary.planYear,
+      tiers: summary.tiers,
+    },
+    summary.payPeriods,
+  );
+
+function CostSummariesSection({ company, onUploadPlan }) {
+  const [plans, setPlans] = useState([]),
+    [loading, setLoading] = useState(true),
+    [selectedType, setSelectedType] = useState("health"),
+    [expandedId, setExpandedId] = useState(null);
+  useEffect(() => {
+    const plansRef = collection(db, "benefitsCompanies", company.id, "plans");
+    return onSnapshot(
+      plansRef,
+      (snapshot) => {
+        setPlans(
+          snapshot.docs
+            .map((item) => ({ id: item.id, ...item.data() }))
+            .sort((a, b) =>
+              String(b.uploadedAt || "").localeCompare(String(a.uploadedAt || "")),
+            ),
+        );
+        setLoading(false);
+      },
+      () => setLoading(false),
+    );
+  }, [company.id]);
+  const matchingPlans = plans.filter(
+    (plan) => planBenefitType(plan) === selectedType,
+  );
+  return (
+    <>
+      <BenefitTypeSelector
+        company={company}
+        plans={plans}
+        selected={selectedType}
+        onSelect={(type) => {
+          setSelectedType(type);
+          setExpandedId(null);
+        }}
+      />
+      {selectedType && (
+        <section className="costSummariesSection">
+          {loading ? (
+            <div className="costSummariesLoading"><LoaderCircle /> Loading cost summaries…</div>
+          ) : matchingPlans.length === 0 ? (
+            <div className="costSummariesEmpty">
+              <FileText />
+              <h2>No plans to summarize</h2>
+              <p>
+                Cost summaries are created for uploaded plans. Upload a plan to
+                start a new editable summary.
+              </p>
+              <button className="companyAction" onClick={() => onUploadPlan(selectedType)}>
+                <Upload /> Go to plan upload
+              </button>
+            </div>
+          ) : (
+            <div className="costSummaryList">
+              <div className="costSummaryListHead">
+                <div>
+                  <span>Uploaded plan options</span>
+                  <h2>
+                    {matchingPlans.length} {benefitTypeCards.find(([key]) => key === selectedType)?.[1]} {matchingPlans.length === 1 ? "plan" : "plans"}
+                  </h2>
+                  <p>Open any plan below to edit and save its individual cost summary.</p>
+                </div>
+                <b>{matchingPlans.filter((plan) => hasPlanRates(plan)).length} complete</b>
+              </div>
+              {matchingPlans.map((plan) => {
+                const isExpanded = expandedId === plan.id,
+                  hasSummary = !!plan.costSummary,
+                  calculated = calculateCostSummary(normalizeCostSummary(plan));
+                return (
+                  <article className={`costSummaryItem ${isExpanded ? "expanded" : ""}`} key={plan.id}>
+                    <button
+                      className="costSummaryRow"
+                      onClick={() => setExpandedId(isExpanded ? null : plan.id)}
+                      aria-expanded={isExpanded}
+                    >
+                      <span className="costSummaryIcon"><FileText /></span>
+                      <span className="costSummaryIdentity">
+                        <b>{planDisplayName(plan)}</b>
+                        <small>{[plan.fileName, fileSize(plan.size)].filter(Boolean).join(" · ")}</small>
+                      </span>
+                      <span className="costSummaryTotal">
+                        <small>{hasSummary ? "Annual premium" : "Cost summary"}</small>
+                        <b>{hasSummary ? fmt(calculated.total) : "Not started"}</b>
+                      </span>
+                      <ChevronRight />
+                    </button>
+                    {isExpanded && <CostSummaryEditor companyId={company.id} plan={plan} />}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
+    </>
+  );
+}
+
+function CostSummaryEditor({ companyId, plan }) {
+  const [drafts, setDrafts] = useState(() => normalizeCostSummaries(plan)),
+    [selectedYear, setSelectedYear] = useState(() => {
+      const summaries = normalizeCostSummaries(plan);
+      return Number(summaries.at(-1)?.planYear) || new Date().getFullYear();
+    }),
+    [dirty, setDirty] = useState(false),
+    [saving, setSaving] = useState(false),
+    [saved, setSaved] = useState(false),
+    [error, setError] = useState("");
+  useEffect(() => {
+    if (dirty) return;
+    const summaries = normalizeCostSummaries(plan);
+    setDrafts(summaries);
+    if (!summaries.some((summary) => Number(summary.planYear) === selectedYear))
+      setSelectedYear(Number(summaries.at(-1)?.planYear));
+  }, [plan.costSummary, plan.costSummaries]);
+  const selectedIndex = Math.max(
+      drafts.findIndex((summary) => Number(summary.planYear) === selectedYear),
+      0,
+    ),
+    draft = drafts[selectedIndex] || blankCostSummary(selectedYear),
+    calculated = calculateCostSummary(draft),
+    calculatedHistory = drafts.map((summary) => calculateCostSummary(summary)),
+    updateSelected = (change) => {
+      setDrafts((current) =>
+        current.map((summary, index) =>
+          index === selectedIndex ? change(summary) : summary,
+        ),
+      );
+      setDirty(true);
+      setSaved(false);
+    },
+    updateTier = (index, key, value) => {
+      updateSelected((current) => ({
+        ...current,
+        tiers: current.tiers.map((row, rowIndex) =>
+          rowIndex === index ? { ...row, [key]: value } : row,
+        ),
+      }));
+    },
+    addYear = () => {
+      const nextYear = Math.max(
+        ...drafts.map((summary) => Number(summary.planYear) || 0),
+        new Date().getFullYear(),
+      ) + 1;
+      setDrafts((current) => [
+        ...current,
+        blankCostSummary(nextYear, draft.payPeriods),
+      ]);
+      setSelectedYear(nextYear);
+      setDirty(true);
+      setSaved(false);
+    },
+    save = async () => {
+      setSaving(true);
+      setError("");
+      try {
+        const history = [...drafts].sort(
+            (a, b) => Number(a.planYear) - Number(b.planYear),
+          ),
+          current = history.at(-1);
+        await setDoc(
+          doc(db, "benefitsCompanies", companyId, "plans", plan.id),
+          {
+            costSummaries: history,
+            costSummary: current,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true },
+        );
+        setDirty(false);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 1400);
+      } catch (saveError) {
+        setError(saveError.message || "Could not save cost summary");
+      } finally {
+        setSaving(false);
+      }
+    };
+  return (
+    <div className="costSummaryEditor">
+      <div className="costSummaryEditorHead">
+        <div>
+          <span>Editable cost summary</span>
+          <h2>{planDisplayName(plan)}</h2>
+          <p>Update premiums, employer contributions, and enrollment for this plan.</p>
+        </div>
+        <div className="costSummaryControls">
+          <label>
+            Pay periods
+            <select
+              value={draft.payPeriods}
+              onChange={(event) => {
+                updateSelected((current) => ({
+                  ...current,
+                  payPeriods: Number(event.target.value),
+                }));
+              }}
+            >
+              <option>52</option>
+              <option>26</option>
+              <option>24</option>
+              <option>12</option>
+            </select>
+          </label>
+          <button className="companyAction compact" onClick={save} disabled={!dirty || saving}>
+            {saved ? <Check /> : saving ? <LoaderCircle /> : <Save />}
+            {saved ? "Saved" : saving ? "Saving" : "Save summary"}
+          </button>
+        </div>
+      </div>
+      <div className="costYearToolbar">
+        <span>Plan year history</span>
+        <div className="yearTabs" role="tablist" aria-label="Cost plan year">
+          {drafts.map((summary) => (
+            <button
+              key={summary.planYear}
+              role="tab"
+              aria-selected={selectedYear === Number(summary.planYear)}
+              className={selectedYear === Number(summary.planYear) ? "active" : ""}
+              onClick={() => setSelectedYear(Number(summary.planYear))}
+            >
+              {summary.planYear}
+            </button>
+          ))}
+          <button
+            className="addYear"
+            aria-label="Add plan year"
+            title="Add next plan year"
+            onClick={addYear}
+          >
+            <Plus />
+          </button>
+        </div>
+      </div>
+      <CostComparisonChart plans={calculatedHistory} />
+      <section className="stats">
+        <Stat label="Annual premium" value={fmt(calculated.total)} />
+        <Stat label="Employer annual cost" value={fmt(calculated.er)} />
+        <Stat label="Employee annual cost" value={fmt(calculated.ee)} />
+        <Stat label="Total enrolled" value={calculated.enrolled} />
+      </section>
+      <div className="tableCard costSummaryTable">
+        <table>
+          <thead>
+            <tr>
+              <th>Tier</th>
+              <th>Monthly premium</th>
+              <th>ER cost</th>
+              <th>EE cost</th>
+              <th>EE per pay</th>
+              <th>ER %</th>
+              <th># enrolled</th>
+              <th>ER annual</th>
+              <th>EE annual</th>
+              <th>Total annual premium</th>
+            </tr>
+          </thead>
+          <tbody>
+            {calculated.rows.map((row, index) => (
+              <tr key={row.tier}>
+                <td><b>{row.tier}</b></td>
+                <td>
+                  <NumberField
+                    prefix="$"
+                    value={row.premium}
+                    change={(value) => updateTier(index, "premium", value)}
+                  />
+                </td>
+                <td>{fmt2(row.er)}</td>
+                <td>{fmt2(row.ee)}</td>
+                <td>{fmt2(row.perPay)}</td>
+                <td>
+                  <NumberField
+                    suffix="%"
+                    value={Math.round(row.erPercent * 10000) / 100}
+                    change={(value) => updateTier(index, "erPercent", value / 100)}
+                  />
+                </td>
+                <td>
+                  <NumberField
+                    value={row.enrolled}
+                    change={(value) => updateTier(index, "enrolled", value)}
+                  />
+                </td>
+                <td>{fmt(row.erAnnual)}</td>
+                <td>{fmt(row.eeAnnual)}</td>
+                <td><b>{fmt(row.total)}</b></td>
+              </tr>
+            ))}
+            <tr className="total">
+              <td>{draft.planYear || "Plan"} total</td>
+              <td colSpan="5"></td>
+              <td>{calculated.enrolled}</td>
+              <td>{fmt(calculated.er)}</td>
+              <td>{fmt(calculated.ee)}</td>
+              <td>{fmt(calculated.total)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      {error && <p className="formError">{error}</p>}
+    </div>
+  );
+}
+
+function CostComparisonChart({ plans }) {
+  const metrics = [
+      ["Total premium", "total"],
+      ["Employer cost", "er"],
+      ["Employee cost", "ee"],
+    ],
+    max = Math.max(
+      ...plans.flatMap((plan) => metrics.map(([, key]) => plan[key] || 0)),
+      1,
+    );
+  return (
+    <div className="costChart" aria-label="Year-over-year annual cost comparison">
+      <div className="costChartHead">
+        <div>
+          <h2>Annual cost comparison</h2>
+          <p>Employer and employee contributions by plan year.</p>
+        </div>
+        <div className="chartLegend">
+          {plans.map((plan, index) => (
+            <span key={`${plan.year}-legend`}>
+              <i data-series={index} />
+              {plan.year}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="chartRows">
+        {metrics.map(([label, key]) => (
+          <div className="chartRow" key={key}>
+            <span>{label}</span>
+            <div className="chartBars">
+              {plans.map((plan, index) => (
+                <div className="chartBarLine" key={`${key}-${plan.year}`}>
+                  <div className="chartBarTrack">
+                    <i
+                      data-series={index}
+                      style={{ width: `${((plan[key] || 0) / max) * 100}%` }}
+                    />
+                  </div>
+                  <b>{fmt(plan[key])}</b>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PlanDocumentsSection({ company, details, preferredBenefitType }) {
   const [documents, setDocuments] = useState(() =>
       normalizePlanDocuments(details.planDocuments),
     ),
     [modalOpen, setModalOpen] = useState(false),
-    [selectedId, setSelectedId] = useState(null);
+    [selectedId, setSelectedId] = useState(null),
+    [selectedType, setSelectedType] = useState(preferredBenefitType || "health");
+  useEffect(() => {
+    if (preferredBenefitType) setSelectedType(preferredBenefitType);
+  }, [preferredBenefitType]);
   useEffect(() => {
     const plans = collection(db, "benefitsCompanies", company.id, "plans");
     return onSnapshot(plans, (snapshot) => {
@@ -625,6 +1133,7 @@ function PlanDocumentsSection({ company, details, onUpdate }) {
       const uploadedAt = new Date().toISOString();
       await setDoc(doc(db, "benefitsCompanies", company.id, "plans", uploaded.id), {
         ...uploaded,
+        benefitType: selectedType || "health",
         uploadedAt,
         status: "queued",
         parsingState: "queued",
@@ -644,67 +1153,83 @@ function PlanDocumentsSection({ company, details, onUpdate }) {
         retry={() => startParser(selected.id)}
       />
     );
+  const visibleDocuments = documents.filter(
+    (plan) => planBenefitType(plan) === selectedType,
+  );
   return (
-    <section className="planDocumentsSection">
-      {documents.length === 0 ? (
-        <div className="plansEmptyState">
-          <div>
-            <FileText />
-            <h2>No plans yet</h2>
-            <p>
-              Looks like there are no plans for this company. Upload one here.
-            </p>
-          </div>
-          <button className="companyAction planUploadButton" onClick={() => setModalOpen(true)}>
-            <Upload />
-            Upload plan
-          </button>
-        </div>
-      ) : (
-        <div className="planDocumentGrid">
-          {documents.map((plan) => (
-            <button
-              className={`planDocumentCard ${plan.status === "parsing" || plan.status === "queued" ? "parsing" : ""}`}
-              key={plan.id}
-              onClick={() => setSelectedId(plan.id)}
-            >
-              <div className="planDocumentPreview">
-                {plan.status === "complete" ? <FileSearch /> : <FileText />}
+    <>
+      <BenefitTypeSelector
+        company={company}
+        plans={documents}
+        selected={selectedType}
+        onSelect={(type) => {
+          setSelectedType(type);
+          setSelectedId(null);
+        }}
+      />
+      {selectedType && (
+        <section className="planDocumentsSection">
+          {visibleDocuments.length === 0 ? (
+            <div className="plansEmptyState">
+              <div>
+                <FileText />
+                <h2>No {selectedType} plans yet</h2>
+                <p>
+                  Looks like there are no plans for this benefit type. Upload one here.
+                </p>
               </div>
-              <div className="planDocumentSummary">
-                <b>{plan.attributes?.identity?.planName || plan.name}</b>
-                <span>
-                  {new Date(plan.uploadedAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </span>
-                <small>
-                  {[plan.fileName, fileSize(plan.size)].filter(Boolean).join(" · ")}
-                </small>
-                {(plan.status === "parsing" || plan.status === "queued") && (
-                  <PlanProgress plan={plan} compact />
-                )}
-                {plan.status === "failed" && <small className="planFailed">Parsing failed</small>}
-              </div>
-              <ChevronRight />
-            </button>
-          ))}
-          <button className="addPlanCard" onClick={() => setModalOpen(true)}>
-            <Plus />
-            <b>Add new plan</b>
-          </button>
-        </div>
+              <button className="companyAction planUploadButton" onClick={() => setModalOpen(true)}>
+                <Upload />
+                Upload plan
+              </button>
+            </div>
+          ) : (
+            <div className="planDocumentGrid">
+              {visibleDocuments.map((plan) => (
+                <button
+                  className={`planDocumentCard ${plan.status === "parsing" || plan.status === "queued" ? "parsing" : ""}`}
+                  key={plan.id}
+                  onClick={() => setSelectedId(plan.id)}
+                >
+                  <div className="planDocumentPreview">
+                    {plan.status === "complete" ? <FileSearch /> : <FileText />}
+                  </div>
+                  <div className="planDocumentSummary">
+                    <b>{planDisplayName(plan)}</b>
+                    <span>
+                      {new Date(plan.uploadedAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
+                    <small>
+                      {[plan.fileName, fileSize(plan.size)].filter(Boolean).join(" · ")}
+                    </small>
+                    {(plan.status === "parsing" || plan.status === "queued") && (
+                      <PlanProgress plan={plan} compact />
+                    )}
+                    {plan.status === "failed" && <small className="planFailed">Parsing failed</small>}
+                  </div>
+                  <ChevronRight />
+                </button>
+              ))}
+              <button className="addPlanCard" onClick={() => setModalOpen(true)}>
+                <Plus />
+                <b>Add new plan</b>
+              </button>
+            </div>
+          )}
+          {modalOpen && (
+            <PlanUploadModal
+              companyId={company.id}
+              close={() => setModalOpen(false)}
+              submit={addPlan}
+            />
+          )}
+        </section>
       )}
-      {modalOpen && (
-        <PlanUploadModal
-          companyId={company.id}
-          close={() => setModalOpen(false)}
-          submit={addPlan}
-        />
-      )}
-    </section>
+    </>
   );
 }
 
@@ -734,7 +1259,7 @@ function PlanUploadModal({ companyId, close, submit }) {
   let chooseFile = (selected) => {
       if (!selected) return;
       if (selected.type !== "application/pdf" && !selected.name.toLowerCase().endsWith(".pdf")) {
-        setError("Medical plan source must be a PDF");
+        setError("Plan source must be a PDF");
         return;
       }
       setFile(selected);
@@ -1230,8 +1755,34 @@ function CarriersTab({ company, details, onUpdate }) {
   );
 }
 
-function BookletTab({ generation, generating, generate }) {
-  const pagesRef = useRef(null);
+function BookletTab({ company, generation, generating, generate, onOpenDetails }) {
+  const [uploadedPlans, setUploadedPlans] = useState([]),
+    [requirementsLoading, setRequirementsLoading] = useState(true);
+  useEffect(() => {
+    const plansRef = collection(db, "benefitsCompanies", company.id, "plans");
+    return onSnapshot(
+      plansRef,
+      (snapshot) => {
+        setUploadedPlans(
+          snapshot.docs.map((item) => ({ id: item.id, ...item.data() })),
+        );
+        setRequirementsLoading(false);
+      },
+      () => setRequirementsLoading(false),
+    );
+  }, [company.id]);
+  const bookletCompany = useMemo(
+      () => companyWithUploadedRates(company, uploadedPlans),
+      [company, uploadedPlans],
+    ),
+    missingRequirements = bookletMissingRequirements(bookletCompany),
+    generationDisabled =
+      generating || requirementsLoading || missingRequirements.length > 0,
+    requirementsMessage = requirementsLoading
+      ? "Checking booklet requirements…"
+      : missingRequirements.length
+        ? `Complete the following before generating: ${missingRequirements.join(", ")}`
+        : "Uses the latest saved company details and plan rates.";
   let progress = generation.pageCount
       ? Math.round((generation.pages.length / generation.pageCount) * 86)
       : 0,
@@ -1245,18 +1796,10 @@ function BookletTab({ generation, generating, generate }) {
             : "Generating booklet";
   if (generation.status === "rendering") progress = 94;
   if (generation.status === "complete") progress = 100;
-  useEffect(() => {
-    if (!generation.pages.length) return;
-    let viewer = pagesRef.current,
-      latest = viewer?.lastElementChild;
-    requestAnimationFrame(() => {
-      if (viewer && latest)
-        viewer.scrollTo({
-          top: latest.offsetTop - viewer.offsetTop,
-          behavior: "smooth",
-        });
-    });
-  }, [generation.pages.length]);
+  const latestPage = generation.pages.at(-1),
+    recentPages = generation.pages.slice(-4),
+    pagesComplete = generation.pages.length > 0,
+    rendering = generation.status === "rendering";
   const status =
     generation.status !== "idle" ? (
       <div
@@ -1298,17 +1841,38 @@ function BookletTab({ generation, generating, generate }) {
     <section className="tabPanel bookletPanel">
       {generation.status === "idle" ? (
         <div className="bookletEmpty">
-          <button
-            className="companyAction bookletGenerateLarge"
-            onClick={generate}
-          >
-            <BookOpen />
-            Generate booklet
-          </button>
+          {missingRequirements.length > 0 && <h3>Booklet needs a few details</h3>}
+          <p>{requirementsMessage}</p>
+          <div className="bookletEmptyActions">
+            {missingRequirements.some((item) =>
+              ["Employer cover name", "Plan year start", "Plan year end"].includes(item),
+            ) && (
+              <button className="outline" onClick={onOpenDetails}>
+                <Settings2 /> Open plan setup
+              </button>
+            )}
+            <button
+              className="companyAction bookletGenerateLarge"
+              onClick={() => generate(bookletCompany)}
+              disabled={generationDisabled}
+            >
+              <BookOpen />
+              Generate booklet
+            </button>
+          </div>
         </div>
       ) : generation.status === "complete" && generation.pdfUrl ? (
         <>
-          {status}
+          <div className="bookletRegenerateBar">
+            <span>{requirementsMessage}</span>
+            <button
+              className="outline"
+              onClick={() => generate(bookletCompany)}
+              disabled={generationDisabled}
+            >
+              <BookOpen /> Regenerate booklet
+            </button>
+          </div>
           <div className="finalPdfViewer">
             <iframe
               title="Generated benefits booklet"
@@ -1319,44 +1883,76 @@ function BookletTab({ generation, generating, generate }) {
       ) : (
         <>
           {status}
-          <div className="bookletPages" ref={pagesRef}>
-            {generation.pages.map((page) => (
-              <article className="bookletPage bookletPageOnly" key={page.index}>
-                <iframe title={page.title} srcDoc={page.html} />
-              </article>
-            ))}
-            {generating && (
-              <article
-                className={`bookletPage bookletPageOnly pageSkeleton streamTypingPage ${generation.draftCopy ? "copyDraftPage" : ""}`}
-              >
-                {generation.draftCopy ? (
-                  <div className="copyDraftHtml">
-                    <small>Employee benefits guide</small>
-                    <h2>{generation.draftCopy.title}</h2>
-                    <p>{generation.draftCopy.text}</p>
-                    <i />
-                  </div>
-                ) : (
-                  <div
-                    className="typesettingShimmer"
-                    aria-label="Typesetting page"
-                  >
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                  </div>
-                )}
-              </article>
-            )}
-            {generation.error && (
-              <article className="bookletPage bookletPageOnly pageSkeleton streamTypingPage error">
-                <div>
-                  <span>{generation.error}</span>
+          <div className="bookletGenerationStage">
+            <aside className="generationRail">
+              <span>Live booklet build</span>
+              <h3>{statusLabel}</h3>
+              <p>{generation.message || "Preparing the booklet structure"}</p>
+              <ol className="generationSteps">
+                <li className={generation.pageCount || generation.draftCopy || pagesComplete || rendering ? "done" : "active"}>
+                  <i>{generation.pageCount || generation.draftCopy || pagesComplete || rendering ? <Check /> : "1"}</i>
+                  <span><b>Prepare content</b><small>Company and plan information</small></span>
+                </li>
+                <li className={rendering ? "done" : generation.pageCount ? "active" : ""}>
+                  <i>{rendering ? <Check /> : "2"}</i>
+                  <span><b>Build pages</b><small>{generation.pages.length}/{generation.pageCount || 10} pages complete</small></span>
+                </li>
+                <li className={rendering ? "active" : ""}>
+                  <i>3</i>
+                  <span><b>Render PDF</b><small>Final typesetting and export</small></span>
+                </li>
+              </ol>
+              {recentPages.length > 0 && (
+                <div className="generationRecentPages">
+                  <small>Recently completed</small>
+                  {recentPages.map((page) => (
+                    <span key={page.index}><Check /> {page.title}</span>
+                  ))}
                 </div>
-              </article>
-            )}
+              )}
+            </aside>
+            <div className="generationCanvas">
+              <div className="generationCanvasHead">
+                <span>Live page preview</span>
+                <b>{latestPage ? `Page ${generation.pages.length}` : "Preparing"}</b>
+              </div>
+              <div className="generationPageViewport">
+                {generation.error ? (
+                  <article className="liveDocumentPage liveDocumentError">
+                    <AlertTriangle />
+                    <b>Generation stopped</b>
+                    <span>{generation.error}</span>
+                  </article>
+                ) : latestPage ? (
+                  <article className="liveDocumentPage" key={latestPage.index}>
+                    <iframe title={latestPage.title} srcDoc={latestPage.html} />
+                    {rendering && (
+                      <div className="renderingOverlay">
+                        <LoaderCircle />
+                        <b>Rendering final PDF</b>
+                        <span>Combining {generation.pages.length} completed pages</span>
+                      </div>
+                    )}
+                  </article>
+                ) : generation.draftCopy ? (
+                  <article className="liveDocumentPage liveDraftPage">
+                    <div className="copyDraftHtml">
+                      <small>Employee benefits guide</small>
+                      <h2>{generation.draftCopy.title}</h2>
+                      <p>{generation.draftCopy.text}</p>
+                      <i />
+                    </div>
+                  </article>
+                ) : (
+                  <article className="liveDocumentPage liveDocumentSkeleton" aria-label="Preparing first page">
+                    <div className="generationDocumentMark"><BookOpen /></div>
+                    <div className="generationSkeletonLines"><i /><i /><i /><i /><i /></div>
+                    <span>Preparing the first page…</span>
+                  </article>
+                )}
+              </div>
+              {generating && !generation.error && <i className="generationScanLine" />}
+            </div>
           </div>
         </>
       )}
@@ -1517,16 +2113,94 @@ function CompanyOverview({ company, details, onUpdate }) {
           {company.email && <span><Mail />{company.email}</span>}
         </div>}
       </div>
-      <button className="overviewEdit" onClick={start}>
-        <Settings2 />
-        Edit
-      </button>
+      <div className="overviewControls">
+        <button className="overviewEdit" onClick={start}>
+          <Settings2 />
+          Edit
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function GuideDetailsTab({ company, onUpdate }) {
+  const [data, setData] = useState(() => guideDetailsForCompany(company)),
+    [saving, setSaving] = useState(false),
+    [saved, setSaved] = useState(false);
+  const set = (path, value) =>
+      setData((current) => {
+        const next = structuredClone(current),
+          parts = path.split(".");
+        let target = next;
+        parts.slice(0, -1).forEach((key) => (target = target[key]));
+        target[parts.at(-1)] = value;
+        return next;
+      }),
+    save = async () => {
+      setSaving(true);
+      await onUpdate({ ...company, planDetails: data });
+      setSaving(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1400);
+    };
+  return (
+    <section className="tabPanel guideDetailsTab">
+      <div className="guideDetailsHead">
+        <div>
+          <span>Benefits guide</span>
+          <h2>Plan setup</h2>
+          <p>These defaults are ready to use. Change them only when this plan year is different.</p>
+        </div>
+        <button className="companyAction compact" onClick={save} disabled={saving}>
+          {saved ? <Check /> : saving ? <LoaderCircle /> : <Save />}
+          {saved ? "Saved" : saving ? "Saving" : "Save details"}
+        </button>
+      </div>
+      <div className="guideDetailsGroup">
+        <h3>Plan identity</h3>
+        <div className="guideDetailsFields">
+          <Text
+            label="Cover name"
+            value={data.employer.cover}
+            change={(value) => set("employer.cover", value)}
+          />
+          <Text
+            type="date"
+            label="Plan year starts"
+            value={data.planYear.start}
+            change={(value) => set("planYear.start", value)}
+          />
+          <Text
+            type="date"
+            label="Plan year ends"
+            value={data.planYear.end}
+            change={(value) => set("planYear.end", value)}
+          />
+        </div>
+      </div>
+      <div className="guideDetailsGroup">
+        <h3>Open enrollment <span>Optional</span></h3>
+        <div className="guideDetailsFields enrollment">
+          <Text
+            type="date"
+            label="Enrollment starts"
+            value={data.enrollment.start}
+            change={(value) => set("enrollment.start", value)}
+          />
+          <Text
+            type="date"
+            label="Enrollment ends"
+            value={data.enrollment.end}
+            change={(value) => set("enrollment.end", value)}
+          />
+        </div>
+      </div>
     </section>
   );
 }
 
 function DetailsDrawer({ company, close, onUpdate }) {
-  const [data, setData] = useState(() => mergeDetails(company.planDetails)),
+  const [data, setData] = useState(() => guideDetailsForCompany(company)),
     [overview, setOverview] = useState({
       description: company.description || "",
       website: company.website || "",
@@ -2115,14 +2789,37 @@ function Comparison({ plans, update }) {
   );
 }
 function NumberField({ value, change, prefix, suffix }) {
+  const [displayValue, setDisplayValue] = useState(String(value ?? "")),
+    focused = useRef(false);
+  useEffect(() => {
+    if (!focused.current) setDisplayValue(String(value ?? ""));
+  }, [value]);
   return (
     <label className="number">
       {prefix}
       <input
-        type="number"
-        step="any"
-        value={value}
-        onChange={(e) => change(+e.target.value)}
+        type="text"
+        inputMode="decimal"
+        value={displayValue}
+        onFocus={() => {
+          focused.current = true;
+          if (Number(displayValue) === 0) setDisplayValue("");
+        }}
+        onChange={(event) => {
+          const next = event.target.value;
+          if (next !== "" && !/^\d*\.?\d*$/.test(next)) return;
+          setDisplayValue(next);
+          if (next !== "" && Number.isFinite(Number(next))) change(Number(next));
+        }}
+        onBlur={() => {
+          focused.current = false;
+          if (displayValue === "") {
+            setDisplayValue("0");
+            change(0);
+          } else {
+            setDisplayValue(String(value ?? 0));
+          }
+        }}
       />
       {suffix}
     </label>

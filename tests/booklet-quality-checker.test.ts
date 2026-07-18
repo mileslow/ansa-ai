@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { checkBookletQuality } from "../lib/booklet-quality-checker";
 import type {
   BenefitsPackage,
+  BenefitsPackageRequirements,
   BlockerQuestion,
   BookletOutline,
   SourceRef,
@@ -166,6 +167,8 @@ describe("booklet quality checker", () => {
     "pending confirmation",
     "to be confirmed",
     "Not set",
+    "Not specified",
+    "Not provided",
     "Lorem ipsum",
   ])("rejects placeholder HTML containing %s", async (placeholder) => {
     const report = await checkBookletQuality({
@@ -246,5 +249,83 @@ describe("booklet quality checker", () => {
       pdf: await pdf(6, [595, 842]),
     });
     expect(report.issues.some((issue) => issue.code === "page_size")).toBe(true);
+  });
+
+  it("rejects failed registry gates and claims outside the render manifest", async () => {
+    const requirements = {
+      registryVersion: "test",
+      subjects: [
+        {
+          id: "medical-plan",
+          benefitType: "medical",
+          entityKind: "plan",
+          displayName: "Acme Gold",
+          employerOrGroupId: "acme",
+          resolutions: {},
+          enforcementStatus: "registry_enforced",
+        },
+      ],
+      extractionReports: [],
+      safeBookletReports: [
+        {
+          subjectId: "medical-plan",
+          benefitType: "medical",
+          gate: "safe_booklet",
+          passed: false,
+          applicableRequirementIds: ["medical.identity.planName"],
+          issues: [
+            {
+              requirementId: "medical.identity.planName",
+              path: "plans.medical.identity.planName",
+              code: "missing",
+              message: "Plan name is unresolved.",
+            },
+          ],
+        },
+      ],
+      renderedPathsBySubject: {
+        "medical-plan": ["plans.medical.identity.carrierOrAdministrator"],
+      },
+      renderManifest: {
+        sections: [
+          {
+            id: "medical",
+            subjectIds: ["medical-plan"],
+            fields: [
+              {
+                subjectId: "medical-plan",
+                requirementId: "medical.identity.planName",
+                path: "plans.medical.identity.planName",
+                value: "Acme Gold",
+                evidenceIds: ["evidence-1"],
+              },
+            ],
+          },
+        ],
+      },
+      claims: [
+        {
+          text: "Unsupported carrier claim",
+          subjectId: "medical-plan",
+          requirementIds: ["medical.identity.carrierOrAdministrator"],
+          sourcePaths: ["plans.medical.identity.carrierOrAdministrator"],
+          evidenceIds: ["not-in-manifest"],
+        },
+      ],
+    } satisfies BenefitsPackageRequirements;
+    const report = await checkBookletQuality({
+      benefitsPackage: benefitsPackage(),
+      outline: outline(),
+      requirements,
+      requireRegistryEnforcement: true,
+    });
+    expect(report.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        "safe_booklet_gate_failed",
+        "rendered_path_not_in_manifest",
+        "claim_path_not_in_manifest",
+        "claim_evidence_not_in_manifest",
+      ]),
+    );
   });
 });

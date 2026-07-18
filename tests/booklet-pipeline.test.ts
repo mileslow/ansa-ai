@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument } from "pdf-lib";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { runBookletPipeline } from "../lib/booklet-pipeline";
 import type {
   ClassifiedDocument,
@@ -159,6 +159,189 @@ describe("booklet agent pipeline", () => {
       employerMonthly: 433.33,
       employerPerPay: 200,
     });
+  });
+
+  it("routes an ancillary STD SPD through general extraction without requiring rates", async () => {
+    const stdFile: LoadedUploadedFile = {
+      ...employerFile,
+      id: "yale-std",
+      fileName: "yale-hartford-short-term-disability-plan.pdf",
+      storagePath: "fixtures/yale-hartford-short-term-disability-plan.pdf",
+    };
+    const extractPlan = vi.fn(async () => {
+      throw new Error("The medical plan parser must not receive ancillary SPDs");
+    });
+    const evidence = (value: string) => ({
+      value,
+      page: 1,
+      quote: value,
+      confidence: 0.99,
+    });
+    const result = await runBookletPipeline({
+      runId: "run-ancillary-std",
+      companyId: "yale",
+      files: [stdFile],
+      dependencies: {
+        classify: async () => ({
+          fileId: stdFile.id,
+          documentType: "spd",
+          confidence: 0.99,
+          detectedEmployer: "Yale University",
+          detectedCarrier: "Hartford Life and Accident Insurance Company",
+          detectedPlanYear: "2026",
+          reasoningSummary: "Short-term disability salary continuation SPD",
+        }),
+        extractDocument: async () => ({
+          fileId: stdFile.id,
+          fileName: stdFile.fileName,
+          documentType: "spd",
+          employer: {
+            name: evidence("Yale University"),
+            legalName: null,
+            address: null,
+            website: null,
+          },
+          planYear: {
+            start: evidence("2026-01-01"),
+            end: evidence("2026-12-31"),
+            label: evidence("2026"),
+          },
+          eligibility: {
+            waitingPeriod: evidence("Eligible employees"),
+            description: evidence("Eligible employees participate in the program."),
+            employeeClasses: [],
+          },
+          offeredBenefits: [
+            {
+              benefitType: "std",
+              offered: true,
+              page: 5,
+              quote: "short term Disability",
+              confidence: 0.99,
+            },
+          ],
+          selectedPlans: [
+            {
+              planName: "Salary Continuation Program",
+              benefitType: "std",
+              carrier: "Hartford Life and Accident Insurance Company",
+              page: 11,
+              quote: "Claims Evaluator means Hartford Life and Accident Insurance Company.",
+              confidence: 0.9,
+            },
+          ],
+          contributions: [],
+          contacts: [],
+          accounts: [],
+          sectionOrder: [],
+          templateRole: "employer_factual",
+          extractionMethod: "pdf_text",
+          warnings: [],
+        }),
+        extractPlan,
+        renderPdf: async () => sixPagePdf(),
+      },
+    });
+
+    expect(extractPlan).not.toHaveBeenCalled();
+    expect(result.status).toBe("complete");
+    expect(result.questions).toEqual([]);
+    expect(result.outline?.sections.map((section) => section.id)).toContain("std");
+    expect(result.html).toContain("Salary Continuation Program");
+    expect(result.html).toContain("Hartford Life and Accident Insurance Company");
+  });
+
+  it("blocks an enriched ancillary source when only an offered flag and plan name were extracted", async () => {
+    const stdFile: LoadedUploadedFile = {
+      ...employerFile,
+      id: "strict-std",
+      fileName: "strict-short-term-disability-plan.pdf",
+    };
+    const evidence = (value: string) => ({
+      value,
+      page: 1,
+      quote: value,
+      confidence: 0.99,
+    });
+    const result = await runBookletPipeline({
+      runId: "run-strict-std",
+      companyId: "acme",
+      files: [stdFile],
+      dependencies: {
+        classify: async () => ({
+          fileId: stdFile.id,
+          documentType: "spd",
+          confidence: 0.99,
+          detectedEmployer: "Acme",
+          detectedCarrier: "Carrier",
+          detectedPlanYear: "2026",
+          reasoningSummary: "Current employer STD plan",
+          benefitTypes: ["std"],
+          documentSubtype: "std_spd",
+          scope: "current_employer",
+          authority: "current_plan_document",
+          employerOrGroupId: "Acme",
+          planOrProgramIds: [],
+          effectiveStart: "2026-01-01",
+          effectiveEnd: "2026-12-31",
+        }),
+        extractDocument: async () => ({
+          fileId: stdFile.id,
+          fileName: stdFile.fileName,
+          documentType: "spd",
+          employer: { name: evidence("Acme"), legalName: null, address: null, website: null },
+          planYear: {
+            start: evidence("2026-01-01"),
+            end: evidence("2026-12-31"),
+            label: evidence("2026"),
+          },
+          eligibility: {
+            waitingPeriod: evidence("First of month after 30 days"),
+            description: null,
+            employeeClasses: [],
+          },
+          offeredBenefits: [
+            {
+              benefitType: "std",
+              offered: true,
+              page: 1,
+              quote: "Short-term disability",
+              confidence: 0.99,
+            },
+          ],
+          selectedPlans: [
+            {
+              planName: "Acme STD",
+              benefitType: "std",
+              carrier: "Carrier",
+              page: 1,
+              quote: "Acme STD",
+              confidence: 0.99,
+            },
+          ],
+          contributions: [],
+          contacts: [],
+          accounts: [],
+          sectionOrder: [],
+          templateRole: "employer_factual",
+          extractionMethod: "pdf_text",
+          warnings: [],
+        }),
+      },
+    });
+    expect(result.status).toBe("blocked");
+    expect(result.questions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          benefitType: "std",
+          blockerCode: "ANCILLARY_OFFERING_UNCONFIRMED",
+        }),
+        expect.objectContaining({
+          benefitType: "std",
+          fieldPath: expect.stringContaining("requirements.benefit_"),
+        }),
+      ]),
+    );
   });
 
   it("asks one specific blocker, resumes from the answer, and completes every stage", async () => {

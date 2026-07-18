@@ -387,7 +387,7 @@ function hsaPage(company: Company) {
   return page(
     "hsa",
     "Health savings account",
-    `<h1 class="title">Health Savings Account</h1>${real(accounts.administrator) ? `<p class="carrier">${esc(accounts.administrator)}</p>` : ""}<p class="body-copy">An HSA is a tax-advantaged account available to eligible employees enrolled in a qualifying high-deductible health plan. Employee and employer contributions, when offered, may be used for qualified health care expenses.</p><div class="twocol"><div class="box"><h2 class="subhead">Using the account</h2><p>HSA funds are owned by the account holder, can roll over from year to year, and may remain available after employment ends.</p></div><div class="box"><h2 class="subhead">Before contributing</h2><p>Confirm HSA eligibility, the current annual IRS contribution limit, and any employer funding in the official enrollment materials.</p></div></div><p class="note">Tax treatment and eligibility depend on individual circumstances. Consult the official plan and account documents.</p>${footer(company)}`,
+    `<h1 class="title">Health Savings Account</h1>${real(accounts.administrator) ? `<p class="carrier">${esc(accounts.administrator)}</p>` : ""}<p class="body-copy">Review the source-backed summary and official account materials for eligibility, contribution, expense, tax, and account rules.</p>${footer(company)}`,
     "Health savings account HSA",
   );
 }
@@ -438,6 +438,7 @@ function lifePage(company: Company) {
   const coverage = company.planDetails?.coverageDetails?.life || {},
     carrier = plain(company.planDetails?.carriers?.lifeLtd?.name, "");
   const rows = [
+    ["Plan", coverage.planName],
     ["Life benefit", coverage.benefit],
     ["AD&D benefit", coverage.addBenefit],
     ["Who pays", coverage.funding],
@@ -460,6 +461,7 @@ function stdPage(company: Company) {
   const coverage = company.planDetails?.coverageDetails?.shortTermDisability || {},
     carrier = plain(company.planDetails?.carriers?.lifeLtd?.name, ""),
     rows = [
+      ["Plan", coverage.planName],
       ["Benefit percentage", coverage.benefitPercentage],
       ["Weekly maximum", coverage.weeklyMaximum],
       ["Elimination period", coverage.eliminationPeriod],
@@ -472,7 +474,7 @@ function stdPage(company: Company) {
   return page(
     "std",
     "Short term disability",
-    `<h1 class="title">Short Term Disability</h1>${carrier ? `<p class="carrier">${esc(carrier)}</p>` : ""}<p class="body-copy">Short-term disability coverage may replace part of an employee's income during a covered illness, injury, or other qualifying period away from work.</p>${rows ? `<table class="benefit-table"><tbody>${rows}</tbody></table>` : ""}<p class="note">Eligibility, benefit approval, offsets, exclusions, and duration are governed by the official policy.</p>${footer(company)}`,
+    `<h1 class="title">Short Term Disability</h1>${carrier ? `<p class="carrier">${esc(carrier)}</p>` : ""}${rows ? `<table class="benefit-table"><tbody>${rows}</tbody></table>` : ""}<p class="note">Review the source-backed summary and official plan document for eligibility, benefit approval, offsets, exclusions, and duration.</p>${footer(company)}`,
     "Short term disability",
   );
 }
@@ -481,6 +483,7 @@ function ltdPage(company: Company) {
   const coverage = company.planDetails?.coverageDetails?.longTermDisability || {},
     carrier = plain(company.planDetails?.carriers?.lifeLtd?.name, "");
   const rows = [
+    ["Plan", coverage.planName],
     ["Benefit percentage", coverage.benefitPercentage],
     ["Monthly maximum", coverage.monthlyMaximum],
     ["Elimination period", coverage.eliminationPeriod],

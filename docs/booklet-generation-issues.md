@@ -35,9 +35,10 @@ The core backend is a credible working MVP:
   rendering, persistence, and signed result links are implemented.
 - A production smoke run generated a valid 12-page US Letter PDF from employer
   setup, a real medical SBC, and a contribution workbook.
-- Current local checks pass: 178 deterministic tests, the Vite production
-  build, and a targeted backend TypeScript check. Another 74 paid/live tests are
-  gated from the normal test command.
+- Current local checks pass: 187 deterministic tests, the Vite production
+  build, a targeted backend TypeScript check, and a freshly rendered/inspected
+  pair of real-document 8-page US Letter HSA/STD PDFs. All 84 paid/live tests
+  now have passing execution evidence across the recorded live runs.
 - Medical and dental plan/rate generation is the strongest part of the current
   system.
 
@@ -51,9 +52,16 @@ This should not yet be described as complete production support:
   `VITE_BACKEND_API_URL` exists in the Vercel project. The Vercel frontend has
   not been rebuilt since the variable was added, so frontend migration remains
   incomplete and deployment is currently paused.
-- The completion report says the content agent covers HSA and STD, but the
-  current content-agent section inventory omits both. Treat the code and this
-  issue list as authoritative when reports disagree.
+- The 19-section content, HSA confirmation, and ancillary-only blocker fixes in
+  the current working tree are local-only and have not been deployed to the
+  paused Cloud Run service.
+- The content agent now covers the full 19-section outline, including HSA and
+  STD. All eight added paid/live HSA/STD matrix cases passed, as did two new
+  real-document classification/extraction/content/PDF tests.
+- A canonical, researched requirements registry now defines 338 required,
+  conditional, and optional fields across all 12 benefit types. Its structural
+  validator and gate evaluator are tested, but it is not yet wired through the
+  extractor router, question engine, content agent, and quality checker.
 - Authentication, tenant isolation, and private data access are not complete.
   Real sensitive employer data must not be treated as safely isolated yet.
 
@@ -122,14 +130,17 @@ could be available.
 Replace the flag-only mapping with type-specific mappings and ensure every
 rendered value retains its source reference.
 
-### 6. The grounded content agent omits STD and HSA
+### 6. The grounded content agent omitted STD and HSA (resolved locally)
 
-STD and HSA are supported by the outline and deterministic renderer but are not
-included in the grounded content agent's section inventory. They therefore do
-not receive source-grounded generated copy.
+STD and HSA are now included in the grounded content agent's section inventory,
+readiness logic, closed fact sets, deterministic coverage, and expanded
+four-scenario live matrix.
 
-Add both sections to the content agent with closed fact sets, missing-field
-handling, and source-path validation.
+The eight new section-matrix assertions and two real-document pipelines now
+pass with the live models. The generated HSA and STD PDFs were independently
+checked with `pdfinfo`, `pdftotext`, Poppler rendering, and visual inspection.
+This resolves content-section presence, but not the typed policy-detail gaps in
+issues 1-5.
 
 ### 7. Blocker questions do not cover incomplete ancillary benefits
 
@@ -138,9 +149,9 @@ plan/rate matches, and contribution rules. It does not ask targeted questions
 when an offered Life, STD, LTD, voluntary, HSA, HRA, or FSA section lacks facts
 required for accurate generation.
 
-Add benefit-specific required-field rules. Questions should remain
-exception-only and should cite the source documents that established the
-offering.
+Use the canonical rules in `lib/benefit-requirements/` to generate
+benefit-specific blocker questions. Questions should remain exception-only and
+should cite the source documents that established the offering.
 
 ### 8. Quality checks verify presence rather than completeness
 
@@ -180,6 +191,18 @@ Source document
 Required live fixtures include Life/AD&D, STD, LTD, at least two distinct
 voluntary/Aflac products, HSA with an employer contribution, tiered HRA funding,
 and healthcare/dependent-care FSA variants.
+
+Current real-file progress:
+
+- A Minnesota SEGIP HSA contribution form now passes live classification,
+  extraction, 19-section content generation, PDF rendering, text checks, and
+  visual inspection. It proves the HSA section path, but not extraction of a
+  concrete employer-contribution amount or account rules.
+- A University of California/Lincoln STD summary now passes the same full path
+  and preserves the sourced plan name, carrier, eligibility, and $0 employee
+  contribution. The source also contains a 55% benefit, $800 weekly maximum,
+  24-week duration, and elimination periods; those details remain absent from
+  the normalized schema and rendered table.
 
 ### 10. The corrected payroll basis is verified, but needs durable regression automation
 
@@ -234,10 +257,15 @@ Before using sensitive employer data:
 
 Generation support for these benefits is complete when:
 
+- [x] One canonical registry defines required, conditional, and optional fields
+  for every supported benefit and keeps extraction, safe-booklet, and formal
+  disclosure gates separate.
+- [ ] Extraction, questions, rendering, and quality checks all enforce that
+  registry rather than maintaining separate completeness lists.
 - [ ] Every offered benefit has a type-specific normalized schema.
 - [ ] Detailed values are extracted with page/text provenance.
 - [ ] The package-to-renderer adapter preserves all supported attributes.
-- [ ] The content agent supports every rendered section, including STD and HSA.
+- [x] The content agent supports every rendered section, including STD and HSA.
 - [ ] Missing material details create specific blocker questions.
 - [ ] Quality checks reject incomplete or unsourced benefit sections.
 - [ ] Voluntary products render only the products actually offered.

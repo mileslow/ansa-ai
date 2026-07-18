@@ -88,7 +88,9 @@ export function benefitsPackageToLegacyCompany(
       .map((plan) => [
         plan.benefitType === "medical" || plan.benefitType === "dental"
           ? "medicalDental"
-          : plan.benefitType,
+          : ["life", "std", "ltd"].includes(plan.benefitType)
+            ? "lifeLtd"
+            : plan.benefitType,
         { name: plan.carrier },
       ]),
   );
@@ -101,6 +103,11 @@ export function benefitsPackageToLegacyCompany(
         .map((type) => type.toUpperCase()),
     ]),
   ];
+  const ancillaryPlan = (type: "life" | "std" | "ltd") =>
+    benefitsPackage.plans.find((plan) => plan.benefitType === type);
+  const lifePlan = ancillaryPlan("life");
+  const stdPlan = ancillaryPlan("std");
+  const ltdPlan = ancillaryPlan("ltd");
   return {
     name: benefitsPackage.employer.name,
     description: benefitsPackage.eligibility.description || "Employee benefits guide",
@@ -134,9 +141,15 @@ export function benefitsPackageToLegacyCompany(
       },
       telemedicine: offered.has("telemedicine") ? { offered: true } : {},
       coverageDetails: {
-        life: offered.has("life") ? { offered: true } : {},
-        shortTermDisability: offered.has("std") ? { offered: true } : {},
-        longTermDisability: offered.has("ltd") ? { offered: true } : {},
+        life: offered.has("life")
+          ? { offered: true, planName: lifePlan?.name }
+          : {},
+        shortTermDisability: offered.has("std")
+          ? { offered: true, planName: stdPlan?.name }
+          : {},
+        longTermDisability: offered.has("ltd")
+          ? { offered: true, planName: ltdPlan?.name }
+          : {},
       },
       bookletOutline: outline.sections.map((section) => section.id),
       generatedContent: content?.sections || [],

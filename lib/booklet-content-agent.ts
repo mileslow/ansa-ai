@@ -5,7 +5,9 @@ import type {
   BenefitType,
   BenefitsPackage,
   BookletOutline,
+  BookletRenderManifest,
   Contact,
+  GeneratedClaim,
 } from "./booklet-types";
 
 export const BOOKLET_CONTENT_SECTION_IDS = [
@@ -16,11 +18,13 @@ export const BOOKLET_CONTENT_SECTION_IDS = [
   "eligibility",
   "medical",
   "telemedicine",
+  "hsa",
   "hra",
   "fsa",
   "dental",
   "vision",
   "life",
+  "std",
   "ltd",
   "eap",
   "voluntary",
@@ -46,6 +50,8 @@ export type BookletContentResult = {
   variant: string;
   model: string;
   sections: BookletSectionContent[];
+  /** Present for registry-grounded generation; legacy injected writers may omit it. */
+  claims?: GeneratedClaim[];
 };
 
 export type BookletContentClient = Pick<OpenAI, "responses">;
@@ -54,6 +60,7 @@ export type GenerateBookletContentOptions = {
   apiKey?: string;
   client?: BookletContentClient;
   model?: string;
+  renderManifest?: BookletRenderManifest;
 };
 
 type GroundedFact = { path: string; value: unknown };
@@ -73,11 +80,13 @@ const SECTION_TITLES: Record<BookletContentSectionId, string> = {
   eligibility: "Eligibility",
   medical: "Medical",
   telemedicine: "Telemedicine",
+  hsa: "Health savings account",
   hra: "Health reimbursement account",
   fsa: "Flexible spending account",
   dental: "Dental",
   vision: "Vision",
   life: "Life and AD&D",
+  std: "Short-term disability",
   ltd: "Long-term disability",
   eap: "Employee assistance program",
   voluntary: "Voluntary benefits",
@@ -100,6 +109,8 @@ Never invent, infer, estimate, embellish, or import outside facts. A true statem
 it is present in the supplied section facts. Do not add generic coverage claims, legal claims, deadlines,
 costs, eligibility rules, carrier capabilities, benefit examples, or contact instructions that are not
 supplied. Preserve the supplied meaning and use plain employee-facing language.
+Omit absent fields entirely. Never describe a missing value as not specified, not provided, unknown,
+or unavailable, and never invent a substitute for it.
 
 Return one result for every supplied section ID in the same order. For a ready section, write one to three
 short sentences and list only the exact fact paths actually used. For blocked or omitted sections, return
@@ -248,7 +259,7 @@ function hasPlan(benefitsPackage: BenefitsPackage, benefitType: BenefitType) {
 function addAccountFacts(
   facts: GroundedFact[],
   benefitsPackage: BenefitsPackage,
-  accountType: "hra" | "fsa",
+  accountType: "hsa" | "hra" | "fsa",
 ) {
   benefitsPackage.accounts.forEach((account, index) => {
     if (account.type !== accountType) return;
@@ -381,6 +392,7 @@ function factsAndMissing(
       if (!hasPlan(benefitsPackage, id))
         missingFields.push(`plans[benefitType=${id}]`);
       break;
+    case "hsa":
     case "hra":
     case "fsa":
       addAccountFacts(facts, benefitsPackage, id);
@@ -392,6 +404,7 @@ function factsAndMissing(
       break;
     case "telemedicine":
     case "life":
+    case "std":
     case "ltd":
     case "eap":
     case "voluntary":
@@ -402,6 +415,8 @@ function factsAndMissing(
           new RegExp(
             id === "life"
               ? "life|ad&d"
+              : id === "std"
+                ? "disability|std"
               : id === "ltd"
                 ? "disability|ltd"
                 : id,
@@ -443,13 +458,24 @@ function factsAndMissing(
 function prepareSections(
   benefitsPackage: BenefitsPackage,
   outline: BookletOutline,
+  renderManifest?: BookletRenderManifest,
 ): PreparedSection[] {
   return BOOKLET_CONTENT_SECTION_IDS.map((id) => {
-    const { facts, missingFields } = factsAndMissing(
+    let { facts, missingFields } = factsAndMissing(
       id,
       benefitsPackage,
       outline,
     );
+    const manifestSection = renderManifest?.sections.find(
+      (section) => section.id === id,
+    );
+    if (manifestSection) {
+      facts = manifestSection.fields.map((field) => ({
+        path: `requirements.${field.subjectId}.${field.path}`,
+        value: field.value,
+      }));
+      missingFields = facts.length ? [] : [`requirements.sections.${id}`];
+    }
     const included = isIncluded(id, outline);
     return {
       id,
@@ -463,6 +489,37 @@ function prepareSections(
       facts,
     };
   });
+}
+
+function claimsFromSections(
+  sections: BookletSectionContent[],
+  manifest?: BookletRenderManifest,
+): GeneratedClaim[] {
+  if (!manifest) return [];
+  const fields = manifest.sections.flatMap((section) => section.fields);
+  const claims: GeneratedClaim[] = [];
+  for (const section of sections) {
+    if (section.status !== "ready" || !section.copy) continue;
+    const used = section.sourcePaths
+      .map((sourcePath) =>
+        fields.find(
+          (field) =>
+            sourcePath === `requirements.${field.subjectId}.${field.path}`,
+        ),
+      )
+      .filter((field): field is NonNullable<typeof field> => Boolean(field));
+    for (const subjectId of new Set(used.map((field) => field.subjectId))) {
+      const subjectFields = used.filter((field) => field.subjectId === subjectId);
+      claims.push({
+        text: section.copy,
+        subjectId,
+        requirementIds: [...new Set(subjectFields.map((field) => field.requirementId))],
+        sourcePaths: [...new Set(subjectFields.map((field) => field.path))],
+        evidenceIds: [...new Set(subjectFields.flatMap((field) => field.evidenceIds))],
+      });
+    }
+  }
+  return claims;
 }
 
 function numericValues(value: unknown) {
@@ -608,7 +665,11 @@ export async function generateBookletContent(
     options.model ||
     process.env.OPENAI_BOOKLET_CONTENT_MODEL ||
     "gpt-5.6";
-  const prepared = prepareSections(benefitsPackage, outline);
+  const prepared = prepareSections(
+    benefitsPackage,
+    outline,
+    options.renderManifest,
+  );
   const response = await client.responses.parse({
     model,
     reasoning: { effort: "low" },
@@ -637,10 +698,12 @@ export async function generateBookletContent(
   if (!response.output_parsed)
     throw new Error("OpenAI returned no parsed booklet section content");
   const parsed = BatchOutputSchema.parse(response.output_parsed);
+  const sections = validateAndMerge(prepared, parsed);
   return {
     variant: normalizedVariant,
     model,
-    sections: validateAndMerge(prepared, parsed),
+    sections,
+    claims: claimsFromSections(sections, options.renderManifest),
   };
 }
 

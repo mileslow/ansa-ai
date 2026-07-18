@@ -5,7 +5,7 @@ const identity = {
   identity: { documentType: "Summary of Benefits and Coverage", carrier: "Example Health", planName: "Example Bronze", planId: "EX-1", groupName: null, coverageStart: "2026-01-01", coverageEnd: "2026-12-31", coverageFor: "Employee/Family", planType: "EPO", networkName: "Example Network", market: "group", state: "NY", fundingType: null, metalTier: "Bronze", hsaEligible: true, sourcePages: [1] },
   financial: {
     deductible: { individual: "$6,500", family: "$13,000", embeddedIndividual: null, period: "calendar year", raw: "$6,500 Individual / $13,000 Family per calendar year" },
-    familyDeductibleRule: "Each member meets an individual deductible.", servicesBeforeDeductible: ["Preventive care"], servicesBeforeDeductibleNotes: null, specificDeductibles: [],
+    familyDeductibleRule: "Each member meets an individual deductible.", servicesBeforeDeductible: ["Preventive care"], servicesBeforeDeductibleNotes: null, specificDeductibles: [], specificDeductiblesStatus: "explicit_none",
     outOfPocketLimit: { individual: "$8,000", family: "$16,000", embeddedIndividual: null, period: "calendar year", raw: "$8,000 Individual / $16,000 Family" },
     familyOutOfPocketRule: null, excludedFromOutOfPocket: ["Premiums"], sourcePages: [1],
   },

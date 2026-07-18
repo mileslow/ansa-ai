@@ -1,6 +1,9 @@
 # Legal and Required Notice Source Documents
 
-Five distinct, public, official model notice examples for benefits-booklet ingestion, classification, extraction, and template testing. The set covers Medicaid/CHIP premium assistance, Medicare Part D creditable coverage, COBRA, HIPAA special enrollment, and Marketplace coverage options.
+Five distinct, public, official model-notice sources for benefits-booklet
+ingestion, classification, extraction, and template testing. The fourth file is
+an eleven-notice collection; HIPAA special enrollment is one embedded subtype,
+not the identity of the entire document.
 
 Retrieved: **2026-07-17**
 
@@ -13,7 +16,7 @@ These files are research and test fixtures, not ready-to-send legal notices. A p
 | 01 | Employer CHIP/Medicaid premium assistance | U.S. Department of Labor, EBSA | U.S. federal; state-specific contacts | PDF | 4 | 375,850 bytes | `6490b54c9d94a7b814e5331741cb045773ba3424bce55c4513ec92d41c814f4f` |
 | 02 | Medicare Part D creditable coverage disclosure | Centers for Medicare & Medicaid Services | U.S. federal Medicare Part D | PDF | 4 | 108,267 bytes | `1edf183d631c1ebde8521b627b5a2ed9a6dea07caf846da17ad7371a59f6689f` |
 | 03 | COBRA continuation coverage general notice | U.S. Department of Labor, EBSA | U.S. federal COBRA; single-employer group health plans | DOCX | 5* | 49,318 bytes | `768221d70a274daa89e4887eab9b590632c5b748084ce93d05cd4cb6c43834d9` |
-| 04 | HIPAA special enrollment notice | U.S. Department of Labor, EBSA | U.S. federal group health plans | PDF | 14 | 808,153 bytes | `7e5a9a6e57953b7e94195b0cdfddd9732923bbd74f516daf84c3e98bf6c16438` |
+| 04 | Group-health model notices collection | U.S. Department of Labor, EBSA | U.S. federal group health plans | PDF | 14 | 808,153 bytes | `7e5a9a6e57953b7e94195b0cdfddd9732923bbd74f516daf84c3e98bf6c16438` |
 | 05 | Health Insurance Marketplace coverage-options notice | U.S. Department of Labor and U.S. Department of Health and Human Services | U.S. federal; employers subject to the applicable notice requirement | PDF | 4 | 322,619 bytes | `5f7080ca047a6f00dca8b3cfc3e605629f85c886f01717c6d73e36405f5912a4` |
 
 \* The DOCX page count is the value stored in its Office metadata and can vary after editing or opening with a different renderer.
@@ -72,7 +75,7 @@ These files are research and test fixtures, not ready-to-send legal notices. A p
 
 ## 04 - DOL HIPAA Special Enrollment Model Notice Collection
 
-- **Local file:** `04_dol_hipaa_special_enrollment_model_notice_collection.pdf`
+- **Local file:** `04_dol_group-health-model-notices-collection.pdf`
 - **Primary notice type for this example:** Model Special Enrollment Notice under HIPAA group-health-plan portability/special-enrollment rules.
 - **Authority:** U.S. Department of Labor, Employee Benefits Security Administration
 - **Applicability/trigger:** The special-enrollment notice is generally provided to employees eligible to enroll in a group health plan at or before the first opportunity to enroll. It explains rights after loss of other coverage or employer contributions and after marriage, birth, adoption, or placement for adoption.

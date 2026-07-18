@@ -6,6 +6,7 @@ import { getApps, initializeApp } from "firebase/app";
 import { doc, getDoc, getFirestore, setDoc } from "firebase/firestore";
 import { generateCompanyProfile } from "./lib/company-profile.js";
 import { extractMedicalPlan } from "./lib/plan-extractor.ts";
+import { cloudRunApiBasePlugin } from "./cloud-run/vite-api-base-plugin.mjs";
 function validateBookletCompany(company) {
   const missing = [];
   const requireValue = (label, value) => {
@@ -18,7 +19,11 @@ function validateBookletCompany(company) {
   requireValue("Plan year start", company?.planDetails?.planYear?.start);
   requireValue("Plan year end", company?.planDetails?.planYear?.end);
   if (!company?.benefits?.health?.plans?.length) missing.push("Medical plan rates");
-  if (!company?.benefits?.dental?.plans?.length) missing.push("Dental plan rates");
+  if (
+    Number(company?.benefits?.dental?.uploadedPlanCount) > 0 &&
+    !company?.benefits?.dental?.plans?.length
+  )
+    missing.push("Dental plan rates");
   return [...new Set(missing)];
 }
 function getKey(mode) {
@@ -54,7 +59,12 @@ function getLocalDb(mode) {
   return getFirestore(app);
 }
 export default defineConfig(({ mode }) => ({
+  envPrefix: ["VITE_", "NEXT_PUBLIC_"],
   plugins: [
+    cloudRunApiBasePlugin({
+      baseUrl: loadEnv(mode, process.cwd(), "").VITE_BACKEND_API_URL,
+      required: Boolean(process.env.VERCEL),
+    }),
     tailwindcss(),
     react(),
     {
@@ -144,12 +154,8 @@ export default defineConfig(({ mode }) => ({
           req.on("end", async () => {
             let streamStarted = false;
             try {
-              const {
-                generateBigTowsStylePdf,
-                renderBigTowsStylePreviewPages,
-              } = await server.ssrLoadModule(
-                "/scripts/generate-bigtows-2025-style.mjs",
-              );
+              const { generateBookletPdf, renderBookletPreviewPages } =
+                await server.ssrLoadModule("/lib/booklet.ts");
               const { company, payPeriods = 52 } = JSON.parse(body || "{}");
               const missing = validateBookletCompany(company);
               if (missing.length) {
@@ -172,14 +178,14 @@ export default defineConfig(({ mode }) => ({
                 streamStarted = true;
                 res.write(`${JSON.stringify(event)}\n`);
               };
-              const pages = await renderBigTowsStylePreviewPages(
+              const pages = renderBookletPreviewPages(
                 company,
                 Number(payPeriods),
               );
               send({
                 type: "start",
                 pageCount: pages.length,
-                message: "Building the 2025-style Big Tows benefits guide",
+                message: `Building ${company.name}'s benefits guide`,
               });
               for (const page of pages) {
                 send({
@@ -187,13 +193,13 @@ export default defineConfig(({ mode }) => ({
                   ...page,
                   message: `Creating ${page.title}`,
                 });
-                await new Promise((resolve) => setTimeout(resolve, 180));
+                await new Promise((resolve) => setTimeout(resolve, 650));
               }
               send({
                 type: "rendering",
                 message: "Typesetting the final PDF",
               });
-              const pdf = await generateBigTowsStylePdf(company, Number(payPeriods));
+              const pdf = await generateBookletPdf(company, Number(payPeriods));
               const filename = `${String(company.name || "benefits")
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, "-")

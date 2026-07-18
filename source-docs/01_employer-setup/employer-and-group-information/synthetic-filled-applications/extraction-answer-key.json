@@ -1,0 +1,262 @@
+{
+  "fixture_id": "northstar-fabrication-2026-synthetic-filled-application",
+  "synthetic": true,
+  "document_label": "SYNTHETIC / NOT A REAL EMPLOYER",
+  "expected": {
+    "application_id": "NFAB-2026-0001",
+    "status": "Completed - synthetic",
+    "plan_year": 2026,
+    "coverage_effective_date": "2026-01-01",
+    "enrollment_window": {
+      "start": "2025-11-03",
+      "end": "2025-11-14"
+    },
+    "submitted_date": "2025-10-24",
+    "employer": {
+      "legal_name": "Northstar Fabrication Test Company",
+      "dba": "Northstar Fabrication",
+      "fein": "99-0000123",
+      "state_employer_id": "ID-TEST-88421",
+      "business_type": "C corporation",
+      "industry": "Precision metal fabrication (synthetic)",
+      "address": {
+        "street": "2400 Foundry Loop",
+        "city": "Boise",
+        "state": "ID",
+        "postal_code": "83702"
+      },
+      "phone": "208-555-0106",
+      "website": "https://northstar-fabrication.test",
+      "benefits_email": "benefits@northstar-fabrication.test"
+    },
+    "primary_contact": {
+      "name": "Avery Chen",
+      "role": "Synthetic HR Director",
+      "email": "avery.chen@northstar-fabrication.test",
+      "phone": "208-555-0112"
+    },
+    "workforce": {
+      "total_employees": 148,
+      "full_time": 121,
+      "part_time": 16,
+      "seasonal": 11,
+      "benefits_eligible": 117,
+      "expected_enrolling": 104,
+      "expected_waiving": 13,
+      "current_cobra_participants": 3,
+      "work_locations": 2,
+      "average_full_time_weekly_hours": 38
+    },
+    "eligibility": {
+      "eligible_class": "Regular employees scheduled 30+ hours/week",
+      "hours_threshold_per_week": 30,
+      "waiting_rule": "First of month after 30 calendar days",
+      "rehire_rule": "Waive waiting period if rehired within 13 weeks",
+      "measurement_method": "Monthly measurement",
+      "dependent_eligibility": "Spouse, domestic partner, children through end of month turning 26"
+    },
+    "payroll": {
+      "frequency": "Biweekly",
+      "payrolls_per_year": 26,
+      "first_deduction_date": "2025-12-19",
+      "contribution_basis": "Monthly rates converted across 26 payrolls",
+      "section_125_pretax_medical_dental_vision": true
+    },
+    "benefits": {
+      "medical": {
+        "selected": true,
+        "carrier": "Pioneer Health Test Insurance",
+        "plan": "PPO 1500 HSA"
+      },
+      "dental": {
+        "selected": true,
+        "carrier": "Summit Dental Test",
+        "plan": "DPPO"
+      },
+      "vision": {
+        "selected": true,
+        "carrier": "ClearView Test Vision",
+        "plan": "12/12/24"
+      },
+      "basic_life_and_add": {
+        "selected": true,
+        "carrier": "Keystone Test Life",
+        "benefit": "1x annual salary",
+        "maximum": 150000,
+        "employer_paid": true
+      },
+      "short_term_disability": {
+        "selected": true,
+        "carrier": "Keystone Test STD",
+        "earnings_percentage": 60,
+        "weekly_maximum": 1500,
+        "elimination_days": 7,
+        "employer_paid": true
+      },
+      "long_term_disability": {
+        "selected": true,
+        "carrier": "Keystone Test LTD",
+        "earnings_percentage": 60,
+        "monthly_maximum": 7500,
+        "elimination_days": 90,
+        "employer_paid": true
+      }
+    },
+    "accounts": {
+      "hsa": {
+        "offered": true,
+        "administrator": "Evergreen Accounts Test Services",
+        "employer_annual_employee_only": 750,
+        "employer_annual_family": 1500
+      },
+      "hra": {
+        "offered": false
+      },
+      "health_fsa": {
+        "offered": true,
+        "administrator": "Evergreen Accounts Test Services",
+        "employee_maximum": 3400,
+        "employer_contribution": 0,
+        "carryover": 680
+      },
+      "dependent_care_fsa": {
+        "offered": true,
+        "administrator": "Evergreen Accounts Test Services",
+        "employee_maximum": 7500,
+        "employer_contribution": 0
+      },
+      "limited_purpose_fsa": {
+        "offered": false
+      }
+    },
+    "monthly_medical_contributions": {
+      "employee_only": {
+        "total": 700,
+        "employer": 560,
+        "employee": 140
+      },
+      "employee_spouse": {
+        "total": 1450,
+        "employer": 1050,
+        "employee": 400
+      },
+      "employee_children": {
+        "total": 1260,
+        "employer": 930,
+        "employee": 330
+      },
+      "family": {
+        "total": 2050,
+        "employer": 1450,
+        "employee": 600
+      }
+    },
+    "plan_administrator": {
+      "name": "Morgan Rivera",
+      "role": "Synthetic Benefits Administrator",
+      "company": "Northstar Fabrication Test Company",
+      "email": "morgan.rivera@northstar-fabrication.test",
+      "phone": "208-555-0116"
+    },
+    "broker": {
+      "name": "Jordan Patel",
+      "role": "Synthetic Benefits Broker",
+      "brokerage": "Northwind Benefits Test Brokerage",
+      "license_id": "TEST-ID-BR-0042",
+      "email": "jordan.patel@northwind-benefits.test",
+      "phone": "208-555-0118"
+    },
+    "enrollment": {
+      "method": "Online portal",
+      "portal": "https://enroll.northstar-fabrication.test",
+      "new_hire_election_due": "Within 25 days after eligibility notice",
+      "default_rule": "No default medical election; prior elections do not roll",
+      "waiver_evidence": "Electronic attestation required",
+      "billing": "Consolidated invoice",
+      "eligibility_feed": "Weekly test-format census file"
+    },
+    "signatures": {
+      "employer": "/s/ Avery Chen - SYNTHETIC",
+      "employer_title": "Synthetic HR Director",
+      "employer_date": "2025-10-24",
+      "broker": "/s/ Jordan Patel - SYNTHETIC",
+      "broker_date": "2025-10-24"
+    },
+    "unchecked_options": [
+      "LLC",
+      "Nonprofit",
+      "Post-tax only",
+      "Regional HMO Silver",
+      "HRA",
+      "Limited-purpose FSA",
+      "Voluntary accident",
+      "Paper-only enrollment",
+      "Passive enrollment",
+      "Individual billing",
+      "Waiting-period exception requested",
+      "Alternate contribution schedule attached"
+    ]
+  },
+  "must_not_extract": [
+    {
+      "visible_value": "12-3456789",
+      "field": "employer.fein",
+      "reason": "Formatting example in a decoy instruction box; actual FEIN is 99-0000123."
+    },
+    {
+      "visible_value": "01/01/2025",
+      "field": "coverage_effective_date",
+      "reason": "Sample date in a decoy instruction box; actual effective date is 01/01/2026."
+    },
+    {
+      "visible_value": "208-555-0199",
+      "field": "employer.phone",
+      "reason": "Sample support number; actual employer phone is 208-555-0106."
+    },
+    {
+      "visible_value": "Regional HMO Silver",
+      "field": "benefits.medical.plan",
+      "reason": "Explicitly unchecked and declined medical option."
+    },
+    {
+      "visible_value": "Beacon Accident Test Plan",
+      "field": "benefits.voluntary_accident.plan",
+      "reason": "Explicitly unchecked and declined voluntary plan."
+    },
+    {
+      "visible_value": "OLD-GRP-0000",
+      "field": "prior_carrier_group_id",
+      "reason": "Prior-carrier sample shown only in a decoy box."
+    },
+    {
+      "visible_value": "$2,000",
+      "field": "accounts.hra.employer_allowance",
+      "reason": "Illustrative HRA amount; HRA is not offered."
+    },
+    {
+      "visible_value": "Taylor Example",
+      "field": "broker.name",
+      "reason": "Example broker in a decoy note; completed broker is Jordan Patel."
+    },
+    {
+      "visible_value": "taylor@example.test",
+      "field": "broker.email",
+      "reason": "Example email in a decoy note."
+    },
+    {
+      "visible_value": "draft-admin@example.test",
+      "field": "plan_administrator.email",
+      "reason": "Rejected draft email in a decoy note."
+    },
+    {
+      "visible_value": "02/01/2026",
+      "field": "coverage_effective_date",
+      "reason": "Proposed but rejected effective date in a decoy note."
+    },
+    {
+      "visible_value": "208-555-0198",
+      "field": "fax",
+      "reason": "Sample fax number in a decoy note; no fax field is completed."
+    }
+  ]
+}

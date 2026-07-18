@@ -3,10 +3,13 @@ import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import type {
+  BenefitType,
   ClassifiedDocument,
+  DocumentScope,
   DocumentType,
   LoadedUploadedFile,
 } from "./booklet-types";
+import type { SourceAuthority } from "./benefit-requirements/types";
 
 const text = (value: unknown) => String(value ?? "").toLowerCase();
 
@@ -38,6 +41,7 @@ function classifyFromSignals(file: LoadedUploadedFile) {
         : ""),
   );
   const combined = `${name} ${sample}`;
+  const normalizedCombined = combined.replace(/[^a-z0-9]+/g, " ");
 
   const result = (
     documentType: DocumentType,
@@ -92,7 +96,99 @@ function classifyFromSignals(file: LoadedUploadedFile) {
     return result("benefit_guide", 0.86, "Benefit-guide signals found.");
   if (/\.(?:eml|msg)$/.test(name) || /email export/.test(combined))
     return result("email_export", 0.95, "Email export extension or marker found.");
+  if (/\b(?:std|disability|short term disability|ltd|long term disability)\b/.test(normalizedCombined))
+    return result(
+      "spd",
+      0.92,
+      "Disability plan signals identify an ancillary summary plan description.",
+    );
+  if (
+    /\b(?:hsa|health savings account|hra|health reimbursement account|fsa|flexible spending account|dental|vision|life and ad d|telemedicine|employee assistance|eap|accident|critical illness|hospital indemnity)\b/.test(
+      normalizedCombined,
+    )
+  )
+    return result(
+      "plan_summary",
+      0.9,
+      "Ancillary benefit signals identify a plan summary or administrative benefit document.",
+    );
   return result("unknown", 0.35, "No high-confidence document-type signals found.");
+}
+
+function detectBenefitTypes(value: string, documentType: DocumentType): BenefitType[] {
+  const normalized = value.toLowerCase().replace(/[^a-z0-9]+/g, " ");
+  const detected = new Set<BenefitType>();
+  const add = (type: BenefitType, pattern: RegExp) => {
+    if (pattern.test(normalized)) detected.add(type);
+  };
+  add("medical", /\b(?:medical|health plan|health coverage|sbc)\b/);
+  add("dental", /\b(?:dental|dhmo|orthodont)\w*\b/);
+  add("vision", /\b(?:vision|eyewear|eye exam|contact lenses)\b/);
+  add("life", /\b(?:life insurance|basic life|supplemental life|ad d|accidental death)\b/);
+  add("std", /\b(?:std|short term disability|salary continuation)\b/);
+  add("ltd", /\b(?:ltd|long term disability)\b/);
+  add("eap", /\b(?:eap|employee assistance)\b/);
+  add("telemedicine", /\b(?:telemedicine|telehealth|virtual care|virtual primary care)\b/);
+  add("hsa", /\b(?:hsa|health savings account)\b/);
+  add("hra", /\b(?:hra|health reimbursement arrangement|health reimbursement account|ichra|qsehra)\b/);
+  add("fsa", /\b(?:fsa|flexible spending account|dependent care account)\b/);
+  add("voluntary", /\b(?:accident insurance|critical illness|hospital indemnity|cancer insurance|voluntary benefit)\b/);
+
+  // SBC pediatric rows describe medical-plan EHBs and must not activate a
+  // standalone dental or vision subject.
+  if (documentType === "sbc" && detected.has("medical")) {
+    if (/\bpediatric dental\b/.test(normalized)) detected.delete("dental");
+    if (/\bpediatric vision\b/.test(normalized)) detected.delete("vision");
+  }
+  return [...detected];
+}
+
+function documentContext(
+  documentType: DocumentType,
+  value: string,
+  detectedEmployer: string | null,
+): {
+  scope: DocumentScope;
+  authority: SourceAuthority;
+  documentSubtype: string;
+} {
+  const normalized = value.toLowerCase();
+  if (/\b(?:irs|cms|department of labor|dol|hhs|federal register|29 cfr)\b/.test(normalized))
+    return { scope: "regulatory", authority: "regulatory_source", documentSubtype: "regulatory_guidance" };
+  if (documentType === "prior_booklet")
+    return { scope: "prior_employer", authority: "prior_year_context", documentSubtype: "prior_employer_guide" };
+  if (documentType === "employer_application" || documentType === "email_export")
+    return { scope: "current_employer", authority: "employer_selection", documentSubtype: documentType };
+  if (documentType === "carrier_rate_sheet" || documentType === "renewal_spreadsheet")
+    return { scope: "current_employer", authority: "rate_or_contribution", documentSubtype: documentType };
+  if (documentType === "census")
+    return { scope: "current_employer", authority: "employer_eligibility", documentSubtype: "employee_census" };
+  if (documentType === "benefit_guide") {
+    if (/\b(?:template|sample|example employer|insert employer|placeholder)\b/.test(normalized))
+      return { scope: "master_template", authority: "approved_boilerplate", documentSubtype: "master_booklet_template" };
+    return detectedEmployer
+      ? { scope: "current_employer", authority: "employer_selection", documentSubtype: "current_employer_guide" }
+      : { scope: "unknown", authority: "unknown", documentSubtype: "unscoped_benefit_guide" };
+  }
+  if (["sbc", "spd", "plan_summary"].includes(documentType)) {
+    if (/\b(?:marketing brochure|product flyer|generic overview|sample benefits)\b/.test(normalized))
+      return { scope: "generic_reference", authority: "generic_marketing", documentSubtype: documentType };
+    return detectedEmployer
+      ? { scope: "current_employer", authority: "current_plan_document", documentSubtype: documentType }
+      : { scope: "unknown", authority: "current_plan_document", documentSubtype: documentType };
+  }
+  return { scope: "unknown", authority: "unknown", documentSubtype: documentType };
+}
+
+function effectivePeriod(value: string, detectedYear: string | null) {
+  const isoDates = [...value.matchAll(/\b(20\d{2})-(\d{2})-(\d{2})\b/g)].map(
+    (match) => match[0],
+  );
+  if (isoDates.length >= 2)
+    return { effectiveStart: isoDates[0], effectiveEnd: isoDates[1] };
+  return detectedYear
+    ? { effectiveStart: `${detectedYear}-01-01`, effectiveEnd: `${detectedYear}-12-31` }
+    : { effectiveStart: null, effectiveEnd: null };
 }
 
 export function classifyDocument(file: LoadedUploadedFile): ClassifiedDocument {
@@ -105,12 +201,25 @@ export function classifyDocument(file: LoadedUploadedFile): ClassifiedDocument {
     /\b(Excellus|UnitedHealthcare|United Health(?:care)?|UHC|Cigna|Aetna|MVP|Oxford)\b/i,
   )?.[1];
   const year = `${file.fileName} ${sample}`.match(/\b(20\d{2})\b/)?.[1];
+  const detectedEmployer = employer?.trim() || null;
+  const detectedPlanYear = year || null;
+  const context = documentContext(
+    classification.documentType,
+    `${file.fileName} ${sample}`,
+    detectedEmployer,
+  );
+  const period = effectivePeriod(`${file.fileName} ${sample}`, detectedPlanYear);
   return {
     fileId: file.id,
     ...classification,
-    detectedEmployer: employer?.trim() || null,
+    detectedEmployer,
     detectedCarrier: carrier || null,
-    detectedPlanYear: year || null,
+    detectedPlanYear,
+    benefitTypes: detectBenefitTypes(`${file.fileName} ${sample}`, classification.documentType),
+    ...context,
+    employerOrGroupId: detectedEmployer,
+    planOrProgramIds: [],
+    ...period,
   };
 }
 
@@ -137,6 +246,25 @@ const ModelClassificationSchema = z.object({
   detectedCarrier: z.string().nullable(),
   detectedPlanYear: z.string().nullable(),
   reasoningSummary: z.string(),
+  benefitTypes: z.array(z.enum([
+    "medical", "dental", "vision", "life", "std", "ltd", "eap",
+    "voluntary", "telemedicine", "hsa", "hra", "fsa",
+  ])),
+  documentSubtype: z.string(),
+  scope: z.enum([
+    "current_employer", "prior_employer", "generic_reference",
+    "master_template", "regulatory", "unknown",
+  ]),
+  authority: z.enum([
+    "current_plan_document", "current_amendment_or_rider", "employer_selection",
+    "employer_eligibility", "rate_or_contribution", "administrator_material",
+    "manual_answer", "regulatory_source", "approved_boilerplate",
+    "prior_year_context", "generic_marketing", "unknown",
+  ]),
+  employerOrGroupId: z.string().nullable(),
+  planOrProgramIds: z.array(z.string()),
+  effectiveStart: z.string().nullable(),
+  effectiveEnd: z.string().nullable(),
 });
 
 export async function classifyDocumentWithFallback({
@@ -151,7 +279,21 @@ export async function classifyDocumentWithFallback({
   model?: string;
 }): Promise<ClassifiedDocument> {
   const heuristic = classifyDocument(file);
-  if (heuristic.confidence >= 0.8 || !apiKey) return heuristic;
+  const benefitBearingDocument = [
+    "employer_application",
+    "plan_summary",
+    "sbc",
+    "spd",
+    "benefit_guide",
+    "prior_booklet",
+    "email_export",
+  ].includes(heuristic.documentType);
+  const enrichmentComplete =
+    heuristic.scope !== "unknown" &&
+    heuristic.authority !== "unknown" &&
+    (!benefitBearingDocument || Boolean(heuristic.benefitTypes?.length));
+  if ((heuristic.confidence >= 0.8 && enrichmentComplete) || !apiKey)
+    return heuristic;
   const content = file.textContent
     ? [{ type: "input_text" as const, text: file.textContent.slice(0, 30_000) }]
     : [
@@ -168,7 +310,7 @@ export async function classifyDocumentWithFallback({
       {
         role: "system",
         content:
-          "Classify this employee-benefits source document. A blank form is still an employer_application. Distinguish a plan SBC/SPD from an employee benefit guide and a prior employer booklet. Use only visible evidence.",
+          "Classify this employee-benefits source document. Return document role, every directly addressed benefit family, employer/plan scope, effective period, and source authority as separate decisions. A blank form is still an employer_application but proves no filled fact. A generic carrier brochure is generic_reference. A current plan document can prove design but not employer selection. A prior guide is prior_year_context. Pediatric dental or vision inside a medical SBC does not activate standalone dental or vision. Leave uncertain scope or authority unknown. Use only visible evidence.",
       },
       {
         role: "user",
@@ -181,5 +323,13 @@ export async function classifyDocumentWithFallback({
     text: { format: zodTextFormat(ModelClassificationSchema, "document_classification") },
   });
   if (!response.output_parsed) return heuristic;
-  return { fileId: file.id, ...response.output_parsed };
+  const parsed = response.output_parsed;
+  const benefitTypes =
+    parsed.documentType === "sbc" && parsed.benefitTypes.includes("medical")
+      ? parsed.benefitTypes.filter(
+          (benefitType) =>
+            benefitType !== "hsa" && benefitType !== "telemedicine",
+        )
+      : parsed.benefitTypes;
+  return { fileId: file.id, ...parsed, benefitTypes };
 }

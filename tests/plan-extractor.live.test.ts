@@ -152,8 +152,16 @@ describe.skipIf(!live)("live medical plan extraction", () => {
         ],
       });
       const outline = generateBookletOutline(benefitsPackage);
-      if (attributes.identity.hsaEligible)
-        expect(outline.sections.some((section) => section.id === "hsa")).toBe(true);
+      if (attributes.identity.hsaEligible) {
+        // HSA qualification is a medical-plan design fact. It does not prove
+        // that this employer selected, sponsors, or administers an HSA.
+        expect(outline.sections.some((section) => section.id === "hsa")).toBe(false);
+        expect(
+          benefitsPackage.offeredBenefits.some(
+            (offering) => offering.benefitType === "hsa" && offering.offered,
+          ),
+        ).toBe(false);
+      }
       const pdf = await generateBenefitsPackagePdf(benefitsPackage, outline);
       const html = renderBenefitsPackageHtml(benefitsPackage, outline);
       const quality = await checkBookletQuality({ benefitsPackage, outline, html, pdf });

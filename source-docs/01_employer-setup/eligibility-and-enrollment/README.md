@@ -98,6 +98,14 @@ All sources were accessed on **2026-07-17**. No document contains actual employe
 
 ## Verification performed
 
+### Reclassified enrollment form
+
+`06_city_of_savannah_2026_benefits_enrollment_form.pdf` is a blank,
+employee-facing medical, dental, vision, FSA, life, and beneficiary election
+form. It was moved from `current-enrollment-exports` because it is an enrollment
+input form, not an exported enrollment roster. Blank fields and checkboxes must
+not be treated as completed employee elections.
+
 - Confirmed each download begins as a real PDF and is identified by `file` as a PDF, not HTML or an error page.
 - Ran `pdfinfo` on every file to verify page count, dimensions, encryption status, and document metadata.
 - Extracted text from every page with `pdftotext -layout`; all five produced meaningful text.

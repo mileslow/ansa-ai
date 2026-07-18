@@ -1,4 +1,8 @@
 import type { MedicalPlanAttributes } from "./plan-schema";
+import type {
+  BenefitGateReport,
+  BenefitRequirementSubject,
+} from "./benefit-requirements/types";
 
 export const DOCUMENT_TYPES = [
   "employer_application",
@@ -15,6 +19,13 @@ export const DOCUMENT_TYPES = [
 ] as const;
 
 export type DocumentType = (typeof DOCUMENT_TYPES)[number];
+export type DocumentScope =
+  | "current_employer"
+  | "prior_employer"
+  | "generic_reference"
+  | "master_template"
+  | "regulatory"
+  | "unknown";
 export type BenefitType =
   | "medical"
   | "dental"
@@ -72,6 +83,15 @@ export type ClassifiedDocument = {
   detectedCarrier?: string | null;
   detectedPlanYear?: string | null;
   reasoningSummary: string;
+  /** Orthogonal routing metadata. Optional only for pre-registry snapshots. */
+  benefitTypes?: BenefitType[];
+  documentSubtype?: string;
+  scope?: DocumentScope;
+  authority?: import("./benefit-requirements/types").SourceAuthority;
+  employerOrGroupId?: string | null;
+  planOrProgramIds?: string[];
+  effectiveStart?: string | null;
+  effectiveEnd?: string | null;
 };
 
 export type ExtractedFact = {
@@ -215,6 +235,41 @@ export type BenefitsPackage = {
   };
   sourceMap: Record<string, SourceRef[]>;
   confidenceReport: ConfidenceReport;
+  requirements: BenefitsPackageRequirements;
+};
+
+export type RenderField = {
+  subjectId: string;
+  requirementId: string;
+  path: string;
+  value: unknown;
+  evidenceIds: string[];
+};
+
+export type BookletRenderManifest = {
+  sections: Array<{
+    id: string;
+    subjectIds: string[];
+    fields: RenderField[];
+  }>;
+};
+
+export type GeneratedClaim = {
+  text: string;
+  subjectId: string;
+  requirementIds: string[];
+  sourcePaths: string[];
+  evidenceIds: string[];
+};
+
+export type BenefitsPackageRequirements = {
+  registryVersion: string;
+  subjects: BenefitRequirementSubject[];
+  extractionReports: BenefitGateReport[];
+  safeBookletReports: BenefitGateReport[];
+  renderedPathsBySubject: Record<string, string[]>;
+  renderManifest?: BookletRenderManifest;
+  claims?: GeneratedClaim[];
 };
 
 export type BookletSection = {
@@ -235,6 +290,11 @@ export type BlockerQuestion = {
   recommendedAnswer?: unknown;
   sourceRefs: SourceRef[];
   blocking: boolean;
+  subjectId?: string;
+  benefitType?: BenefitType;
+  requirementId?: string;
+  blockerCode?: string;
+  expectedAnswerKind?: string;
 };
 
 export const PIPELINE_STAGES = [
@@ -274,7 +334,17 @@ export type BookletGenerationRun = {
   stages: PipelineEvent[];
   questions: BlockerQuestion[];
   answers: Record<string, unknown>;
+  snapshotSchemaVersion?: number;
   benefitsPackageSnapshot?: BenefitsPackage | null;
+  requirementsSnapshot?: BenefitsPackageRequirements | null;
+  renderManifest?: BookletRenderManifest | null;
+  claimLedger?: GeneratedClaim[];
+  contentModel?: string | null;
+  qualityReport?: {
+    passed: boolean;
+    issues: Array<{ code: string; message: string; blocking: boolean }>;
+    pageCount?: number;
+  } | null;
   bookletOutline?: BookletOutline | null;
   pdfStoragePath?: string | null;
   pdfUrl?: string | null;

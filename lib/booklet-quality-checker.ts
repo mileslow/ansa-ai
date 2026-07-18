@@ -1,6 +1,7 @@
 import { PDFDocument } from "pdf-lib";
 import type {
   BenefitsPackage,
+  BenefitsPackageRequirements,
   BlockerQuestion,
   BookletOutline,
 } from "./booklet-types";
@@ -33,14 +34,90 @@ export async function checkBookletQuality({
   questions = [],
   html,
   pdf,
+  requirements = benefitsPackage.requirements,
+  requireRegistryEnforcement = false,
 }: {
   benefitsPackage: BenefitsPackage;
   outline: BookletOutline;
   questions?: BlockerQuestion[];
   html?: string;
   pdf?: Buffer;
+  requirements?: BenefitsPackageRequirements;
+  requireRegistryEnforcement?: boolean;
 }): Promise<QualityReport> {
   const issues: QualityIssue[] = [];
+  if (requireRegistryEnforcement) {
+    if (!requirements || !requirements.registryVersion)
+      issues.push({
+        code: "missing_requirement_artifacts",
+        message: "The booklet has no canonical benefit-requirements sidecar.",
+        blocking: true,
+      });
+    for (
+      const subject of requirements?.subjects.filter(
+        (item) => item.enforcementStatus !== "registry_enforced",
+      ) || []
+    )
+      issues.push({
+        code: "legacy_unenforced_subject",
+        message: `${subject.displayName} is still legacy-unenforced.`,
+        blocking: true,
+      });
+    for (
+      const report of requirements?.safeBookletReports.filter(
+        (item) => !item.passed,
+      ) || []
+    )
+      issues.push({
+        code: "safe_booklet_gate_failed",
+        message: `${report.benefitType} subject ${report.subjectId} failed the safe-booklet gate: ${report.issues.map((item) => item.blockerCode || item.code).join(", ")}.`,
+        blocking: true,
+      });
+    const manifestFields = requirements?.renderManifest?.sections.flatMap(
+      (section) => section.fields,
+    ) || [];
+    const manifestKeys = new Set(
+      manifestFields.map((field) => `${field.subjectId}:${field.path}`),
+    );
+    for (const [subjectId, paths] of Object.entries(
+      requirements?.renderedPathsBySubject || {},
+    ))
+      for (const path of paths)
+        if (!manifestKeys.has(`${subjectId}:${path}`))
+          issues.push({
+            code: "rendered_path_not_in_manifest",
+            message: `${subjectId} rendered ${path} without manifest approval.`,
+            blocking: true,
+          });
+    for (const field of manifestFields)
+      if (!field.evidenceIds.length)
+        issues.push({
+          code: "manifest_field_missing_evidence",
+          message: `${field.requirementId} has no evidence in the render manifest.`,
+          blocking: true,
+        });
+    for (const claim of requirements?.claims || []) {
+      for (const path of claim.sourcePaths)
+        if (!manifestKeys.has(`${claim.subjectId}:${path}`))
+          issues.push({
+            code: "claim_path_not_in_manifest",
+            message: `A generated claim cites unavailable path ${path} for ${claim.subjectId}.`,
+            blocking: true,
+          });
+      const availableEvidence = new Set(
+        manifestFields
+          .filter((field) => field.subjectId === claim.subjectId)
+          .flatMap((field) => field.evidenceIds),
+      );
+      for (const evidenceId of claim.evidenceIds)
+        if (!availableEvidence.has(evidenceId))
+          issues.push({
+            code: "claim_evidence_not_in_manifest",
+            message: `A generated claim cites unavailable evidence ${evidenceId}.`,
+            blocking: true,
+          });
+    }
+  }
   for (const [field, value] of [
     ["planYear.start", benefitsPackage.planYear.start],
     ["planYear.end", benefitsPackage.planYear.end],
@@ -80,7 +157,7 @@ export async function checkBookletQuality({
   }
   if (html) {
     const placeholder = html.match(
-      /\b(?:placeholder|example\.com|pending confirmation|to be confirmed|not set|invalid date|lorem ipsum)\b/i,
+      /\b(?:placeholder|example\.com|pending confirmation|to be confirmed|not set|not specified|not provided|invalid date|lorem ipsum)\b/i,
     );
     if (placeholder)
       issues.push({

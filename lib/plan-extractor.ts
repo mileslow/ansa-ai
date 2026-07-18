@@ -63,7 +63,9 @@ reading order. Do not summarize. Omit only repeated decorative headers and page-
   identity: `Extract plan identity, coverage dates and population, carrier/product/network details,
 all header and footer identifiers (including document codes printed at the bottom-left as planId),
 all deductible and out-of-pocket rules, services covered before the deductible, specific
-deductibles, network/referral/balance-billing rules, and every plan-document contact or URL.`,
+deductibles, network/referral/balance-billing rules, and every plan-document contact or URL.
+Set specificDeductiblesStatus to present when rows are listed, explicit_none only when the source
+affirmatively says there are none, and not_found when the source is silent or unavailable.`,
   costs: `Extract every service row and every prescription drug tier. Do not collapse rows.
 Represent each distinct network tier, facility/site-of-care variation, copay, coinsurance,
 deductible rule, preauthorization rule, visit/unit/age limit, exception, and footnote.`,
