@@ -315,6 +315,7 @@ export default function GammaBookletPrototype() {
             blockerOpen={blockerOpen}
             bookletReady={bookletReady}
             hsaAnswer={hsaAnswer}
+            processingPhase={processingPhase}
             onDownload={downloadDraft}
             onBack={() => setMobilePreview(false)}
           />
@@ -464,17 +465,18 @@ function ProcessingState({ phase, stage }) {
   );
 }
 
-function BookletPreview({ pages, selectedPage, setSelectedPage, completed, completedChecks, mode, setMode, blockerOpen, bookletReady, hsaAnswer, onDownload, onBack }) {
+function BookletPreview({ pages, selectedPage, setSelectedPage, completed, completedChecks, mode, setMode, blockerOpen, bookletReady, hsaAnswer, processingPhase, onDownload, onBack }) {
   const page = pages.find((item) => item.id === selectedPage) || pages[0];
   const warnings = completed.has("rates") ? 2 : 0;
+  const streamingPhase = phaseDefinitions.find((phase) => phase.id === processingPhase);
 
   return (
-    <aside className="g-preview-panel">
+    <aside className={`g-preview-panel ${processingPhase ? "is-streaming" : ""}`}>
       <div className="g-preview-top tw:flex tw:items-center tw:justify-between">
         <button className="g-preview-back" onClick={onBack}><ArrowLeft /> Sources</button>
         <div>
           <span className="g-live-dot"><i /> Live booklet</span>
-          <b>{pages.length ? `${pages.length} pages` : "Waiting for a source"}</b>
+          <b>{processingPhase ? `Creating ${streamingPhase?.title.toLowerCase() || "pages"}…` : pages.length ? `${pages.length} pages` : "Waiting for a source"}</b>
         </div>
         <div className="g-preview-actions tw:flex tw:items-center">
           <button className="g-icon-button g-icon-button--light" aria-label="Open preview"><Eye /></button>
@@ -495,7 +497,7 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completed, compl
       {mode === "pages" && (
         <div className="g-pages-view">
           {!pages.length ? (
-            <EmptyPreview />
+            processingPhase ? <StreamingPreview phase={streamingPhase} /> : <EmptyPreview />
           ) : (
             <>
               <div className="g-thumbnails" aria-label="Booklet pages">
@@ -518,6 +520,9 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completed, compl
                 </div>
                 <div className="g-canvas-stage">
                   <PageCanvas page={page} completed={completed} hsaAnswer={hsaAnswer} />
+                  {processingPhase && (
+                    <div className="g-stream-note"><LoaderCircle className="g-spin" /> Streaming new pages</div>
+                  )}
                 </div>
                 {bookletReady && (
                   <div className="g-ready-bar">
@@ -534,6 +539,21 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completed, compl
       {mode === "checks" && <ChecksView completed={completed} blockerOpen={blockerOpen} />}
       {mode === "sources" && <SourcesView completed={completed} />}
     </aside>
+  );
+}
+
+function StreamingPreview({ phase }) {
+  return (
+    <div className="g-streaming-preview">
+      <div className="g-streaming-sheet" aria-hidden="true">
+        <span />
+        {[0, 1, 2, 3, 4].map((line) => <i key={line} style={{ "--stream-line": line }} />)}
+      </div>
+      <div className="g-streaming-copy">
+        <LoaderCircle className="g-spin" />
+        <div><b>Creating your first pages</b><small>{phase?.title || "Reading source"}</small></div>
+      </div>
+    </div>
   );
 }
 
