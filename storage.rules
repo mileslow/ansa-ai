@@ -6,5 +6,15 @@ service firebase.storage {
       allow write: if request.resource.size < 50 * 1024 * 1024
         && request.resource.contentType == 'application/pdf';
     }
+    match /benefitsCompanies/{companyId}/booklets/{fileName} {
+      allow read: if true;
+      allow write: if request.resource.size < 25 * 1024 * 1024
+        && request.resource.contentType == 'application/pdf';
+    }
+    match /benefitsCompanies/{companyId}/booklet-inputs/{fileId}/{fileName} {
+      // Universal booklet inputs go through the backend pipeline. Admin SDK
+      // access bypasses rules; direct client access is intentionally denied.
+      allow read, write: if false;
+    }
   }
 }

@@ -1,0 +1,15 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file
+      - cloud-run/Dockerfile
+      - --tag
+      - ${_IMAGE}
+      - .
+images:
+  - ${_IMAGE}
+substitutions:
+  _IMAGE: us-east1-docker.pkg.dev/flux-ebfb0/ansa/ansa-booklet-backend:manual
+options:
+  machineType: E2_HIGHCPU_8
