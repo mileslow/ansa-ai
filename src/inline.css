@@ -24,7 +24,7 @@ main.wide {
 .benefitCard.selected {
   border-color: #0B5FFF;
   background: #EEF4FF;
-  box-shadow: 0 0 0 1px #0B5FFF;
+  box-shadow: none;
 }
 .benefitCard.selected > svg {
   transform: rotate(90deg);
@@ -112,7 +112,7 @@ main.wide {
   width: min(680px, 100vw);
   height: 100%;
   background: #f8fafc;
-  box-shadow: -12px 0 35px #0f172a22;
+  box-shadow: -12px 0 35px rgba(24,24,27,.13);
   display: grid;
   grid-template-rows: auto 1fr auto;
   animation: drawerIn 0.2s ease-out;
@@ -210,7 +210,7 @@ main.wide {
 .detailField textarea:focus,
 .editableRows input:focus {
   border-color: #8EB3FF;
-  box-shadow: 0 0 0 2px #E6EFFF;
+  box-shadow: none;
 }
 .fieldGroup {
   border-top: 1px solid #eef2f7;
@@ -867,7 +867,7 @@ main.wide {
   position: sticky;
   top: 86px;
   z-index: 3;
-  box-shadow: 0 6px 18px #0f29420c;
+  box-shadow: 0 6px 18px rgba(24,24,27,.05);
 }
 .generationStatus.error {
   border-color: #f2b8b5;
@@ -920,7 +920,7 @@ main.wide {
   height: 100%;
   background: linear-gradient(90deg, #0B5FFF, #00a09a);
   transition: width 0.3s ease;
-  box-shadow: 0 0 18px #0b5fff66;
+  box-shadow: none;
 }
 .bookletPages {
   display: grid;
@@ -935,7 +935,7 @@ main.wide {
   background: #dde4ea;
   border: 1px solid #ccd5df;
   border-radius: 12px;
-  box-shadow: 0 12px 36px #102a4518;
+  box-shadow: 0 12px 36px rgba(24,24,27,.09);
 }
 .finalPdfViewer iframe {
   width: 100%;
@@ -950,7 +950,7 @@ main.wide {
   border: 1px solid #dbe3eb;
   border-radius: 11px;
   overflow: hidden;
-  box-shadow: 0 4px 14px #102a4510;
+  box-shadow: 0 4px 14px rgba(24,24,27,.06);
   animation: pageIn 0.3s ease-out;
 }
 .bookletPage iframe {
@@ -1096,7 +1096,7 @@ main.wide {
   width: min(100%, 720px);
   margin: 0 auto;
   border-radius: 4px;
-  box-shadow: 0 12px 36px #102a4520;
+  box-shadow: 0 12px 36px rgba(24,24,27,.12);
   scroll-snap-align: center;
   scroll-snap-stop: always;
 }
@@ -1156,10 +1156,7 @@ main.wide {
   margin: 0 auto 18px;
   padding: 7px 16px;
   background: #0047CC;
-  box-shadow:
-    0 0 0 2px #fff,
-    0 0 0 4px #0047CC,
-    6px 6px 0 #eadb9c;
+  box-shadow: 6px 6px 0 #eadb9c;
   color: #fff;
   font-family: Georgia, serif;
   font-size: 10px;
@@ -1172,10 +1169,7 @@ main.wide {
   margin: 0 auto 40px;
   padding: 9px 20px;
   background: #0047CC;
-  box-shadow:
-    0 0 0 2px #fff,
-    0 0 0 4px #0047CC,
-    7px 7px 0 #eadb9c;
+  box-shadow: 7px 7px 0 #eadb9c;
   color: #fff;
   font-family: Georgia, serif;
   font-size: 20px;
@@ -1233,7 +1227,7 @@ main.wide {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid #cbdbe6;
   border-radius: 22px;
-  box-shadow: 0 8px 24px #123a5d18;
+  box-shadow: 0 8px 24px rgba(24,24,27,.09);
   backdrop-filter: blur(8px);
   text-align: center;
 }
@@ -1269,7 +1263,7 @@ main.wide {
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid #b9cfdd;
   border-radius: 4px;
-  box-shadow: 0 12px 22px #10365318;
+  box-shadow: 0 12px 22px rgba(24,24,27,.09);
   animation: none;
 }
 .pdfGlider i:nth-child(1) {
@@ -1311,7 +1305,7 @@ main.wide {
   }
   50% {
     transform: translateY(-8px) rotate(1deg);
-    box-shadow: 0 22px 30px #10365326;
+    box-shadow: 0 22px 30px rgba(24,24,27,.14);
   }
 }
 @keyframes gliderInk {

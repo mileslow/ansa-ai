@@ -6,9 +6,9 @@ import {
   ArrowRight,
   ArrowUp,
   BookOpen,
+  Building2,
   Check,
   CheckCircle2,
-  ChevronDown,
   Circle,
   Download,
   Eye,
@@ -17,12 +17,16 @@ import {
   Files,
   Gauge,
   LoaderCircle,
-  MoreHorizontal,
+  PanelLeft,
+  Plus,
   ScanLine,
+  Search,
+  Settings,
   ShieldCheck,
   Sparkles,
   Upload,
   Users,
+  X,
   Zap,
 } from "lucide-react";
 import {
@@ -36,17 +40,63 @@ import "./bookletStudio.css";
 
 const wait = (duration) => new Promise((resolve) => setTimeout(resolve, duration));
 
-const initialCompanyProfile = {
-  companyName: "Big Tows, Inc.",
-  industry: "Transportation & roadside services",
-  headquarters: "Rochester, NY",
-  employeeCount: "42 employees",
-  benefitsContact: "Morgan Lee · People Operations",
-  planYear: "Mar 1, 2026 – Feb 28, 2027",
-  enrollmentWindow: "Feb 2–13, 2026",
-  website: "https://bigtows.com",
-  about: "Keeping people and businesses moving across Western New York.",
+const emptyCompanyProfile = {
+  companyName: "Your company",
+  industry: "",
+  headquarters: "",
+  employeeCount: "",
+  benefitsContact: "",
+  planYear: "",
+  enrollmentWindow: "",
+  website: "",
+  about: "",
 };
+
+const formatDate = (value) =>
+  value
+    ? new Date(`${value}T12:00:00`).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "";
+
+const formatRange = (start, end) =>
+  [formatDate(start), formatDate(end)].filter(Boolean).join(" – ");
+
+const companyProfileFromCompany = (company) => {
+  if (!company) return emptyCompanyProfile;
+  const details = company.planDetails || {};
+  const hr = details.contacts?.hr || {};
+  return {
+    companyName: company.name || "Your company",
+    industry: company.industry || "",
+    headquarters: company.headquarters || "",
+    employeeCount: company.employeeCount
+      ? `${company.employeeCount} employees`
+      : company.employeeRange || "",
+    benefitsContact: [hr.name, hr.email || hr.phone].filter(Boolean).join(" · "),
+    planYear:
+      formatRange(details.planYear?.start, details.planYear?.end) ||
+      company.renewalLabel ||
+      "",
+    enrollmentWindow: formatRange(
+      details.enrollment?.start,
+      details.enrollment?.end,
+    ),
+    website: company.website || "",
+    about: company.description || "",
+  };
+};
+
+const companyInitials = (name = "") =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase() || "CO";
 
 const getCompanyShortName = (name = "Your company") =>
   name.replace(/,?\s+(inc\.?|llc|ltd\.?|corp\.?|corporation)$/i, "").trim();
@@ -61,7 +111,14 @@ function Logo() {
   );
 }
 
-export default function BookletStudio() {
+export default function BookletStudio({
+  company,
+  companies = [],
+  onSelectCompany,
+  onOpenCompanies,
+  onUpdateCompany,
+  onCreateCompany,
+}) {
   const [phaseState, setPhaseState] = useState({});
   const [activePhase, setActivePhase] = useState("employer");
   const [selectedPage, setSelectedPage] = useState(null);
@@ -69,10 +126,24 @@ export default function BookletStudio() {
   const [hsaAnswer, setHsaAnswer] = useState("");
   const [notice, setNotice] = useState("");
   const [mobilePreview, setMobilePreview] = useState(false);
-  const [companyProfile, setCompanyProfile] = useState(initialCompanyProfile);
+  const [companyProfile, setCompanyProfile] = useState(() =>
+    companyProfileFromCompany(company),
+  );
+  const [newCompanyOpen, setNewCompanyOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const colorPickerEnabled =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("color") === "true";
+  const [accentColor, setAccentColor] = useState(() => {
+    if (typeof window === "undefined") return "#1414d2";
+    const savedColor = window.localStorage.getItem("ansa-studio-accent-color");
+    return /^#[0-9a-f]{6}$/i.test(savedColor || "") ? savedColor : "#1414d2";
+  });
+  const [companyProfileDirty, setCompanyProfileDirty] = useState(false);
+  const [savingCompanyProfile, setSavingCompanyProfile] = useState(false);
   const runToken = useRef(0);
 
-  const completed = useMemo(
+  const processed = useMemo(
     () =>
       new Set(
         Object.entries(phaseState)
@@ -81,15 +152,20 @@ export default function BookletStudio() {
       ),
     [phaseState],
   );
+  const documentsProcessed = processed.has("documents");
+  const blockerOpen = documentsProcessed && !hsaAnswer;
+  const completed = useMemo(() => {
+    const ready = new Set(processed);
+    if (blockerOpen) ready.delete("documents");
+    return ready;
+  }, [processed, blockerOpen]);
   const processingPhase = Object.entries(phaseState).find(
     ([, state]) => state?.status === "processing",
   )?.[0];
   const availablePages = useMemo(
-    () => bookletPages.filter((page) => completed.has(page.phase)),
-    [completed],
+    () => bookletPages.filter((page) => processed.has(page.phase)),
+    [processed],
   );
-  const documentsReady = completed.has("documents");
-  const blockerOpen = documentsReady && !hsaAnswer;
   const coreReady = ["employer", "rates", "documents", "template", "census"].every(
     (id) => completed.has(id),
   );
@@ -122,6 +198,71 @@ export default function BookletStudio() {
   useEffect(() => () => {
     runToken.current += 1;
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("ansa-studio-accent-color", accentColor);
+  }, [accentColor]);
+
+  const updateCompanyProfile = (updater) => {
+    setCompanyProfile((current) =>
+      typeof updater === "function" ? updater(current) : updater,
+    );
+    setCompanyProfileDirty(true);
+  };
+
+  const saveCompanyProfile = async () => {
+    if (!company || !onUpdateCompany || !companyProfileDirty) return;
+    setSavingCompanyProfile(true);
+    try {
+      const employeeCount = Number(
+        String(companyProfile.employeeCount).match(/[\d,]+/)?.[0]?.replace(/,/g, ""),
+      );
+      const existingDetails = company.planDetails || {};
+      const [contactName = "", contactDetail = ""] = companyProfile.benefitsContact
+        .split("·")
+        .map((value) => value.trim());
+      const existingContacts = existingDetails.contacts || {};
+      const existingHr = existingContacts.hr || {};
+      await onUpdateCompany({
+        ...company,
+        name: companyProfile.companyName.trim() || company.name,
+        website: companyProfile.website.trim(),
+        description: companyProfile.about.trim(),
+        industry: companyProfile.industry.trim(),
+        headquarters: companyProfile.headquarters.trim(),
+        employeeCount: Number.isFinite(employeeCount)
+          ? employeeCount
+          : company.employeeCount || 0,
+        planDetails: {
+          ...existingDetails,
+          employer: {
+            ...(existingDetails.employer || {}),
+            cover: companyProfile.companyName.trim() || company.name,
+          },
+          contacts: {
+            ...existingContacts,
+            hr: {
+              ...existingHr,
+              name: contactName,
+              ...(contactDetail.includes("@")
+                ? { email: contactDetail }
+                : contactDetail
+                  ? { phone: contactDetail }
+                  : {}),
+            },
+          },
+        },
+      });
+      setCompanyProfileDirty(false);
+      setNotice("Company profile saved");
+    } catch (error) {
+      setNotice(error.message || "Could not save the company profile");
+    } finally {
+      setSavingCompanyProfile(false);
+      window.setTimeout(() => setNotice(""), 2400);
+    }
+  };
 
   const updatePhase = (id, patch) =>
     setPhaseState((current) => ({
@@ -185,33 +326,54 @@ export default function BookletStudio() {
     );
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "bibs-tows-benefits-guide-draft.json";
+    anchor.download = `${company?.id || "benefits"}-broker-packet-draft.json`;
     anchor.click();
     URL.revokeObjectURL(url);
   };
 
-  return (
-    <div className="bs-studio">
-      <header className="bs-topbar tw:flex tw:items-center tw:justify-between">
-        <div className="bs-topbar__left tw:flex tw:items-center">
-          <button className="bs-brand tw:flex tw:items-center" onClick={() => window.location.assign("/")} aria-label="Back to Ansa workspace">
-            <b>ansa</b>
-          </button>
-          <span className="bs-topbar__divider" />
-          <div className="bs-breadcrumb tw:flex tw:items-center">
-            <span>Benefits</span>
-            <ChevronDown />
-            <b>Big Tows, Inc.</b>
-          </div>
-        </div>
-        <div className="bs-topbar__right tw:flex tw:items-center">
-          <span className="bs-saved tw:flex tw:items-center"><Check /> Prototype saved locally</span>
-          <button className="bs-icon-button" aria-label="More options"><MoreHorizontal /></button>
-          <button className="bs-avatar" aria-label="Account menu">ML</button>
-        </div>
-      </header>
+  const selectCompany = (companyId) => {
+    if (companyId === company?.id) {
+      setSidebarOpen(false);
+      return;
+    }
+    if (companyProfileDirty && !window.confirm("Switch companies and discard unsaved company profile edits?")) return;
+    onSelectCompany(companyId);
+    setSidebarOpen(false);
+  };
 
+  return (
+    <div
+      className={`bs-studio ${sidebarOpen ? "is-sidebar-open" : ""}`}
+      style={{
+        "--bs-primary": accentColor,
+        "--bs-primary-deep": `color-mix(in srgb, ${accentColor} 80%, black)`,
+        "--bs-primary-soft": `color-mix(in srgb, ${accentColor} 5%, white)`,
+      }}
+    >
+      <CompanySidebar
+        companies={companies}
+        selectedCompanyId={company?.id}
+        onSelect={selectCompany}
+        onCreate={() => {
+          setSidebarOpen(false);
+          setNewCompanyOpen(true);
+        }}
+        onHome={onOpenCompanies}
+        colorPickerEnabled={colorPickerEnabled}
+        accentColor={accentColor}
+        onAccentColorChange={setAccentColor}
+      />
+      <button className="bs-sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Close company sidebar" />
+
+      <div className="bs-studio__content">
       <main className="bs-main">
+        <button className="bs-sidebar-toggle" onClick={() => setSidebarOpen(true)} aria-label="Open company sidebar">
+          <PanelLeft />
+        </button>
+        {!company ? (
+          <CompanySelectionGate onChoose={() => setSidebarOpen(true)} onCreate={() => setNewCompanyOpen(true)} />
+        ) : (
+          <>
         <div className="bs-mobile-switcher tw:grid tw:grid-cols-2" role="tablist" aria-label="Booklet studio panels">
           <button className={!mobilePreview ? "active" : ""} onClick={() => setMobilePreview(false)}>Sources</button>
           <button className={mobilePreview ? "active" : ""} onClick={() => setMobilePreview(true)}>
@@ -223,7 +385,7 @@ export default function BookletStudio() {
           <div className="bs-flow-panel">
             <div className="bs-step-header">
               <div className="bs-panel-heading bs-step-header__meta">
-                <span>Your information</span>
+                <span>Packet setup</span>
                 <b>{completed.size} of {phaseDefinitions.length} ready</b>
               </div>
               <span className="bs-flow-progress" aria-label={`${completion}% complete`}><i style={{ width: `${completion}%` }} /></span>
@@ -232,6 +394,7 @@ export default function BookletStudio() {
               <PhaseTabs
                 activeIndex={activePhaseIndex}
                 phaseState={phaseState}
+                completed={completed}
                 isUnlocked={phaseIsUnlocked}
                 onSelect={(index) => setActivePhase(phaseDefinitions[index].id)}
               />
@@ -242,7 +405,11 @@ export default function BookletStudio() {
                 blocker={currentPhase.id === "documents" && blockerOpen}
                 hsaAnswer={hsaAnswer}
                 companyProfile={companyProfile}
-                onCompanyProfileChange={setCompanyProfile}
+                onCompanyProfileChange={updateCompanyProfile}
+                onSaveCompanyProfile={saveCompanyProfile}
+                companyProfileDirty={companyProfileDirty}
+                savingCompanyProfile={savingCompanyProfile}
+                connectedCompany={company}
                 onRun={() => runPhase(currentPhase.id)}
                 onAnswer={chooseHsaAnswer}
                 onBack={() => setActivePhase(phaseDefinitions[activePhaseIndex - 1]?.id)}
@@ -262,6 +429,7 @@ export default function BookletStudio() {
             selectedPage={selectedPage}
             setSelectedPage={setSelectedPage}
             completed={completed}
+            processed={processed}
             completion={completion}
             completedChecks={completedChecks}
             mode={previewMode}
@@ -275,9 +443,262 @@ export default function BookletStudio() {
             onBack={() => setMobilePreview(false)}
           />
         </section>
+          </>
+        )}
       </main>
+      </div>
+
+      {newCompanyOpen && (
+        <NewCompanyFlow
+          companies={companies}
+          onClose={() => setNewCompanyOpen(false)}
+          onCreate={onCreateCompany}
+        />
+      )}
 
       {notice && <div className="bs-toast tw:rounded-ansa tw:shadow-ansa"><CheckCircle2 /> {notice}</div>}
+    </div>
+  );
+}
+
+function CompanySidebar({ companies, selectedCompanyId, onSelect, onCreate, onHome, colorPickerEnabled, accentColor, onAccentColorChange }) {
+  const [query, setQuery] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredCompanies = companies.filter((item) =>
+    [item.name, item.industry, item.headquarters]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(normalizedQuery)),
+  );
+
+  return (
+    <aside className="bs-company-sidebar">
+      <div className="bs-company-sidebar__head">
+        <button className="bs-company-sidebar__brand" onClick={onHome} aria-label="Ansa home"><b>ansa</b></button>
+        <label className="bs-company-sidebar__search">
+          <Search />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search companies" />
+        </label>
+      </div>
+      <div className="bs-company-sidebar__label"><span>Companies</span><b>{filteredCompanies.length}</b></div>
+      <nav className="bs-company-sidebar__list" aria-label="Companies">
+        <button className="bs-company-sidebar__new" onClick={onCreate}><Plus /> New company</button>
+        {filteredCompanies.map((item) => (
+          <button
+            key={item.id}
+            className={item.id === selectedCompanyId ? "active" : ""}
+            onClick={() => onSelect(item.id)}
+            aria-current={item.id === selectedCompanyId ? "page" : undefined}
+          >
+            <span className="bs-company-sidebar__copy"><b>{item.name}</b><small>{item.renewalLabel || item.industry || "Company"}</small></span>
+          </button>
+        ))}
+        {!filteredCompanies.length && <p>No companies found</p>}
+      </nav>
+      <div className="bs-company-sidebar__foot">
+        <button className={settingsOpen ? "active" : ""} onClick={() => colorPickerEnabled && setSettingsOpen((open) => !open)} aria-expanded={colorPickerEnabled ? settingsOpen : undefined}>
+          <Settings /><span><b>Settings</b><small>Workspace and appearance</small></span>
+        </button>
+        {colorPickerEnabled && settingsOpen && (
+          <div className="bs-accent-control">
+            <label htmlFor="studio-accent-color">
+              <span>Accent color<small>{accentColor.toUpperCase()}</small></span>
+              <input
+                id="studio-accent-color"
+                type="color"
+                value={accentColor}
+                onChange={(event) => onAccentColorChange(event.target.value)}
+                aria-label="Choose accent color"
+              />
+            </label>
+          </div>
+        )}
+        <span className="bs-company-sidebar__account"><i>ML</i><span><b>Miles</b><small>Account</small></span></span>
+      </div>
+    </aside>
+  );
+}
+
+function CompanySelectionGate({ onChoose, onCreate }) {
+  return (
+    <section className="bs-company-gate">
+      <span><Building2 /></span>
+      <small>Broker packet studio</small>
+      <h1>Choose a company to begin</h1>
+      <p>Select a company from the sidebar to connect its plans, rates, profile, and renewal context.</p>
+      <div><button onClick={onChoose}><Search /> Browse companies</button><button className="secondary" onClick={onCreate}><Plus /> New company</button></div>
+    </section>
+  );
+}
+
+const companySlug = (value = "") =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
+function NewCompanyFlow({ companies, onClose, onCreate }) {
+  const [seed, setSeed] = useState("");
+  const [profile, setProfile] = useState({
+    name: "",
+    website: "",
+    description: "",
+    industry: "",
+    headquarters: "",
+    employeeRange: "",
+    renewalDate: "",
+  });
+  const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const lastRequestedWebsite = useRef("");
+  const seedIsWebsite = /^(https?:\/\/)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:[/?#].*)?$/i.test(seed.trim());
+  const hasDetails = generating || Boolean(profile.name || profile.website);
+
+  const update = (key) => (event) =>
+    setProfile((current) => ({ ...current, [key]: event.target.value }));
+
+  useEffect(() => {
+    const value = seed.trim();
+    setError("");
+    if (!value) {
+      setGenerating(false);
+      setProfile((current) => ({ ...current, name: "", website: "" }));
+      return undefined;
+    }
+    if (!seedIsWebsite) {
+      setGenerating(false);
+      setProfile((current) => ({ ...current, name: value, website: "" }));
+      return undefined;
+    }
+    if (lastRequestedWebsite.current === value) return undefined;
+
+    const timer = window.setTimeout(async () => {
+      lastRequestedWebsite.current = value;
+      setGenerating(true);
+      setProfile((current) => ({ ...current, website: value }));
+      try {
+        const response = await fetch("/api/company-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: value }),
+        });
+        const generated = await response.json().catch(() => ({}));
+        if (!response.ok) throw Error(generated.error || "Could not read this website");
+        setProfile((current) => ({
+          ...current,
+          name: generated.name || current.name,
+          website: generated.website || value,
+          description: generated.description || "",
+          industry: generated.industry || "",
+          headquarters: generated.headquarters || "",
+          employeeRange: generated.employeeRange || "",
+        }));
+      } catch {
+        const host = value.replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[./]/)[0];
+        const fallbackName = host
+          .split(/[-_]/)
+          .filter(Boolean)
+          .map((part) => part[0]?.toUpperCase() + part.slice(1))
+          .join(" ");
+        setProfile((current) => ({
+          ...current,
+          name: current.name || fallbackName,
+          website: value,
+        }));
+        setError("We couldn’t read the site, but you can finish the details below.");
+      } finally {
+        setGenerating(false);
+      }
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [seed, seedIsWebsite]);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!profile.name.trim()) {
+      setError("Add a company name before continuing");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      const baseId = companySlug(profile.name) || "company";
+      const existingIds = new Set(companies.map((item) => item.id));
+      let id = baseId;
+      let suffix = 2;
+      while (existingIds.has(id)) {
+        id = `${baseId}-${suffix}`;
+        suffix += 1;
+      }
+      const renewalLabel = profile.renewalDate
+        ? new Date(`${profile.renewalDate}T12:00:00`).toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })
+        : "Not set";
+      await onCreate({
+        id,
+        name: profile.name.trim(),
+        website: profile.website.trim(),
+        description: profile.description.trim(),
+        industry: profile.industry.trim(),
+        headquarters: profile.headquarters.trim(),
+        employeeRange: profile.employeeRange.trim(),
+        employeeCount: 0,
+        renewalDate: profile.renewalDate || "2099-12-31",
+        renewalLabel,
+        benefits: {},
+        planDetails: {
+          employer: {
+            cover: profile.name.trim(),
+            short: profile.name.trim(),
+            legal: "",
+          },
+        },
+      });
+    } catch (saveError) {
+      setError(saveError.message || "Could not create the company");
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bs-new-company-backdrop">
+      <form className="bs-new-company" onSubmit={submit} role="dialog" aria-modal="true" aria-labelledby="new-company-title">
+        <header>
+          <div><h2 id="new-company-title">New company</h2><p>Paste a website or type a company name.</p></div>
+          <button type="button" onClick={onClose} aria-label="Close new company flow"><X /></button>
+        </header>
+        <div className="bs-new-company__body">
+          <label className="bs-new-company__seed">
+            <Search />
+            <input value={seed} onChange={(event) => setSeed(event.target.value)} placeholder="company.com or Company name" autoFocus />
+            {generating ? <LoaderCircle className="bs-spin" /> : seed ? <Check /> : null}
+          </label>
+          {generating && <div className="bs-new-company__filling"><Sparkles /> Filling in company details…</div>}
+          {hasDetails && (
+            <div className="bs-new-company__details">
+              <span>Company details</span>
+            <div className="bs-new-company__grid">
+              <label className="wide"><span>Company name</span><input value={profile.name} onChange={update("name")} required /></label>
+              <label><span>Industry</span><input value={profile.industry} onChange={update("industry")} /></label>
+              <label><span>Headquarters</span><input value={profile.headquarters} onChange={update("headquarters")} /></label>
+              <label><span>Team size</span><input value={profile.employeeRange} onChange={update("employeeRange")} placeholder="e.g. 51–200 employees" /></label>
+              <label><span>Renewal date</span><input type="date" value={profile.renewalDate} onChange={update("renewalDate")} /></label>
+              {profile.website && <label className="wide"><span>Website</span><input type="url" value={profile.website} onChange={update("website")} /></label>}
+              <label className="wide"><span>Description</span><textarea value={profile.description} onChange={update("description")} rows="2" /></label>
+            </div>
+            </div>
+          )}
+            {error && <p className="bs-new-company__error"><AlertCircle />{error}</p>}
+            <div className="bs-new-company__footer">
+              <button type="button" className="quiet" onClick={onClose}>Cancel</button>
+              <button className="primary" disabled={saving || generating || !profile.name.trim()}>{saving ? <LoaderCircle className="bs-spin" /> : <Plus />}{saving ? "Creating…" : "Create company"}</button>
+            </div>
+        </div>
+      </form>
     </div>
   );
 }
@@ -292,7 +713,7 @@ const phasePrompts = {
   instructions: "Anything else the guide should know?",
 };
 
-function PhaseTabs({ activeIndex, phaseState, isUnlocked, onSelect }) {
+function PhaseTabs({ activeIndex, phaseState, completed, isUnlocked, onSelect }) {
   const activeTabRef = useRef(null);
 
   useEffect(() => {
@@ -303,17 +724,18 @@ function PhaseTabs({ activeIndex, phaseState, isUnlocked, onSelect }) {
     <nav className="bs-step-tabs" aria-label="Information phases">
       {phaseDefinitions.map((phase, index) => {
         const state = phaseState[phase.id]?.status || "idle";
+        const complete = completed.has(phase.id);
         const unlocked = isUnlocked(index);
         return (
           <button
             key={phase.id}
             ref={activeIndex === index ? activeTabRef : null}
-            className={`${activeIndex === index ? "active" : ""} ${state === "complete" ? "complete" : ""} ${state === "processing" ? "processing" : ""}`}
+            className={`${activeIndex === index ? "active" : ""} ${complete ? "complete" : ""} ${state === "processing" ? "processing" : ""}`}
             onClick={() => onSelect(index)}
             disabled={!unlocked}
             aria-current={activeIndex === index ? "step" : undefined}
           >
-            <span>{state === "complete" ? <Check /> : String(index + 1).padStart(2, "0")}</span>
+            <span>{complete ? <Check /> : String(index + 1).padStart(2, "0")}</span>
             <b>{phaseTabLabels[index]}</b>
           </button>
         );
@@ -322,9 +744,16 @@ function PhaseTabs({ activeIndex, phaseState, isUnlocked, onSelect }) {
   );
 }
 
-function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, onCompanyProfileChange, onRun, onAnswer, onBack, onNext, canBack, canNext }) {
-  const complete = state.status === "complete";
+function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, onCompanyProfileChange, onSaveCompanyProfile, companyProfileDirty, savingCompanyProfile, connectedCompany, onRun, onAnswer, onBack, onNext, canBack, canNext }) {
+  const processed = state.status === "complete";
+  const complete = processed && !blocker;
   const processing = state.status === "processing";
+  const sourceFileName = phase.id === "employer"
+    ? `${getCompanyShortName(companyProfile.companyName)} company profile`
+    : phase.fileName;
+  const sourceFileMeta = phase.id === "employer"
+    ? "Company profile · Connected"
+    : phase.fileMeta;
 
   return (
     <article className={`bs-focused-phase phase-${phase.id} ${complete ? "is-complete" : ""} ${processing ? "is-processing" : ""}`} key={phase.id}>
@@ -336,23 +765,27 @@ function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, 
           </div>
         </header>
         <div className="bs-focused-phase__answer">
-          {phase.id === "employer" && complete && (
+          {phase.id === "employer" && processed && (
             <CompanyProfileFields
               profile={companyProfile}
               onChange={onCompanyProfileChange}
+              onSave={onSaveCompanyProfile}
+              dirty={companyProfileDirty}
+              saving={savingCompanyProfile}
               disabled={processing}
             />
           )}
-          {phase.id === "employer" && !complete && !processing && (
+          {phase.id === "employer" && !processed && !processing && (
             <CompanySourceInput
               website={companyProfile.website}
               onWebsiteChange={(website) => onCompanyProfileChange((current) => ({ ...current, website }))}
               onRun={onRun}
               busy={busy}
               accepted={phase.accepted}
+              connectedCompany={connectedCompany}
             />
           )}
-          {phase.id !== "employer" && !complete && !processing && (
+          {phase.id !== "employer" && !processed && !processing && (
             <button
               className="bs-dropzone bs-dropzone--focused tw:rounded-ansa"
               onClick={onRun}
@@ -368,11 +801,11 @@ function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, 
 
           {processing && <ProcessingState phase={phase} stage={state.stage} />}
 
-          {complete && (
+          {processed && (
             <>
               <div className="bs-source-file tw:grid tw:items-center">
                 <span><FileText /></span>
-                <div><b>{phase.fileName}</b><small>{phase.fileMeta}</small></div>
+                <div><b>{sourceFileName}</b><small>{sourceFileMeta}</small></div>
                 <i><ShieldCheck /> Verified source</i>
               </div>
               {phase.id !== "employer" && (
@@ -391,7 +824,7 @@ function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, 
           {blocker && !hsaAnswer && (
             <div className="bs-blocker">
               <div className="bs-blocker__head tw:flex tw:items-center"><span><Zap /></span><div><small>One decision needed</small><b>HSA contribution</b></div></div>
-              <p>This plan is HSA-qualified, but I didn’t find whether Big Tows contributes to an HSA. What should the booklet say?</p>
+              <p>This plan is HSA-qualified, but I didn’t find whether {getCompanyShortName(companyProfile.companyName)} contributes to an HSA. What should the booklet say?</p>
               <div className="bs-blocker__answers tw:flex tw:flex-wrap">
                 {["No employer contribution", "Contributes by tier", "Skip HSA section"].map((answer) => (
                   <button key={answer} onClick={() => onAnswer(answer)}>{answer}<ArrowRight /></button>
@@ -405,7 +838,7 @@ function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, 
         </div>
       </div>
       <footer className="bs-focused-phase__nav">
-        <span>{processing ? "You can review the next step while Ansa works." : complete ? "This source is ready." : "Add a source to unlock the next step."}</span>
+        <span>{processing ? "You can review the next step while Ansa works." : blocker ? "Resolve the decision to finish this section." : complete ? "This source is ready." : "Add a source to unlock the next step."}</span>
         <div className="bs-step-arrows" aria-label="Move between steps">
           <button onClick={onBack} disabled={!canBack} aria-label="Previous step"><ArrowUp /></button>
           <button className="next" onClick={onNext} disabled={!canNext} aria-label="Next step"><ArrowDown /></button>
@@ -415,12 +848,12 @@ function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, 
   );
 }
 
-function CompanySourceInput({ website, onWebsiteChange, onRun, busy, accepted }) {
+function CompanySourceInput({ website, onWebsiteChange, onRun, busy, accepted, connectedCompany }) {
   return (
     <section className="bs-company-source" aria-labelledby="company-source-title">
       <div className="bs-company-source__head">
-        <b id="company-source-title">Where should Ansa learn about the company?</b>
-        <span>Add either source—or both.</span>
+        <b id="company-source-title">Start with {connectedCompany?.name || "the company"}</b>
+        <span>{connectedCompany ? "Connected from the selected company profile." : "Add either source—or both."}</span>
       </div>
       <label className="bs-company-source__website">
         <span>Company website</span>
@@ -433,7 +866,7 @@ function CompanySourceInput({ website, onWebsiteChange, onRun, busy, accepted })
         />
       </label>
       <div className="bs-company-source__actions">
-        <button className="primary" onClick={onRun} disabled={busy}><Sparkles /> Find company info <ArrowRight /></button>
+        <button className="primary" onClick={onRun} disabled={busy}><Sparkles /> {connectedCompany ? "Use company profile" : "Find company info"} <ArrowRight /></button>
         <button onClick={onRun} disabled={busy}><Upload /><span><b>Import an employer document</b><small>{accepted}</small></span></button>
       </div>
       <p>We’ll combine public company information with the employer facts found in your documents. You can review every field before it reaches the booklet.</p>
@@ -441,7 +874,7 @@ function CompanySourceInput({ website, onWebsiteChange, onRun, busy, accepted })
   );
 }
 
-function CompanyProfileFields({ profile, onChange, disabled }) {
+function CompanyProfileFields({ profile, onChange, onSave, dirty, saving, disabled }) {
   const update = (key) => (event) => {
     const nextValue = event.target.value;
     onChange((current) => ({ ...current, [key]: nextValue }));
@@ -450,8 +883,8 @@ function CompanyProfileFields({ profile, onChange, disabled }) {
   return (
     <section className="bs-company-profile" aria-labelledby="company-profile-title">
       <div className="bs-company-profile__head">
-        <b id="company-profile-title">Company profile</b>
-        <span>Extracted from employer application + website</span>
+        <div><b id="company-profile-title">Company profile</b><span>Synced with the selected company record</span></div>
+        <button onClick={onSave} disabled={!dirty || saving}>{saving ? <LoaderCircle className="bs-spin" /> : <Check />}{saving ? "Saving" : dirty ? "Save to company" : "Saved"}</button>
       </div>
       <div className="bs-company-profile__grid">
         <label className="wide"><span>Company name</span><input value={profile.companyName} onChange={update("companyName")} disabled={disabled} /></label>
@@ -490,7 +923,7 @@ function ProcessingState({ phase, stage }) {
   );
 }
 
-function BookletPreview({ pages, selectedPage, setSelectedPage, completed, completion, completedChecks, mode, setMode, blockerOpen, bookletReady, hsaAnswer, processingPhase, companyProfile, onDownload, onBack }) {
+function BookletPreview({ pages, selectedPage, setSelectedPage, completed, processed, completion, completedChecks, mode, setMode, blockerOpen, bookletReady, hsaAnswer, processingPhase, companyProfile, onDownload, onBack }) {
   const page = pages.find((item) => item.id === selectedPage) || pages[0];
   const warnings = completed.has("rates") ? 2 : 0;
   const streamingPhase = phaseDefinitions.find((phase) => phase.id === processingPhase);
@@ -515,7 +948,7 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completed, compl
         {[
           ["pages", "Pages", pages.length],
           ["checks", "Checks", completedChecks],
-          ["sources", "Sources", completed.size],
+          ["sources", "Sources", processed.size],
         ].map(([key, label, count]) => (
           <button key={key} className={mode === key ? "active" : ""} onClick={() => setMode(key)}>{label}<span>{count}</span></button>
         ))}
@@ -573,7 +1006,7 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completed, compl
         </div>
       )}
       {mode === "checks" && <ChecksView completed={completed} blockerOpen={blockerOpen} />}
-      {mode === "sources" && <SourcesView completed={completed} blockerOpen={blockerOpen} />}
+      {mode === "sources" && <SourcesView processed={processed} blockerOpen={blockerOpen} companyProfile={companyProfile} />}
     </aside>
   );
 }
@@ -736,18 +1169,24 @@ function ChecksView({ completed, blockerOpen }) {
   );
 }
 
-function SourcesView({ completed, blockerOpen }) {
+function SourcesView({ processed, blockerOpen, companyProfile }) {
   return (
     <div className="bs-inspection-view">
       <div className="bs-inspection-head"><span><Files /></span><div><small>Source of truth</small><h3>Connected evidence</h3><p>Review exactly where each booklet fact came from.</p></div></div>
       <div className="bs-sources-list">
         {sourceDefinitions.map((source) => {
-          const ready = completed.has(source.phase);
+          const ready = processed.has(source.phase);
           const missing = ready && blockerOpen && source.phase === "documents";
+          const companyName = getCompanyShortName(companyProfile.companyName);
+          const label = source.phase === "employer"
+            ? `${companyName} company profile`
+            : source.phase === "census"
+              ? `${companyName} census`
+              : source.label;
           return (
             <div key={source.phase} className={`${ready ? "ready" : ""} ${missing ? "missing" : ""}`}>
               <span>{missing ? <AlertCircle /> : ready ? <FileCheck2 /> : <FileText />}</span>
-              <div><b>{source.label}</b><small>{missing ? "Missing employer HSA contribution" : ready ? source.detail : "Not added yet"}</small></div>
+              <div><b>{label}</b><small>{missing ? "Missing employer HSA contribution" : ready ? source.detail : "Not added yet"}</small></div>
               {missing ? <em>Review</em> : ready ? <em>{source.confidence}%</em> : <i>Pending</i>}
             </div>
           );

@@ -121,24 +121,24 @@ function App() {
       await setDoc(doc(db, "benefitsCompanies", updated.id), updated);
       setCompanies((cs) => cs.map((c) => (c.id === updated.id ? updated : c)));
     },
-    add = async (company) => {
-      await setDoc(doc(db, "benefitsCompanies", company.id), company);
-      setCompanies((cs) => [...cs.filter((c) => c.id !== company.id), company]);
+    add = async (companyToAdd) => {
+      await setDoc(doc(db, "benefitsCompanies", companyToAdd.id), companyToAdd);
+      setCompanies((current) => [
+        ...current.filter((item) => item.id !== companyToAdd.id),
+        companyToAdd,
+      ]);
+      go(`/companies/${companyToAdd.id}`, setRoute);
     };
   return (
-    <div className="appShell">
-      <Sidebar company={company} directoryActive={route.length === 0} onHome={() => go("/", setRoute)} />
-      <div className="appContent">
-        <div className="mobileBar"><PanelLeft /><b>ansa</b></div>
-        {route.length === 0 ? (
-          <Directory companies={ordered} add={add} open={(id) => go(`/companies/${id}`, setRoute)} />
-        ) : company ? (
-          <Company company={company} onUpdate={update} back={() => go("/", setRoute)} />
-        ) : (
-          <Directory companies={ordered} add={add} open={(id) => go(`/companies/${id}`, setRoute)} />
-        )}
-      </div>
-    </div>
+    <BookletStudio
+      key={company?.id || "company-picker"}
+      company={company || null}
+      companies={ordered}
+      onSelectCompany={(companyId) => go(`/companies/${companyId}`, setRoute)}
+      onOpenCompanies={() => go("/", setRoute)}
+      onUpdateCompany={update}
+      onCreateCompany={add}
+    />
   );
 }
 function Sidebar({ onHome, company, directoryActive }) {
@@ -2154,11 +2154,7 @@ function Stat({ label, value, tone }) {
   );
 }
 function Root() {
-  return window.location.pathname === "/booklet-studio" ? (
-    <BookletStudio />
-  ) : (
-    <App />
-  );
+  return <App />;
 }
 
 createRoot(document.getElementById("root")).render(<Root />);

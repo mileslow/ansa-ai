@@ -208,7 +208,7 @@ body { background: var(--canvas); font-family: var(--font-sans); font-size: var(
 }
 .benefitCard:last-child { border-right: 0; }
 .benefitCard:hover { background: rgba(255,255,255,.76); }
-.benefitCard.selected { background: rgba(255,255,255,.92); box-shadow: inset 0 -2px var(--accent); }
+.benefitCard.selected { background: rgba(255,255,255,.92); box-shadow: none; }
 .benefitCard .benefitIcon { width: 28px; height: 28px; border: 0; background: transparent; }
 .benefitCard .benefitIcon svg { width: 15px; }
 .benefitCard p { display: none; }
@@ -307,7 +307,7 @@ body { background: var(--canvas); font-family: var(--font-sans); font-size: var(
 }
 .planUploadTarget:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(11,95,255,.12);
+  box-shadow: none;
 }
 .planUploadTarget svg {
   width: var(--text-xl);
@@ -365,8 +365,9 @@ body { background: var(--canvas); font-family: var(--font-sans); font-size: var(
   color: var(--ink);
 }
 .quietIconButton:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(11,95,255,.12);
+  outline: 2px solid color-mix(in srgb, var(--bs-primary, #1414d2) 24%, transparent);
+  outline-offset: 2px;
+  box-shadow: none;
 }
 .quietIconButton svg {
   width: var(--text-sm);
@@ -558,7 +559,7 @@ body { background: var(--canvas); font-family: var(--font-sans); font-size: var(
 }
 .planUploadDropzone:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(11,95,255,.12);
+  box-shadow: none;
 }
 .planUploadDropzone svg {
   width: var(--space-6);
@@ -595,7 +596,7 @@ body { background: var(--canvas); font-family: var(--font-sans); font-size: var(
 .yearTabs { display: inline-flex; gap: var(--space-1); padding: var(--space-1); border: 1px solid var(--border); border-radius: var(--radius-md); background: rgba(255,255,255,.48); }
 .yearTabs button { min-width: 64px; height: var(--control-sm); padding: 0 var(--space-3); border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--muted); font-size: var(--text-sm); font-weight: var(--weight-medium); }
 .yearTabs button:hover { color: var(--ink); background: rgba(255,255,255,.52); }
-.yearTabs button.active { border-color: rgba(11,95,255,.22); background: rgba(238,244,255,.9); color: var(--accent-strong); box-shadow: 0 1px 2px rgba(11,95,255,.06); }
+.yearTabs button.active { border-color: rgba(11,95,255,.22); background: rgba(238,244,255,.9); color: var(--accent-strong); box-shadow: none; }
 .costChart { margin-top: var(--space-4); padding: var(--space-5); border: 1px solid var(--border); border-radius: var(--radius-lg); background: rgba(255,255,255,.6); box-shadow: var(--shadow-sm); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
 .costChartHead { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-5); }
 .costChartHead h2 { margin: 0; font-size: var(--text-lg); line-height: var(--leading-tight); font-weight: var(--weight-semibold); }
@@ -633,7 +634,7 @@ body { background: var(--canvas); font-family: var(--font-sans); font-size: var(
 .status.soon { background: rgba(255,255,255,.56); border-color: var(--border); color: #52525b; }
 .number { border-color: rgba(11,95,255,.2); background: rgba(238,244,255,.72); color: #24436f; }
 .number:hover { border-color: rgba(11,95,255,.38); }
-.number:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(11,95,255,.12); }
+.number:focus-within { border-color: var(--accent); box-shadow: none; }
 .tableTitle > span { border-color: var(--border); background: rgba(255,255,255,.56); color: #52525b; }
 .progressTrack i { background: var(--accent); }
 
@@ -641,7 +642,7 @@ body { background: var(--canvas); font-family: var(--font-sans); font-size: var(
 .detailField input:focus,
 .detailField select:focus,
 .field input:focus,
-.field > div:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(11,95,255,.12); }
+.field > div:focus-within { border-color: var(--accent); box-shadow: none; }
 .toggle input:checked + span,
 .planChecks input:checked + span { border-color: var(--accent); background: var(--accent); }
 .emptyTab:hover,

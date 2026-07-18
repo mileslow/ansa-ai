@@ -16,7 +16,7 @@
   --accent: #0B5FFF;
   --accent-strong: #0047CC;
   --accent-soft: rgba(11,95,255,.1);
-  --focus: 0 0 0 3px rgba(11,95,255,.16);
+  --focus: none;
   --shadow-xs: 0 1px 2px rgba(0,0,0,.04);
   --shadow-sm: 0 8px 24px rgba(0,0,0,.055);
   --radius-sm: 6px;
@@ -26,7 +26,7 @@
 
 body { background: var(--canvas); color: var(--ink); }
 button, input, select, textarea { font: inherit; }
-button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; box-shadow: var(--focus); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid color-mix(in srgb, var(--bs-primary, #1414d2) 24%, transparent); outline-offset: 2px; box-shadow: none; }
 
 .appShell { min-height: 100vh; display: grid; grid-template-columns: 232px minmax(0,1fr); }
 .appContent { min-width: 0; padding: 10px 10px 10px 0; }
@@ -74,7 +74,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .companyList { margin-top: 26px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-xs); backdrop-filter: blur(14px); }
 .companyRow { min-height: 70px; grid-template-columns: 38px minmax(0,1fr) 220px 100px 18px; gap: 14px; padding: 14px 18px; border-bottom: 1px solid var(--border); background: transparent; }
 .companyRow:hover { padding-left: 18px; background: rgba(255,255,255,.82); }
-.companyRow:focus-visible { position: relative; z-index: 1; box-shadow: inset 3px 0 var(--accent), var(--focus); }
+.companyRow:focus-visible { position: relative; z-index: 1; border-left-color: var(--accent); box-shadow: none; }
 .companyIcon { width: 34px; height: 34px; border: 1px solid var(--border); border-radius: var(--radius); background: #fafafa; color: #52525b; }
 .companyIcon svg { width: 15px; }.companyName b { font-family: inherit; font-size: 12px; }.companyName span, .renewal small { font-size: 10px; }
 .status { padding: 4px 7px; border: 1px solid var(--border); border-radius: 999px; background: #fafafa; color: var(--muted); font-size: 8px; font-weight: 600; }
@@ -97,7 +97,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .benefitStack { gap: 12px; }.benefitCard { border-radius: var(--radius-lg); padding: 17px; transform: none; }
 .benefitCard:hover { border-color: var(--border-strong); background: var(--surface-hover); transform: none; box-shadow: var(--shadow-sm); }
-.benefitCard.selected { border-color: rgba(11,95,255,.38); background: var(--surface-selected); box-shadow: inset 3px 0 var(--accent); }
+.benefitCard.selected { border-color: rgba(11,95,255,.38); background: var(--surface-selected); box-shadow: none; }
 .benefitCard.selected > svg { color: var(--accent-strong); }.benefitIcon { border-radius: var(--radius); }
 .benefitCard b { font-family: inherit; }.benefitCard div > span { color: var(--accent-strong); }
 .expandedForm, .tabPanel { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; }
@@ -114,7 +114,7 @@ td { border-color: var(--border); }.total td { background: rgba(24,24,27,.035); 
 .detailField, .field { color: #3f3f46; font-size: 10px; font-weight: 600; }
 .detailField input, .detailField select, .field input, .field > div, .carrierEditor input, .personRow input { border: 1px solid var(--border); border-radius: var(--radius); background: rgba(255,255,255,.76); color: var(--ink); box-shadow: var(--shadow-xs); }
 .detailField input:hover, .detailField select:hover, .field input:hover, .field > div:hover { border-color: var(--border-strong); }
-.detailField input:focus, .detailField select:focus, .field input:focus, .field > div:focus-within { border-color: rgba(11,95,255,.55); box-shadow: var(--focus); }
+.detailField input:focus, .detailField select:focus, .field input:focus, .field > div:focus-within { border-color: rgba(11,95,255,.55); box-shadow: none; }
 .toggle input:checked + span, .planChecks input:checked + span { background: var(--accent); border-color: var(--accent); }
 .fieldGroup, .detailSection { border-color: var(--border); }.sectionHint { color: var(--muted); }
 
@@ -147,4 +147,3 @@ td { border-color: var(--border); }.total td { background: rgba(24,24,27,.035); 
   .companyRow { grid-template-columns: 36px minmax(0,1fr) 16px; padding: 13px; }.companyRow:hover { padding-left: 13px; }
   .workspaceTabs { overflow-x: auto; }.expandedForm, .tabPanel { padding: 16px; }
 }
-
