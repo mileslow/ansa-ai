@@ -18,7 +18,6 @@ import {
   Gauge,
   LoaderCircle,
   MoreHorizontal,
-  RotateCcw,
   ScanLine,
   ShieldCheck,
   Sparkles,
@@ -45,6 +44,7 @@ const initialCompanyProfile = {
   benefitsContact: "Morgan Lee · People Operations",
   planYear: "Mar 1, 2026 – Feb 28, 2027",
   enrollmentWindow: "Feb 2–13, 2026",
+  website: "https://bigtows.com",
   about: "Keeping people and businesses moving across Western New York.",
 };
 
@@ -66,7 +66,6 @@ export default function BookletStudio() {
   const [activePhase, setActivePhase] = useState("employer");
   const [selectedPage, setSelectedPage] = useState(null);
   const [previewMode, setPreviewMode] = useState("pages");
-  const [sampleRunning, setSampleRunning] = useState(false);
   const [hsaAnswer, setHsaAnswer] = useState("");
   const [notice, setNotice] = useState("");
   const [mobilePreview, setMobilePreview] = useState(false);
@@ -94,7 +93,6 @@ export default function BookletStudio() {
   const coreReady = ["employer", "rates", "documents", "template", "census"].every(
     (id) => completed.has(id),
   );
-  const allSourcesReady = coreReady && completed.has("instructions");
   const bookletReady = coreReady && !blockerOpen;
   const completedChecks = checkDefinitions.filter((check) =>
     completed.has(check.phase),
@@ -167,36 +165,6 @@ export default function BookletStudio() {
     return true;
   };
 
-  const runSample = async () => {
-    if (sampleRunning || processingPhase) return;
-    const token = ++runToken.current;
-    setSampleRunning(true);
-    for (const id of ["employer", "rates", "documents", "template", "census"]) {
-      if (token !== runToken.current) break;
-      if (phaseState[id]?.status !== "complete") {
-        await runPhase(id, token);
-        if (id === "documents" && !hsaAnswer) {
-          if (token === runToken.current) setSampleRunning(false);
-          return;
-        }
-        await wait(260);
-      }
-    }
-    if (token === runToken.current) setSampleRunning(false);
-  };
-
-  const resetDemo = () => {
-    runToken.current += 1;
-    setPhaseState({});
-    setActivePhase("employer");
-    setSelectedPage(null);
-    setPreviewMode("pages");
-    setSampleRunning(false);
-    setHsaAnswer("");
-    setNotice("");
-    setCompanyProfile({ ...initialCompanyProfile });
-  };
-
   const chooseHsaAnswer = (answer) => {
     setHsaAnswer(answer);
     setNotice("Decision applied · HSA check resolved");
@@ -244,40 +212,6 @@ export default function BookletStudio() {
       </header>
 
       <main className="bs-main">
-        <section className="bs-intro tw:flex tw:justify-between">
-          <div>
-            <span className="bs-eyebrow tw:text-ansa-primary">Booklet studio</span>
-            <h1>Build the guide with what you already have.</h1>
-            <p>Ansa reads each source, finds the facts, and shapes the booklet live. You only step in when a decision needs you.</p>
-          </div>
-          <div className="bs-intro__actions tw:flex tw:items-center">
-            {(completed.size > 0 || sampleRunning) && (
-              <button className="bs-button bs-button--quiet" onClick={resetDemo}>
-                <RotateCcw /> Reset
-              </button>
-            )}
-            <button
-              className="bs-button bs-button--primary tw:rounded-ansa tw:shadow-ansa-sm"
-              onClick={coreReady ? () => runPhase("instructions") : runSample}
-              disabled={sampleRunning || !!processingPhase || allSourcesReady}
-            >
-              {sampleRunning || processingPhase ? <LoaderCircle className="bs-spin" /> : allSourcesReady ? <Check /> : <Sparkles />}
-              {sampleRunning
-                ? "Building sample…"
-                : processingPhase === "instructions"
-                  ? "Applying instructions…"
-                  : allSourcesReady
-                    ? "Booklet complete"
-                    : coreReady
-                      ? "Add final instructions"
-                      : completed.size
-                        ? "Continue with sample"
-                        : "Try sample benefits files"}
-              {!sampleRunning && !processingPhase && !allSourcesReady && <ArrowRight />}
-            </button>
-          </div>
-        </section>
-
         <div className="bs-mobile-switcher tw:grid tw:grid-cols-2" role="tablist" aria-label="Booklet studio panels">
           <button className={!mobilePreview ? "active" : ""} onClick={() => setMobilePreview(false)}>Sources</button>
           <button className={mobilePreview ? "active" : ""} onClick={() => setMobilePreview(true)}>
@@ -288,7 +222,7 @@ export default function BookletStudio() {
         <section className={`bs-workspace tw:grid ${mobilePreview ? "show-preview" : ""}`}>
           <div className="bs-flow-panel">
             <div className="bs-step-header">
-              <div className="bs-step-header__meta">
+              <div className="bs-panel-heading bs-step-header__meta">
                 <span>Your information</span>
                 <b>{completed.size} of {phaseDefinitions.length} ready</b>
               </div>
@@ -401,14 +335,23 @@ function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, 
           </div>
         </header>
         <div className="bs-focused-phase__answer">
-          {phase.id === "employer" && (
+          {phase.id === "employer" && complete && (
             <CompanyProfileFields
               profile={companyProfile}
               onChange={onCompanyProfileChange}
               disabled={processing}
             />
           )}
-          {!complete && !processing && (
+          {phase.id === "employer" && !complete && !processing && (
+            <CompanySourceInput
+              website={companyProfile.website}
+              onWebsiteChange={(website) => onCompanyProfileChange((current) => ({ ...current, website }))}
+              onRun={onRun}
+              busy={busy}
+              accepted={phase.accepted}
+            />
+          )}
+          {phase.id !== "employer" && !complete && !processing && (
             <button
               className="bs-dropzone bs-dropzone--focused tw:rounded-ansa"
               onClick={onRun}
@@ -416,8 +359,8 @@ function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, 
               onDrop={(event) => { event.preventDefault(); onRun(); }}
               disabled={busy}
             >
-              <b>{phase.id === "employer" ? <><ArrowRight /> Continue</> : <><Upload /> Choose a file</>}</b>
-              <span>{phase.id === "employer" ? "or import an employer file" : "or drop it here"}</span>
+              <b><Upload /> Choose a file</b>
+              <span>or drop it here</span>
               <small>{phase.accepted}</small>
             </button>
           )}
@@ -431,14 +374,16 @@ function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, 
                 <div><b>{phase.fileName}</b><small>{phase.fileMeta}</small></div>
                 <i><ShieldCheck /> Verified source</i>
               </div>
-              <div className="bs-facts">
-                <div className="bs-facts__head"><span>Extracted facts</span><b>{phase.facts.length} found</b></div>
-                {phase.facts.map(([label, value], index) => (
-                  <div className="bs-fact" key={label} style={{ "--fact-index": index }}>
-                    <span>{label}</span><b>{value}</b><CheckCircle2 />
-                  </div>
-                ))}
-              </div>
+              {phase.id !== "employer" && (
+                <div className="bs-facts">
+                  <div className="bs-facts__head"><span>Extracted facts</span><b>{phase.facts.length} found</b></div>
+                  {phase.facts.map(([label, value], index) => (
+                    <div className="bs-fact" key={label} style={{ "--fact-index": index }}>
+                      <span>{label}</span><b>{value}</b><CheckCircle2 />
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
 
@@ -469,6 +414,32 @@ function FocusedPhase({ phase, state, busy, blocker, hsaAnswer, companyProfile, 
   );
 }
 
+function CompanySourceInput({ website, onWebsiteChange, onRun, busy, accepted }) {
+  return (
+    <section className="bs-company-source" aria-labelledby="company-source-title">
+      <div className="bs-company-source__head">
+        <b id="company-source-title">Where should Ansa learn about the company?</b>
+        <span>Add either source—or both.</span>
+      </div>
+      <label className="bs-company-source__website">
+        <span>Company website</span>
+        <input
+          type="url"
+          value={website}
+          onChange={(event) => onWebsiteChange(event.target.value)}
+          placeholder="https://company.com"
+          disabled={busy}
+        />
+      </label>
+      <div className="bs-company-source__actions">
+        <button className="primary" onClick={onRun} disabled={busy}><Sparkles /> Find company info <ArrowRight /></button>
+        <button onClick={onRun} disabled={busy}><Upload /><span><b>Import an employer document</b><small>{accepted}</small></span></button>
+      </div>
+      <p>We’ll combine public company information with the employer facts found in your documents. You can review every field before it reaches the booklet.</p>
+    </section>
+  );
+}
+
 function CompanyProfileFields({ profile, onChange, disabled }) {
   const update = (key) => (event) => {
     const nextValue = event.target.value;
@@ -479,7 +450,7 @@ function CompanyProfileFields({ profile, onChange, disabled }) {
     <section className="bs-company-profile" aria-labelledby="company-profile-title">
       <div className="bs-company-profile__head">
         <b id="company-profile-title">Company profile</b>
-        <span>Used throughout the booklet</span>
+        <span>Extracted from employer application + website</span>
       </div>
       <div className="bs-company-profile__grid">
         <label className="wide"><span>Company name</span><input value={profile.companyName} onChange={update("companyName")} disabled={disabled} /></label>
@@ -487,6 +458,7 @@ function CompanyProfileFields({ profile, onChange, disabled }) {
         <label><span>Headquarters</span><input value={profile.headquarters} onChange={update("headquarters")} disabled={disabled} /></label>
         <label><span>Team size</span><input value={profile.employeeCount} onChange={update("employeeCount")} disabled={disabled} /></label>
         <label><span>Benefits contact</span><input value={profile.benefitsContact} onChange={update("benefitsContact")} disabled={disabled} /></label>
+        <label className="wide"><span>Website</span><input type="url" value={profile.website} onChange={update("website")} disabled={disabled} /></label>
         <label><span>Plan year</span><input value={profile.planYear} onChange={update("planYear")} disabled={disabled} /></label>
         <label><span>Enrollment window</span><input value={profile.enrollmentWindow} onChange={update("enrollmentWindow")} disabled={disabled} /></label>
         <label className="wide"><span>About the company</span><textarea value={profile.about} onChange={update("about")} disabled={disabled} rows="2" /></label>
@@ -498,13 +470,13 @@ function CompanyProfileFields({ profile, onChange, disabled }) {
 function ProcessingState({ phase, stage }) {
   const progress = ((stage + 1) / parsingStages.length) * 100;
   return (
-    <div className="bs-processinbs-card">
-            <div className="bs-processinbs-file tw:grid tw:items-center">
+    <div className="bs-processing-card">
+      <div className="bs-processing-file tw:grid tw:items-center">
         <span><ScanLine /></span>
         <div><b>{phase.fileName}</b><small>{phase.steps[stage] || "Preparing source…"}</small></div>
         <LoaderCircle className="bs-spin" />
       </div>
-      <div className="bs-processinbs-track"><i style={{ width: `${progress}%` }} /></div>
+      <div className="bs-processing-track"><i style={{ width: `${progress}%` }} /></div>
       <ol>
         {parsingStages.map((label, index) => (
           <li key={label} className={index < stage ? "done" : index === stage ? "active" : ""}>
@@ -526,7 +498,7 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completed, compl
     <aside className={`bs-preview-panel ${processingPhase ? "is-streaming" : ""}`}>
       <div className="bs-preview-top tw:flex tw:items-center tw:justify-between">
         <button className="bs-preview-back" onClick={onBack}><ArrowLeft /> Sources</button>
-        <div>
+        <div className="bs-panel-heading">
           <span className="bs-live-dot"><i /> Live booklet</span>
           <b>{processingPhase ? `Creating ${streamingPhase?.title.toLowerCase() || "pages"}…` : pages.length ? `${pages.length} pages` : "Waiting for a source"}</b>
         </div>
@@ -596,12 +568,12 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completed, compl
 
 function StreamingPreview({ phase }) {
   return (
-    <div className="bs-streaminbs-preview">
-      <div className="bs-streaminbs-sheet" aria-hidden="true">
+    <div className="bs-streaming-preview">
+      <div className="bs-streaming-sheet" aria-hidden="true">
         <span />
         {[0, 1, 2, 3, 4].map((line) => <i key={line} style={{ "--stream-line": line }} />)}
       </div>
-      <div className="bs-streaminbs-copy">
+      <div className="bs-streaming-copy">
         <LoaderCircle className="bs-spin" />
         <div><b>Creating your first pages</b><small>{phase?.title || "Reading source"}</small></div>
       </div>
@@ -747,7 +719,7 @@ function ChecksView({ completed, blockerOpen }) {
           })}
         </section>
       ))}
-      {completed.has("template") && <div className="bs-warninbs-note"><ShieldCheck /><span><b>Template facts protected</b><small>Flower City was used for structure only. Employer-specific facts were ignored.</small></span></div>}
+      {completed.has("template") && <div className="bs-warning-note"><ShieldCheck /><span><b>Template facts protected</b><small>Flower City was used for structure only. Employer-specific facts were ignored.</small></span></div>}
     </div>
   );
 }
