@@ -40,7 +40,7 @@ import {
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import { db, storage } from "./firebase";
 import AddCompany from "./AddCompany";
-import GammaBookletPrototype from "./GammaBookletPrototype";
+import BookletStudio from "./BookletStudio";
 import "./styles.css";
 import "./inline.css";
 import "./add-company.css";
@@ -2155,7 +2155,7 @@ function Stat({ label, value, tone }) {
 }
 function Root() {
   return window.location.pathname === "/booklet-studio" ? (
-    <GammaBookletPrototype />
+    <BookletStudio />
   ) : (
     <App />
   );
