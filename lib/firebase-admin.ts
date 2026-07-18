@@ -1,6 +1,7 @@
 import { applicationDefault, cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { getAuth } from "firebase-admin/auth";
 
 function serviceAccount() {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
@@ -26,5 +27,6 @@ export function getAdminServices() {
   return {
     db: getFirestore(app),
     bucket: getStorage(app).bucket(),
+    auth: getAuth(app),
   };
 }

@@ -13,6 +13,27 @@ import type { SourceAuthority } from "./benefit-requirements/types";
 
 const text = (value: unknown) => String(value ?? "").toLowerCase();
 
+const benefitSignals: Array<[BenefitType, RegExp]> = [
+  ["dental", /\bdental\b|orthodont/],
+  ["vision", /\bvision\b|eyewear|contact lenses/],
+  ["std", /short[- ]term disability|\bstd\b/],
+  ["ltd", /long[- ]term disability|\bltd\b/],
+  ["life", /\blife\b|ad&d|accidental death/],
+  ["eap", /employee assistance|\beap\b/],
+  ["voluntary", /\bvoluntary\b|worksite|\bpbo\b|colonial|aflac/],
+  ["telemedicine", /telemedicine|telehealth/],
+  ["hsa", /health savings|\bhsa\b/],
+  ["hra", /health reimbursement|\bhra\b/],
+  ["fsa", /flexible spending|\bfsa\b/],
+  ["medical", /\bmedical\b|health plan|health insurance|deductible|out-of-pocket/],
+];
+
+function detectedBenefitTypes(value: string) {
+  return benefitSignals
+    .filter(([, signal]) => signal.test(value))
+    .map(([benefitType]) => benefitType);
+}
+
 function spreadsheetSample(file: LoadedUploadedFile) {
   try {
     const workbook = XLSX.read(file.data, { type: "buffer", dense: true });
@@ -48,6 +69,19 @@ function classifyFromSignals(file: LoadedUploadedFile) {
     confidence: number,
     reasoningSummary: string,
   ) => ({ documentType, confidence, reasoningSummary });
+
+  if (file.sourceKind === "company_website")
+    return result(
+      "company_website",
+      1,
+      "This source was captured directly from the supplied public company website.",
+    );
+  if (file.sourceKind === "thread_message")
+    return result(
+      "email_export",
+      1,
+      "This source is a user instruction saved directly on the booklet thread.",
+    );
 
   if (
     /employer|group application|new group application/.test(combined) &&
@@ -194,6 +228,7 @@ function effectivePeriod(value: string, detectedYear: string | null) {
 export function classifyDocument(file: LoadedUploadedFile): ClassifiedDocument {
   const classification = classifyFromSignals(file);
   const sample = file.textContent || "";
+  const benefits = detectedBenefitTypes(`${file.fileName} ${sample}`.toLowerCase());
   const employer = sample.match(
     /(?:group\/business name|legal entity name|prepared for|employer)\s*[:\-]\s*([^\n]{2,100})/i,
   )?.[1];
@@ -212,6 +247,7 @@ export function classifyDocument(file: LoadedUploadedFile): ClassifiedDocument {
   return {
     fileId: file.id,
     ...classification,
+    detectedBenefitTypes: benefits,
     detectedEmployer,
     detectedCarrier: carrier || null,
     detectedPlanYear,
@@ -239,9 +275,14 @@ const ModelClassificationSchema = z.object({
     "census",
     "renewal_spreadsheet",
     "email_export",
+    "company_website",
     "unknown",
   ]),
   confidence: z.number().min(0).max(1),
+  detectedBenefitTypes: z.array(z.enum([
+    "medical", "dental", "vision", "life", "std", "ltd", "eap", "voluntary",
+    "telemedicine", "hsa", "hra", "fsa",
+  ])),
   detectedEmployer: z.string().nullable(),
   detectedCarrier: z.string().nullable(),
   detectedPlanYear: z.string().nullable(),
@@ -310,7 +351,7 @@ export async function classifyDocumentWithFallback({
       {
         role: "system",
         content:
-          "Classify this employee-benefits source document. Return document role, every directly addressed benefit family, employer/plan scope, effective period, and source authority as separate decisions. A blank form is still an employer_application but proves no filled fact. A generic carrier brochure is generic_reference. A current plan document can prove design but not employer selection. A prior guide is prior_year_context. Pediatric dental or vision inside a medical SBC does not activate standalone dental or vision. Leave uncertain scope or authority unknown. Use only visible evidence.",
+          "Classify this employee-benefits source document. Return document role, every directly addressed benefit family, employer/plan scope, effective period, and source authority as separate decisions. A blank form is still an employer_application but proves no filled fact. A generic carrier brochure is generic_reference. A current plan document can prove design but not employer selection. A prior guide is prior_year_context. PBO/worksite products belong to voluntary. Pediatric dental or vision inside a medical SBC does not activate standalone dental or vision. Leave uncertain scope or authority unknown. Use only visible evidence.",
       },
       {
         role: "user",

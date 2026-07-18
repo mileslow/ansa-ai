@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getAdminServices } from "./firebase-admin";
 import type {
   BookletGenerationRun,
+  BookletSectionArtifact,
   ExtractedFact,
   LoadedUploadedFile,
   PipelineEvent,
@@ -12,6 +13,7 @@ import type {
 export type BookletThread = {
   id: string;
   companyId: string;
+  ownerId: string;
   status: "open" | "processing" | "blocked" | "complete" | "failed";
   uploadedFileIds: string[];
   latestRunId?: string | null;
@@ -36,12 +38,13 @@ export function toFirestoreDocument<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-export async function createBookletThread(companyId: string) {
+export async function createBookletThread(companyId: string, ownerId: string) {
   const { db } = getAdminServices();
   const now = new Date().toISOString();
   const thread: BookletThread = {
     id: randomUUID(),
     companyId,
+    ownerId,
     status: "open",
     uploadedFileIds: [],
     latestRunId: null,
@@ -80,7 +83,14 @@ export async function storeUploadedFiles({
   files,
 }: {
   thread: BookletThread;
-  files: Array<{ fileName: string; mimeType: string; data: Buffer }>;
+  files: Array<{
+    fileName: string;
+    mimeType: string;
+    data: Buffer;
+    sourceKind?: UploadedFile["sourceKind"];
+    sourceUrl?: string | null;
+    intakeCategory?: UploadedFile["intakeCategory"];
+  }>;
 }) {
   const { db, bucket } = getAdminServices();
   const uploaded: UploadedFile[] = [];
@@ -96,12 +106,16 @@ export async function storeUploadedFiles({
     const record: UploadedFile = {
       id,
       companyId: thread.companyId,
+      ownerId: thread.ownerId,
       fileName: file.fileName,
       storagePath,
       mimeType: file.mimeType,
       uploadedAt: new Date().toISOString(),
       sha256,
       processingStatus: "uploaded",
+      sourceKind: file.sourceKind || "file_upload",
+      sourceUrl: file.sourceUrl || null,
+      ...(file.intakeCategory ? { intakeCategory: file.intakeCategory } : {}),
     };
     await db.collection("bookletUploadedFiles").doc(id).set({ ...record, threadId: thread.id });
     uploaded.push(record);
@@ -129,6 +143,35 @@ export async function attachFileIdsToThread(threadId: string, fileIds: string[])
   );
 }
 
+export async function deleteUploadedFileFromThread(
+  thread: BookletThread,
+  file: UploadedFile,
+) {
+  const { db, bucket } = getAdminServices();
+  await bucket.file(file.storagePath).delete({ ignoreNotFound: true });
+  const now = new Date().toISOString();
+  const batch = db.batch();
+  batch.delete(db.collection("bookletUploadedFiles").doc(file.id));
+  batch.set(
+    db.collection("bookletThreads").doc(thread.id),
+    {
+      uploadedFileIds: FieldValue.arrayRemove(file.id),
+      latestRunId: null,
+      status: "open",
+      updatedAt: now,
+    },
+    { merge: true },
+  );
+  await batch.commit();
+  return {
+    ...thread,
+    uploadedFileIds: thread.uploadedFileIds.filter((id) => id !== file.id),
+    latestRunId: null,
+    status: "open" as const,
+    updatedAt: now,
+  };
+}
+
 export async function loadUploadedFiles(fileIds: string[]) {
   const { db, bucket } = getAdminServices();
   const files: LoadedUploadedFile[] = [];
@@ -137,9 +180,27 @@ export async function loadUploadedFiles(fileIds: string[]) {
     if (!snapshot.exists) throw new Error(`Uploaded file ${id} was not found`);
     const metadata = snapshot.data() as UploadedFile;
     const [data] = await bucket.file(metadata.storagePath).download();
-    files.push({ ...metadata, data });
+    files.push({
+      ...metadata,
+      data,
+      ...(metadata.mimeType === "text/plain" || metadata.mimeType === "message/rfc822"
+        ? { textContent: data.toString("utf8") }
+        : {}),
+    });
   }
   return files;
+}
+
+export async function getUploadedFileRecords(fileIds: string[]) {
+  if (!fileIds.length) return [];
+  const { db } = getAdminServices();
+  const records: UploadedFile[] = [];
+  for (const id of fileIds) {
+    const snapshot = await db.collection("bookletUploadedFiles").doc(id).get();
+    if (!snapshot.exists) throw new Error(`Uploaded file ${id} was not found`);
+    records.push(snapshot.data() as UploadedFile);
+  }
+  return records;
 }
 
 export async function saveGenerationRun(run: BookletGenerationRun) {
@@ -213,8 +274,16 @@ export async function saveGeneratedPdf({
     contentType: "application/pdf",
     metadata: { metadata: { runId: run.id, threadId: run.threadId } },
   });
-  const [url] = await file.getSignedUrl({ action: "read", expires: "2035-01-01" });
+  const [url] = await file.getSignedUrl({ action: "read", expires: Date.now() + 60 * 60 * 1000 });
   return { storagePath, url };
+}
+
+export async function refreshGeneratedPdfUrl(storagePath: string) {
+  const { bucket } = getAdminServices();
+  const [url] = await bucket
+    .file(storagePath)
+    .getSignedUrl({ action: "read", expires: Date.now() + 60 * 60 * 1000 });
+  return url;
 }
 
 export async function getPipelineEvents(runId: string) {
@@ -225,5 +294,84 @@ export async function getPipelineEvents(runId: string) {
     .collection("events")
     .orderBy("createdAt")
     .get();
-  return snapshot.docs.map((document) => document.data() as PipelineEvent);
+  return snapshot.docs
+    .map((document) => document.data() as PipelineEvent)
+    .sort((left, right) => left.id.localeCompare(right.id));
+}
+
+export async function saveSectionArtifact(artifact: BookletSectionArtifact) {
+  const { db } = getAdminServices();
+  await db
+    .collection("bookletGenerationRuns")
+    .doc(artifact.runId)
+    .collection("sections")
+    .doc(artifact.id.replace(/\//g, "_"))
+    .set(toFirestoreDocument(artifact));
+}
+
+export async function pruneSectionArtifacts(runId: string, artifactIds: string[]) {
+  const { db } = getAdminServices();
+  const sections = db
+    .collection("bookletGenerationRuns")
+    .doc(runId)
+    .collection("sections");
+  const snapshot = await sections.get();
+  const keep = new Set(artifactIds.map((id) => id.replace(/\//g, "_")));
+  const obsolete = snapshot.docs.filter((document) => !keep.has(document.id));
+  for (let offset = 0; offset < obsolete.length; offset += 400) {
+    const batch = db.batch();
+    obsolete.slice(offset, offset + 400).forEach((document) =>
+      batch.delete(document.ref),
+    );
+    await batch.commit();
+  }
+}
+
+export async function getSectionArtifacts(runId: string) {
+  const { db } = getAdminServices();
+  const snapshot = await db
+    .collection("bookletGenerationRuns")
+    .doc(runId)
+    .collection("sections")
+    .orderBy("pageIndex")
+    .get();
+  return snapshot.docs.map((document) => document.data() as BookletSectionArtifact);
+}
+
+export async function getExtractedFacts(runId: string) {
+  const { db } = getAdminServices();
+  const snapshot = await db
+    .collection("bookletExtractedFacts")
+    .where("runId", "==", runId)
+    .get();
+  return snapshot.docs
+    .map((document) => document.data() as ExtractedFact & { runId: string })
+    .sort((left, right) => left.path.localeCompare(right.path));
+}
+
+export async function resetPipelineEvents(runId: string) {
+  const { db } = getAdminServices();
+  const runRef = db.collection("bookletGenerationRuns").doc(runId);
+  const snapshot = await runRef.collection("events").get();
+  for (let offset = 0; offset < snapshot.docs.length; offset += 400) {
+    const batch = db.batch();
+    snapshot.docs.slice(offset, offset + 400).forEach((document) => batch.delete(document.ref));
+    await batch.commit();
+  }
+  const sections = await runRef.collection("sections").get();
+  for (let offset = 0; offset < sections.docs.length; offset += 400) {
+    const batch = db.batch();
+    sections.docs.slice(offset, offset + 400).forEach((document) => batch.delete(document.ref));
+    await batch.commit();
+  }
+  const facts = await db
+    .collection("bookletExtractedFacts")
+    .where("runId", "==", runId)
+    .get();
+  for (let offset = 0; offset < facts.docs.length; offset += 400) {
+    const batch = db.batch();
+    facts.docs.slice(offset, offset + 400).forEach((document) => batch.delete(document.ref));
+    await batch.commit();
+  }
+  await runRef.set({ stages: [], sectionArtifactCount: 0 }, { merge: true });
 }

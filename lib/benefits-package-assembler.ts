@@ -63,6 +63,7 @@ const sourcePriority = (documentType: ClassifiedDocument["documentType"]) =>
     benefit_guide: 70,
     prior_booklet: 60,
     email_export: 55,
+    company_website: 45,
     census: 40,
     unknown: 10,
   })[documentType];
@@ -582,6 +583,9 @@ export function assembleBenefitsPackage({
     pick(waitingCandidates)?.value,
     manualAnswers,
   );
+  const companyProfileSource = documentExtractions.find(
+    (item) => item.documentType === "company_website" && item.companyProfile,
+  );
 
   const conflicts = [
     conflictingValues("employer.name", employerCandidates),
@@ -651,6 +655,7 @@ export function assembleBenefitsPackage({
       legalName: pick(legalNameCandidates)?.value || null,
       address: pick(addressCandidates)?.value || null,
       website: pick(websiteCandidates)?.value || null,
+      publicProfile: companyProfileSource?.companyProfile || null,
     },
     planYear: { start: start || "", end: end || "", label: label || "" },
     eligibility: {

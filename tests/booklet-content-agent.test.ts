@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   BOOKLET_CONTENT_SECTION_IDS,
   generateBookletContent,
+  generateBookletContentIncrementally,
 } from "../lib/booklet-content-agent";
 import type { BenefitsPackage, BookletOutline } from "../lib/booklet-types";
 
@@ -104,6 +105,50 @@ function emptyBatch() {
 }
 
 describe("generateBookletContent", () => {
+  it("generates independent section batches concurrently and publishes each completed module", async () => {
+    const published: string[] = [];
+    const parse = vi.fn(async (request: any) => {
+      const prompt = String(request.input[1].content);
+      const batch = JSON.parse(prompt.split("Section batch:\n")[1]);
+      return {
+        output_parsed: {
+          sections: batch.map((section: any) => ({
+            id: section.id,
+            copy: "Benefits information.",
+            sourcePaths: [section.facts[0].path],
+          })),
+        },
+      };
+    });
+
+    const result = await generateBookletContentIncrementally(
+      benefitsPackage(),
+      outline(),
+      "streamed",
+      {
+        client: { responses: { parse } } as any,
+        model: "test-stream-model",
+        batchSize: 2,
+        concurrency: 2,
+        onSection: (section) => void published.push(section.id),
+      },
+    );
+
+    expect(parse.mock.calls.length).toBeGreaterThan(1);
+    expect(new Set(published)).toEqual(new Set(BOOKLET_CONTENT_SECTION_IDS));
+    expect(result.sections.map((section) => section.id)).toEqual(
+      BOOKLET_CONTENT_SECTION_IDS,
+    );
+    expect(result.sections.find((section) => section.id === "medical")).toMatchObject({
+      status: "ready",
+      copy: "Benefits information.",
+    });
+    expect(result.sections.find((section) => section.id === "enrollment")).toMatchObject({
+      status: "blocked",
+      copy: "",
+    });
+  });
+
   it("batches every section and returns deterministic ready, blocked, and omitted states", async () => {
     const sections = emptyBatch();
     const write = (

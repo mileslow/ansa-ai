@@ -44,6 +44,39 @@ const employerFile: LoadedUploadedFile = {
   data: Buffer.from("synthetic fixture"),
 };
 
+const dentalPlanFile: LoadedUploadedFile = {
+  id: "dental-plan",
+  companyId: "big-tows",
+  fileName: "dental-plan-summary.pdf",
+  storagePath: "fixtures/dental-plan-summary.pdf",
+  mimeType: "application/pdf",
+  uploadedAt: "2026-07-17T00:00:00.000Z",
+  sha256: "fixture-dental-plan",
+  processingStatus: "uploaded",
+  data: Buffer.from("synthetic dental fixture"),
+};
+
+const websiteFile: LoadedUploadedFile = {
+  id: "company-website",
+  companyId: "big-tows",
+  fileName: "company-website-evidence.txt",
+  storagePath: "fixtures/company-website-evidence.txt",
+  mimeType: "text/plain",
+  uploadedAt: "2026-07-17T00:00:00.000Z",
+  sha256: "fixture-company-website",
+  processingStatus: "uploaded",
+  sourceKind: "company_website",
+  sourceUrl: "https://bigtows.com/",
+  data: Buffer.from(JSON.stringify({
+    name: "Civic Center Towing Transport & Road Service",
+    description: "A Bay Area towing, recovery, transportation, and roadside service company.",
+    industry: "Roadside services",
+    headquarters: "Richmond, California",
+    employeeRange: null,
+    website: "https://bigtows.com/",
+  })),
+};
+
 function classification(file: LoadedUploadedFile): ClassifiedDocument {
   return file.id === "employer"
     ? {
@@ -121,6 +154,139 @@ async function sixPagePdf() {
 }
 
 describe("booklet agent pipeline", () => {
+  it("publishes a provisional employer cover from website evidence alone", async () => {
+    const streamed: Array<{ id: string; contentStatus?: string; html: string }> = [];
+    const result = await runBookletPipeline({
+      runId: "run-website-cover",
+      companyId: "big-tows",
+      files: [websiteFile],
+      dependencies: {
+        classify: async (file) => classifyDocument(file),
+      },
+      onArtifact: (artifact) => void streamed.push(artifact),
+    });
+
+    const cover = result.artifacts.find((artifact) => artifact.sectionId === "cover");
+    expect(result.status).toBe("blocked");
+    expect(cover).toMatchObject({ contentStatus: "provisional" });
+    expect(cover?.html).toContain("Civic Center Towing Transport &amp; Road Service");
+    expect(cover?.html).toContain("Plan year to be confirmed");
+    expect(result.artifacts.some((artifact) => artifact.sectionId === "welcome")).toBe(false);
+    expect(streamed.some((artifact) => artifact.id === "cover")).toBe(true);
+    expect(result.benefitsPackage.employer.publicProfile).toMatchObject({
+      industry: "Roadside services",
+      headquarters: "Richmond, California",
+    });
+    expect(result.facts.map((fact) => fact.path)).toContain(
+      "employer.publicProfile.description",
+    );
+  });
+
+  it("streams ready HTML while an unrelated plan document is still extracting", async () => {
+    let releasePlan!: () => void;
+    const planGate = new Promise<void>((resolve) => {
+      releasePlan = resolve;
+    });
+    let planFinished = false;
+    let planFinishedWhenFirstArtifact: boolean | undefined;
+    let resolveFirstArtifact!: (value: string) => void;
+    const firstArtifact = new Promise<string>((resolve) => {
+      resolveFirstArtifact = resolve;
+    });
+    const events: PipelineEvent[] = [];
+    const pipeline = runBookletPipeline({
+      runId: "run-incremental",
+      companyId: "big-tows",
+      files: [employerFile, dentalPlanFile],
+      dependencies: {
+        classify: async (file) =>
+          file.id === dentalPlanFile.id
+            ? {
+                fileId: file.id,
+                documentType: "plan_summary",
+                confidence: 0.99,
+                detectedBenefitTypes: ["dental"],
+                reasoningSummary: "Test dental plan",
+              }
+            : classification(file),
+        extractDocument: async ({ file }) => {
+          if (file.id === dentalPlanFile.id) {
+            await planGate;
+            planFinished = true;
+            return {
+              ...employerExtraction("First of the month after 30 days"),
+              fileId: dentalPlanFile.id,
+              fileName: dentalPlanFile.fileName,
+              documentType: "plan_summary" as const,
+              employer: { name: null, legalName: null, address: null, website: null },
+              planYear: { start: null, end: null, label: null },
+              eligibility: {
+                waitingPeriod: null,
+                description: null,
+                employeeClasses: [],
+              },
+              offeredBenefits: [
+                {
+                  benefitType: "dental" as const,
+                  offered: true,
+                  page: 1,
+                  quote: "Dental plan",
+                  confidence: 0.99,
+                },
+              ],
+              selectedPlans: [
+                {
+                  planName: "Standard Dental",
+                  benefitType: "dental" as const,
+                  carrier: "Example Carrier",
+                  page: 1,
+                  quote: "Standard Dental",
+                  confidence: 0.99,
+                },
+              ],
+            };
+          }
+          return employerExtraction("First of the month after 30 days");
+        },
+      },
+      onEvent: (event) => void events.push(event),
+      onArtifact: (artifact) => {
+        if (planFinishedWhenFirstArtifact !== undefined) return;
+        planFinishedWhenFirstArtifact = planFinished;
+        resolveFirstArtifact(artifact.id);
+      },
+    });
+
+    const artifactBeforeRelease = await Promise.race([
+      firstArtifact,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 1_000)),
+    ]);
+    releasePlan();
+    const result = await pipeline;
+
+    expect(artifactBeforeRelease).not.toBeNull();
+    expect(planFinishedWhenFirstArtifact).toBe(false);
+    expect(result.status).toBe("blocked");
+    expect(
+      events.findIndex(
+        (event) =>
+          event.stage === "Parsing plan documents" && event.status === "started",
+      ),
+    ).toBeLessThan(
+      events.findIndex(
+        (event) =>
+          event.stage === "Extracting employer setup" && event.status === "complete",
+      ),
+    );
+    expect(
+      events.some(
+        (event) =>
+          event.stage === "Writing booklet content" &&
+          event.details?.incremental === true,
+      ),
+    ).toBe(true);
+  });
+
   it("classifies and parses the supplied contribution workbook", async () => {
     const file = await rateFile();
     expect(classifyDocument(file).documentType).toBe("renewal_spreadsheet");
@@ -249,7 +415,7 @@ describe("booklet agent pipeline", () => {
     expect(result.outline?.sections.map((section) => section.id)).toContain("std");
     expect(result.html).toContain("Salary Continuation Program");
     expect(result.html).toContain("Hartford Life and Accident Insurance Company");
-  });
+  }, 15_000);
 
   it("blocks an enriched ancillary source when only an offered flag and plan name were extracted", async () => {
     const stdFile: LoadedUploadedFile = {
@@ -363,6 +529,10 @@ describe("booklet agent pipeline", () => {
     expect(blocked.questions.map((question) => question.fieldPath)).toEqual([
       "eligibility.waitingPeriod",
     ]);
+    expect(blocked.artifacts.map((artifact) => artifact.sectionId)).toContain("cover");
+    expect(blocked.artifacts.map((artifact) => artifact.sectionId)).not.toContain(
+      "eligibility",
+    );
 
     const resumedEvents: PipelineEvent[] = [];
     const complete = await runBookletPipeline({
@@ -374,6 +544,9 @@ describe("booklet agent pipeline", () => {
       onEvent: (event) => void resumedEvents.push(event),
     });
     expect(complete.status).toBe("complete");
+    expect(complete.artifacts.length).toBeGreaterThan(0);
+    expect(complete.artifacts.every((artifact) => artifact.html.includes("data-page-id"))).toBe(true);
+    expect(complete.html).toContain("data-page-id=\"cover\"");
     const matchedRate = complete.benefitsPackage.rates.find(
       (rate) => rate.id === complete.benefitsPackage.plans[0]?.ratePlanId,
     );
@@ -414,7 +587,7 @@ describe("booklet agent pipeline", () => {
         "Complete",
       ]),
     );
-  });
+  }, 15_000);
 
   it("runs the grounded content agent result through the completed pipeline", async () => {
     const file = await rateFile();

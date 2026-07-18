@@ -241,7 +241,7 @@ function medicalPlanDetails(plan: Plan) {
 function planYear(company: Company) {
   const y = company.planDetails?.planYear;
   if (y?.start || y?.end) return `${date(y.start)} to ${date(y.end)}`;
-  return company.renewalLabel || "Current plan year";
+  return company.renewalLabel || "Plan year to be confirmed";
 }
 
 function companyName(company: Company) {
@@ -653,7 +653,7 @@ export function renderBookletPreviewPages(company: Company, payPeriods = 52) {
   }));
 }
 
-async function renderGeneratedPdf(company: Company, payPeriods: number) {
+async function renderHtmlPdf(html: string) {
   // Vercel compiles TypeScript functions to CommonJS. Chromium is ESM-only, so
   // load both renderer packages at invocation time and preserve Node's native
   // dynamic import instead of emitting a top-level require().
@@ -672,7 +672,7 @@ async function renderGeneratedPdf(company: Company, payPeriods: number) {
   });
   try {
     const pageInstance = await browser.newPage();
-    await pageInstance.setContent(renderBookletHtml(company, payPeriods), {
+    await pageInstance.setContent(html, {
       waitUntil: "load",
     });
     return Buffer.from(
@@ -690,5 +690,11 @@ async function renderGeneratedPdf(company: Company, payPeriods: number) {
 
 export async function generateBookletPdf(company: Company, payPeriods = 52) {
   if (!company || !company.name) throw new Error("Company data is required");
-  return renderGeneratedPdf(company, payPeriods);
+  return renderHtmlPdf(renderBookletHtml(company, payPeriods));
+}
+
+export async function generateBookletPdfFromHtml(html: string) {
+  if (!html || !/<section\b[^>]*data-page-id=/i.test(html))
+    throw new Error("Generated booklet HTML with at least one page is required");
+  return renderHtmlPdf(html);
 }

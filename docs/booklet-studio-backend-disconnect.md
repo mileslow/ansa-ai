@@ -2,6 +2,34 @@
 
 Last reviewed: July 17, 2026
 
+## Resolution implemented
+
+The disconnect described below has been resolved on the
+`codex/booklet-studio-backend-connect` worktree branch. The six tabs now collect
+and persist source inputs; they no longer simulate classification, extraction,
+facts, page creation, blockers, or completion.
+
+The connected flow now:
+
+- authenticates with Firebase and enforces owner IDs on every thread, upload,
+  run, answer, and status read;
+- uploads selected and dropped files and stores websites and typed instructions
+  as first-class evidence with provenance;
+- returns the run ID as the first NDJSON message, then streams persisted pipeline
+  events and real modular HTML page artifacts;
+- generates independent section batches concurrently and renders any unaffected
+  sections while other sections are waiting on blocker answers;
+- persists each HTML page below the run so refresh recovery restores partial
+  output, sources, questions, facts, events, and completed results;
+- composes the same ordered HTML artifacts into the final document, runs quality
+  checks, renders the PDF, and exposes it with a short-lived signed URL; and
+- derives frontend progress, facts, source evidence, questions, checks, pages,
+  and download state from backend run data.
+
+Deployment still requires Firebase Anonymous Authentication (or a replacement
+sign-in provider), the documented Cloud Run environment, and the Vercel
+`VITE_BACKEND_API_URL` value.
+
 ## Executive summary
 
 The `/booklet-studio` frontend and the new booklet backend currently describe two different products.
@@ -263,4 +291,6 @@ Booklet Studio should be considered connected only when all of the following are
 - The final action opens or downloads the backend-generated PDF.
 - Reloading the route restores the thread, run, questions, progress, and result.
 
-Until then, `/booklet-studio` should be treated as a high-fidelity interaction prototype rather than the live booklet-generation product.
+The original baseline described above should be treated as a high-fidelity
+interaction prototype. The resolution at the top of this document replaces
+that baseline with the connected, backend-owned flow.

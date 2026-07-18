@@ -172,22 +172,24 @@ Before merging UI changes:
 
 ## Backend booklet generator status
 
-As of July 17, 2026, the backend-first booklet flow is a working MVP. It can
+As of July 17, 2026, the backend-first booklet flow is a connected MVP. It can
 create a thread, accept mixed files, classify and extract them, assemble a
 source-aware benefits package, ask blocker questions, resume from answers,
-render a PDF, and persist the run and output. The current local verification is
-187 deterministic tests passing, 84 paid/live tests with passing evidence
-across recorded live runs, a passing production build, a passing backend
-TypeScript check, and freshly rendered/inspected 8-page HSA and STD PDFs from
+stream and persist modular HTML pages as their sections become ready, compose
+those pages into a PDF, and persist the run and output. The current local
+verification includes the deterministic suite, gated paid/live tests, a
+production build, backend TypeScript checks, and rendered HSA and STD PDFs from
 real public source documents.
 
 The implementation is not yet ready for unrestricted use with sensitive real
-employer data. Detailed Life/AD&D, STD, LTD, voluntary/Aflac, HSA, HRA, and FSA
-generation remains incomplete; ancillary sections can be present without full
-source-backed policy detail. The grounded content agent now covers HSA and STD,
-and HSA-qualified medical plans require separate employer-offering evidence or
-a blocker answer. Authentication, tenant ownership checks, and private
-Firestore/Storage access also need to be completed.
+employer data. The booklet pipeline requires Firebase authentication and enforces owner IDs on
+threads, uploads, runs, answers, and status reads. Booklet inputs and generated
+PDFs deny direct client Storage access; the authenticated API issues a
+short-lived signed PDF URL. Detailed Life/AD&D, STD, LTD, voluntary/Aflac, HSA,
+HRA, and FSA generation remains incomplete; ancillary sections can be present
+without full source-backed policy detail. The grounded content agent covers HSA
+and STD, and HSA-qualified medical plans require separate employer-offering
+evidence or a blocker answer.
 
 The `ansa-booklet-backend` Cloud Run service is deployed in `flux-ebfb0`. A
 live backend run generated and independently verified a corrected 12-page PDF

@@ -12,6 +12,13 @@ The frontend calls Cloud Run directly. During a Vercel build, the Vite plugin
 rewrites static `fetch("/api/...")` calls to `VITE_BACKEND_API_URL`. Local Vite
 development keeps the existing relative paths when that variable is absent.
 
+Booklet `start` and `answer` requests from the Studio use NDJSON. The first
+record contains the persisted run ID; subsequent records contain pipeline
+events and independently persisted HTML page artifacts, followed by the blocked
+or complete run. On completion, the backend composes those ordered HTML
+artifacts and renders the final PDF. JSON responses remain available when the
+request omits `stream: true`.
+
 ## Runtime configuration
 
 Required Cloud Run environment:
@@ -20,9 +27,15 @@ Required Cloud Run environment:
 - `FIREBASE_PROJECT_ID=flux-ebfb0`.
 - `FIREBASE_STORAGE_BUCKET=flux-ebfb0.firebasestorage.app`.
 - `CORS_ALLOWED_ORIGINS`, comma-separated. Exact origins and wildcard entries
-  are supported. The current development configuration uses `*` so the public,
-  unauthenticated API can be called from any origin; narrow this before handling
-  sensitive production documents.
+  are supported. Keep this limited to the production app, preview deployment
+  pattern, and explicit local origins.
+
+`/api/booklet-pipeline` requires a Firebase ID token in the `Authorization:
+Bearer ...` header. Enable Anonymous authentication (or replace the frontend
+provider with your normal Firebase sign-in) before using Booklet Studio. Every
+thread, upload, run, status read, and answer is checked against the token UID.
+Cloud Run remains invokable at the infrastructure layer because the application
+performs this Firebase token verification itself.
 
 Optional environment:
 
@@ -125,4 +138,12 @@ curl --fail http://127.0.0.1:8080/healthz
 curl -i -X OPTIONS http://127.0.0.1:8080/api/booklet-pipeline \
   -H 'Origin: http://localhost:5173' \
   -H 'Access-Control-Request-Method: POST'
+
+curl -i http://127.0.0.1:8080/api/booklet-pipeline \
+  -H "Authorization: Bearer $FIREBASE_ID_TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data '{"action":"thread_status","threadId":"THREAD_ID"}'
 ```
+
+The production smoke script also requires `FIREBASE_ID_TOKEN` for the user that
+will own its temporary verification thread.
