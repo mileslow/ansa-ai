@@ -493,13 +493,14 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completed, compl
   const page = pages.find((item) => item.id === selectedPage) || pages[0];
   const warnings = completed.has("rates") ? 2 : 0;
   const streamingPhase = phaseDefinitions.find((phase) => phase.id === processingPhase);
+  const guideYear = companyProfile.planYear?.match(/\b20\d{2}\b/)?.[0];
 
   return (
     <aside className={`bs-preview-panel ${processingPhase ? "is-streaming" : ""}`}>
       <div className="bs-preview-top tw:flex tw:items-center tw:justify-between">
         <button className="bs-preview-back" onClick={onBack}><ArrowLeft /> Sources</button>
         <div className="bs-panel-heading">
-          <span className="bs-live-dot"><i /> Live booklet</span>
+          <span className="bs-guide-title">{guideYear ? `${guideYear} ` : ""}Employee Benefits Guide</span>
           <b>{processingPhase ? `Creating ${streamingPhase?.title.toLowerCase() || "pages"}…` : pages.length ? `${pages.length} pages` : "Waiting for a source"}</b>
         </div>
         <div className="bs-preview-actions tw:flex tw:items-center">

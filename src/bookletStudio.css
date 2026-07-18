@@ -236,8 +236,7 @@ body:has(.bs-studio) { margin: 0; background: var(--bs-canvas, #f1f2f5); }
 .bs-preview-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 15px 0 20px; border-bottom: 1px solid var(--bs-white-line); background: rgba(255, 255, 255, 0.025); backdrop-filter: blur(16px); }
 .bs-preview-top > div:first-of-type span, .bs-preview-top > div:first-of-type b { display: block; }
 .bs-preview-top > div:first-of-type b { margin-top: 5px; color: rgba(255, 255, 255, 0.9); font-size: 10px; font-weight: 570; }
-.bs-live-dot { color: rgba(255, 255, 255, 0.48); font-size: 8px; font-weight: 670; letter-spacing: .07em; text-transform: uppercase; }
-.bs-live-dot i { width: 6px; height: 6px; display: inline-block; margin-right: 6px; border-radius: 50%; background: #76dfb8; box-shadow: 0 0 0 4px rgba(118, 223, 184, 0.08), 0 0 12px rgba(118, 223, 184, .5); animation: bs-pulse 2s ease-in-out infinite; }
+.bs-guide-title { color: rgba(255, 255, 255, 0.48); font-size: 8px; font-weight: 670; letter-spacing: .07em; text-transform: uppercase; }
 .bs-preview-actions { display: flex; align-items: center; gap: 7px; }
 .bs-preview-back { display: none; }
 .bs-preview-tabs { display: flex; align-items: end; gap: 2px; padding: 0 19px; border-bottom: 1px solid var(--bs-white-line); }
@@ -580,7 +579,6 @@ body:has(.bs-studio) { height: 100vh; overflow: hidden; }
 
 .bs-preview-panel { position: relative; top: auto; height: 100%; min-height: 0; max-height: none; }
 .bs-preview-panel { background: radial-gradient(circle at 12% 0%, rgba(37,99,235,.12), transparent 24rem), radial-gradient(circle at 94% 100%, rgba(74,188,151,.06), transparent 22rem), var(--bs-dark); }
-.bs-live-dot i { animation: none; box-shadow: none; }
 .bs-preview-tabs button.active::after { background: #60a5fa; box-shadow: none; }
 .bs-thumbnails button.active > span { border-color: #60a5fa; box-shadow: 0 0 0 2px rgba(37,99,235,.24), 0 8px 18px rgba(0,0,0,.28); }
 .bs-thumbnails button.active small { color: #93c5fd; }
@@ -666,7 +664,7 @@ body:has(.bs-studio) { height: 100vh; overflow: hidden; }
 .bs-preview-panel::before { display: none; }
 .bs-preview-top { border-bottom-color: var(--bs-line); background: rgba(255,255,255,.62); }
 .bs-preview-top > div:first-of-type b { margin-top: 0; color: var(--bs-ink); font-size: 12px; }
-.bs-live-dot { color: var(--bs-muted); font-size: 10px; }
+.bs-guide-title { color: var(--bs-muted); font-size: 10px; }
 .bs-icon-button--light { border-color: var(--bs-line); background: rgba(255,255,255,.74); color: var(--bs-ink-soft) !important; }
 .bs-icon-button--light:hover { border-color: var(--bs-line-strong); background: #fff; color: var(--bs-ink) !important; }
 .bs-button--light { border-color: var(--bs-line); background: rgba(255,255,255,.74); color: var(--bs-ink-soft) !important; }
