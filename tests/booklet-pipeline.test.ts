@@ -167,9 +167,7 @@ describe("booklet agent pipeline", () => {
     });
 
     const cover = result.artifacts.find((artifact) => artifact.sectionId === "cover");
-    // A selected plan without a matching premium row is still publishable; the
-    // renderer labels premiums as supplied separately instead of blocking.
-    expect(result.status).toBe("complete");
+    expect(result.status).toBe("blocked");
     expect(cover).toMatchObject({ contentStatus: "provisional" });
     expect(cover?.html).toContain("Civic Center Towing Transport &amp; Road Service");
     expect(cover?.html).toContain("Plan year to be confirmed");
@@ -268,7 +266,9 @@ describe("booklet agent pipeline", () => {
 
     expect(artifactBeforeRelease).not.toBeNull();
     expect(planFinishedWhenFirstArtifact).toBe(false);
-    expect(result.status).toBe("blocked");
+    // A selected plan without a matching premium row is still publishable; the
+    // renderer labels premiums as supplied separately instead of blocking.
+    expect(result.status).toBe("complete");
     expect(
       events.findIndex(
         (event) =>
