@@ -92,6 +92,38 @@ const comparisonVisionSchedulePaths: VisionSchedulePath[] = [
   "plans.vision.lenses.enhancements",
 ];
 
+const comparisonVisionRequiredRows: Partial<
+  Record<VisionSchedulePath, Array<{ label: string; pattern: RegExp }>>
+> = {
+  "plans.vision.lenses.standardSchedule": [
+    { label: "single", pattern: /single/i },
+    { label: "bifocal", pattern: /bifocal/i },
+    { label: "trifocal", pattern: /trifocal/i },
+    { label: "lenticular", pattern: /lenticular/i },
+    { label: "progressive", pattern: /progressive/i },
+  ],
+  "plans.vision.contacts.electiveSchedule": [
+    { label: "conventional", pattern: /conventional/i },
+    { label: "disposable", pattern: /disposable/i },
+    { label: "fitting", pattern: /fit/i },
+  ],
+  "plans.vision.contacts.necessarySchedule": [
+    { label: "medically necessary", pattern: /medically.?necessary/i },
+  ],
+  "plans.vision.lenses.enhancements": [
+    { label: "anti-reflective", pattern: /anti.?reflective/i },
+    { label: "scratch-resistant", pattern: /scratch.?resistant/i },
+    { label: "polycarbonate", pattern: /polycarbonate/i },
+    {
+      label: "photochromic/transitions",
+      pattern: /photochromic|transitions/i,
+    },
+    { label: "polarized", pattern: /polarized/i },
+    { label: "tinting", pattern: /tint/i },
+    { label: "UV treatment", pattern: /UV.?treatment/i },
+  ],
+};
+
 export const BookletDocumentExtractionSchema = z.object({
   employer: z.object({
     name: OptionalEvidenceTextSchema,
@@ -673,6 +705,20 @@ function visionScheduleRepairTargets(
             path,
             reason:
               "The first pass did not preserve both adult and child branches.",
+          },
+        ];
+      const candidateText = `${candidate.valueJson} ${candidate.rawValue}`;
+      const missingRows = (comparisonVisionRequiredRows[path] || [])
+        .filter((row) => !row.pattern.test(candidateText))
+        .map((row) => row.label);
+      if (missingRows.length)
+        return [
+          {
+            planOrProgramName: option.planOrProgramName,
+            path,
+            reason: `The first pass omitted required comparison rows: ${missingRows.join(
+              ", ",
+            )}.`,
           },
         ];
       return [];
