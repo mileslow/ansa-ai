@@ -870,7 +870,12 @@ export async function runBookletPipeline({
         outline,
         renderManifest,
       });
-    } else if (process.env.OPENAI_API_KEY) {
+    // Email employee-booklet mode deliberately uses the deterministic
+    // source-backed renderer. The LLM has already classified and extracted
+    // the sources, but it must not be able to omit an offered benefit section
+    // from the final artifact. Strict studio runs keep the manifest-aware
+    // dynamic writer.
+    } else if (process.env.OPENAI_API_KEY && enforceRegistry) {
       content = await generateBookletContentIncrementally(
         benefitsPackage,
         outline,
