@@ -248,9 +248,18 @@ export function assembleBenefitsPackage({
       if (!item || typeof item !== "object") continue;
       const value = item as Record<string, unknown>;
       if (!value.planName || !value.benefitType) continue;
+      const benefitType = String(value.benefitType).trim().toLowerCase();
+      if (![
+        "medical",
+        "dental",
+        "vision",
+        "life",
+        "std",
+        "ltd",
+      ].includes(benefitType)) continue;
       selectedPlanEvidence.push({
         planName: String(value.planName),
-        benefitType: String(value.benefitType) as "medical" | "dental" | "vision" | "life" | "std" | "ltd",
+        benefitType: benefitType as "medical" | "dental" | "vision" | "life" | "std" | "ltd",
         carrier: value.carrier ? String(value.carrier) : null,
         page: null,
         quote: null,

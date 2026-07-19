@@ -518,6 +518,37 @@ describe("benefits package assembler and question engine", () => {
     expect(result.plans[0]).toMatchObject({ name: "Manual Dental 2026", benefitType: "dental" });
   });
 
+  it("normalizes title-case email plan types and deduplicates matching extracted plans", () => {
+    const source = extraction({
+      selectedPlans: [
+        {
+          planName: "UnitedHealthcare Freedom EPO ZD 25/50/100",
+          benefitType: "medical",
+          carrier: "UnitedHealthcare",
+          page: 1,
+          quote: "UnitedHealthcare Freedom EPO ZD 25/50/100",
+          confidence: 0.95,
+        },
+      ],
+    });
+    const result = assemble([source], [], [], {
+      "plans.selected": [
+        {
+          planName: "UnitedHealthcare Freedom EPO ZD 25/50/100",
+          benefitType: "Medical",
+        },
+      ],
+    });
+
+    expect(result.plans).toHaveLength(1);
+    expect(result.plans[0]).toMatchObject({
+      name: "UnitedHealthcare Freedom EPO ZD 25/50/100",
+      benefitType: "medical",
+    });
+    expect(result.offeredBenefits).toHaveLength(1);
+    expect(result.offeredBenefits[0].benefitType).toBe("medical");
+  });
+
   it("includes offered dental and HRA sections while omitting unoffered vision", () => {
     const dentalRate = rate("Dental 2026", "dental");
     const current = extraction({
