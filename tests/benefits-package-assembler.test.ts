@@ -479,8 +479,15 @@ describe("benefits package assembler and question engine", () => {
     );
   });
 
-  it("asks for an ambiguous plan-rate match", () => {
+  it("does not ask users to choose a rate row when no rate file was supplied", () => {
     const questions = buildBlockerQuestions(assemble([extraction()], [], []));
+    expect(questions.some((question) => question.fieldPath.includes("ratePlanId"))).toBe(false);
+  });
+
+  it("asks for an ambiguous plan-rate match when candidate rows exist", () => {
+    const questions = buildBlockerQuestions(
+      assemble([extraction()], [rate("Unrelated Plan A"), rate("Unrelated Plan B")], []),
+    );
     expect(questions.some((question) => question.fieldPath.includes("ratePlanId"))).toBe(true);
   });
 
