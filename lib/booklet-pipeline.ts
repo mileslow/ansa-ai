@@ -225,6 +225,7 @@ export async function runBookletPipeline({
   companyId,
   files,
   answers = {},
+  enforceRegistry = true,
   onEvent = async () => {},
   onArtifact,
   dependencies = {},
@@ -233,6 +234,14 @@ export async function runBookletPipeline({
   companyId: string;
   files: LoadedUploadedFile[];
   answers?: Record<string, unknown>;
+  /**
+   * The interactive studio uses the exhaustive registry gate. Email booklet
+   * requests use the same source/evidence pipeline in employee-booklet mode,
+   * where only human-actionable intake blockers stop generation. The registry
+   * sidecar is still produced for auditability, but incomplete formal-plan
+   * fields do not turn into hundreds of email questions.
+   */
+  enforceRegistry?: boolean;
   onEvent?: (event: PipelineEvent) => Promise<void> | void;
   onArtifact?: (artifact: BookletSectionArtifact) => Promise<void> | void;
   dependencies?: PipelineDependencies;
@@ -590,9 +599,11 @@ export async function runBookletPipeline({
     requirementSubjects,
     "complete_extraction",
   );
-  const registryEnforcementActive = requirementSubjects.some(
-    (subject) => subject.enforcementStatus === "registry_enforced",
-  );
+  const registryEnforcementActive =
+    enforceRegistry &&
+    requirementSubjects.some(
+      (subject) => subject.enforcementStatus === "registry_enforced",
+    );
   benefitsPackage.requirements = {
     registryVersion: BENEFIT_REQUIREMENTS_REGISTRY_VERSION,
     subjects: requirementSubjects,

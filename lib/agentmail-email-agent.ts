@@ -119,6 +119,52 @@ sender is asking the agent to create, generate, revise, or continue an employee 
 benefits guide, or enrollment packet. Questions about benefits, general document analysis, and
 casual mentions of booklets are general. Attachment names are context, not proof of intent.`;
 
+const BOOKLET_INTAKE_QUESTIONS: BlockerQuestion[] = [
+  {
+    id: "email-intake-employer",
+    fieldPath: "employer.name",
+    question: "What employer name should appear on this booklet?",
+    reason: "The employer name is required on the cover.",
+    sourceRefs: [],
+    blocking: true,
+  },
+  {
+    id: "email-intake-plan-start",
+    fieldPath: "planYear.start",
+    question: "What is the plan-year start date?",
+    reason: "The plan-year start date is required on the cover.",
+    sourceRefs: [],
+    blocking: true,
+    expectedAnswerKind: "date_or_period",
+  },
+  {
+    id: "email-intake-plan-end",
+    fieldPath: "planYear.end",
+    question: "What is the plan-year end date?",
+    reason: "The plan-year end date is required on the cover.",
+    sourceRefs: [],
+    blocking: true,
+    expectedAnswerKind: "date_or_period",
+  },
+  {
+    id: "email-intake-eligibility",
+    fieldPath: "eligibility.waitingPeriod",
+    question: "What eligibility waiting period should employees see in the booklet?",
+    reason: "Employees need the eligibility rule.",
+    sourceRefs: [],
+    blocking: true,
+  },
+  {
+    id: "email-intake-plans",
+    fieldPath: "plans.selected",
+    question: "Which current plans should be included in this booklet?",
+    reason: "The current employer-selected plans must be identified.",
+    sourceRefs: [],
+    blocking: true,
+    expectedAnswerKind: "list_or_schedule",
+  },
+];
+
 const safeText = (value: unknown, limit = 120_000) =>
   String(value || "").replace(/\u0000/g, "").trim().slice(0, limit);
 
@@ -482,14 +528,19 @@ async function processBookletMessage({
   const previousRun = record.bookletRunId
     ? await getGenerationRun(record.bookletRunId)
     : null;
-  const answers = previousRun?.questions.length
-    ? await answersFromFollowup({
-        subject: message.subject || "",
-        body,
-        attachmentFileNames: downloaded.files.map((file) => file.fileName),
-        questions: previousRun.questions,
-      })
-    : {};
+  const answerQuestions = [
+    ...new Map(
+      [...BOOKLET_INTAKE_QUESTIONS, ...(previousRun?.questions || [])].map(
+        (question) => [question.fieldPath, question],
+      ),
+    ).values(),
+  ];
+  const answers = await answersFromFollowup({
+    subject: message.subject || "",
+    body,
+    attachmentFileNames: downloaded.files.map((file) => file.fileName),
+    questions: answerQuestions,
+  });
 
   if (
     previousRun?.status === "blocked" &&
@@ -541,7 +592,9 @@ async function processBookletMessage({
     updatedAt: new Date().toISOString(),
   });
 
-  const completed = await executeBookletRun(run);
+  const completed = await executeBookletRun(run, undefined, undefined, {
+    enforceRegistry: false,
+  });
   if (completed.status === "blocked") {
     await saveEmailThreadRecord({
       ...record,

@@ -43,6 +43,7 @@ export async function executeBookletRun(
   run: BookletGenerationRun,
   onEvent?: (event: PipelineEvent) => void | Promise<void>,
   onArtifact?: (artifact: BookletSectionArtifact) => void | Promise<void>,
+  options: { enforceRegistry?: boolean } = {},
 ) {
   await resetPipelineEvents(run.id);
   const files = await loadUploadedFiles(run.uploadedFileIds);
@@ -63,6 +64,7 @@ export async function executeBookletRun(
       companyId: run.companyId,
       files,
       answers: run.answers,
+      enforceRegistry: options.enforceRegistry,
       onEvent: async (event) => {
         await savePipelineEvent(event);
         await onEvent?.(event);
