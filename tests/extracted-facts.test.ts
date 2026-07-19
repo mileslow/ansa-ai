@@ -5,6 +5,7 @@ import {
   factsFromManualAnswers,
   factsFromMedicalPlan,
   requirementCandidatesFromMedicalPlan,
+  requirementCandidatesFromRates,
 } from "../lib/extracted-facts";
 
 const evidence = (value: string, page = 1) => ({
@@ -199,5 +200,37 @@ describe("extracted fact creation", () => {
         }),
       ]),
     );
+  });
+
+  it("does not enforce every employer rate row when the selected-plan list is explicitly empty", () => {
+    const rates = ["rate-a", "rate-b"].map((id) => ({
+      id,
+      benefitType: "medical",
+      employerSpecific: true,
+      planName: id,
+      tiers: [{ tier: "employee", monthlyPremium: 500 }],
+      sourceFileId: "rates",
+      sourceFile: "rates.xlsx",
+      sourceSheet: "Rates",
+      sourceRow: 2,
+      confidence: 0.95,
+    })) as any;
+
+    expect(
+      requirementCandidatesFromRates({
+        companyId: "acme",
+        rates,
+        contributions: [],
+        selectedRatePlanIds: [],
+      }),
+    ).toEqual([]);
+    expect(
+      requirementCandidatesFromRates({
+        companyId: "acme",
+        rates,
+        contributions: [],
+        selectedRatePlanIds: ["rate-a"],
+      }).every((candidate) => candidate.subjectHint.planOrProgramId === "rate-a"),
+    ).toBe(true);
   });
 });
