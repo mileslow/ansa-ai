@@ -489,6 +489,7 @@ describe("booklet agent pipeline", () => {
           extractionMethod: "pdf_text",
           warnings: [],
         }),
+        writeContent: async () => undefined,
         renderPdf: async () => sixPagePdf(),
       };
     const result = await runBookletPipeline({
