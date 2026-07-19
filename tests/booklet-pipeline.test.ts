@@ -429,11 +429,7 @@ describe("booklet agent pipeline", () => {
       quote: value,
       confidence: 0.99,
     });
-    const result = await runBookletPipeline({
-      runId: "run-strict-std",
-      companyId: "acme",
-      files: [stdFile],
-      dependencies: {
+    const strictDependencies = {
         classify: async () => ({
           fileId: stdFile.id,
           documentType: "spd",
@@ -493,7 +489,13 @@ describe("booklet agent pipeline", () => {
           extractionMethod: "pdf_text",
           warnings: [],
         }),
-      },
+        renderPdf: async () => sixPagePdf(),
+      };
+    const result = await runBookletPipeline({
+      runId: "run-strict-std",
+      companyId: "acme",
+      files: [stdFile],
+      dependencies: strictDependencies,
     });
     expect(result.status).toBe("blocked");
     expect(result.questions).toEqual(
@@ -508,6 +510,16 @@ describe("booklet agent pipeline", () => {
         }),
       ]),
     );
+
+    const employeeBooklet = await runBookletPipeline({
+      runId: "run-email-std",
+      companyId: "acme",
+      files: [stdFile],
+      enforceRegistry: false,
+      dependencies: strictDependencies,
+    });
+    expect(employeeBooklet.status).toBe("complete");
+    expect(employeeBooklet.questions).toEqual([]);
   });
 
   it("asks one specific blocker, resumes from the answer, and completes every stage", async () => {
