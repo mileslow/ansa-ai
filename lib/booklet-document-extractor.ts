@@ -664,8 +664,8 @@ function visionScheduleRepairTargets(
           },
         ];
       if (
-        !/\badults?\b/i.test(candidate.valueJson) ||
-        !/\bchild(?:ren)?\b/i.test(candidate.valueJson)
+        !/adults?/i.test(candidate.valueJson) ||
+        !/child(?:ren)?/i.test(candidate.valueJson)
       )
         return [
           {

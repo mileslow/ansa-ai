@@ -573,4 +573,163 @@ describe("booklet document extractor", () => {
       expect.stringContaining("a zero employee cost needs an explicit no-cost"),
     ]);
   });
+
+  it("repairs a missing cell in a multi-plan vision comparison", async () => {
+    const optionNames = [
+      "Davis Vision by MetLife",
+      "EyeMed",
+      "MetLife Vision",
+    ];
+    const schedulePaths = [
+      "plans.vision.exam.schedule",
+      "plans.vision.lenses.standardSchedule",
+      "plans.vision.frames.schedule",
+      "plans.vision.contacts.electiveSchedule",
+      "plans.vision.contacts.necessarySchedule",
+      "plans.vision.network.outOfNetworkSchedule",
+      "plans.vision.lenses.enhancements",
+    ];
+    const scheduleCandidate = (planOrProgramName: string, path: string) => ({
+      planOrProgramName,
+      path,
+      valueJson: JSON.stringify({
+        adults19Plus: { memberCost: "$0" },
+        childrenUnder19: { memberCost: "$0" },
+      }),
+      rawValue: "Adults $0; children $0",
+      evidenceSegments: [
+        { page: 1, quote: `${planOrProgramName} adults $0` },
+        { page: 2, quote: `${planOrProgramName} children $0` },
+      ],
+      confidence: 0.98,
+    });
+    const initialCandidates = optionNames.flatMap((planOrProgramName) =>
+      schedulePaths
+        .filter(
+          (path) =>
+            !(
+              planOrProgramName === "Davis Vision by MetLife" &&
+              path === "plans.vision.contacts.necessarySchedule"
+            ),
+        )
+        .map((path) => scheduleCandidate(planOrProgramName, path)),
+    );
+    const documentPlanOptions = optionNames.map((planOrProgramName) => ({
+      benefitType: "vision" as const,
+      planOrProgramName,
+      planOrProgramId: null,
+      enrollmentTypes: [],
+      page: 1,
+      quote: planOrProgramName,
+      confidence: 0.99,
+    }));
+    const parse = vi
+      .fn()
+      .mockResolvedValueOnce({
+        output_parsed: { documentPlanOptions },
+      })
+      .mockResolvedValueOnce({
+        output_parsed: { candidates: initialCandidates },
+      })
+      .mockResolvedValueOnce({
+        output_parsed: {
+          candidates: [
+            {
+              planOrProgramName: "Davis Vision by MetLife",
+              path: "plans.vision.contacts.necessarySchedule",
+              valueJson: JSON.stringify({
+                adults19Plus: {
+                  memberCost: "$0",
+                  outOfNetworkReimbursement: "$225",
+                },
+                childrenUnder19: {
+                  memberCost: "$0",
+                  outOfNetworkReimbursement: "$225",
+                },
+              }),
+              rawValue:
+                "Adults medically necessary $0 ($225); children medically necessary $0 ($225)",
+              evidenceSegments: [
+                { page: 2, quote: "Medically necessary $0 ($225)" },
+                { page: 3, quote: "Medically necessary $0 ($225)" },
+              ],
+              confidence: 0.99,
+            },
+          ],
+        },
+      })
+      .mockResolvedValueOnce({
+        output_parsed: {
+          employer: { name: null, legalName: null, address: null, website: null },
+          planYear: { start: null, end: null, label: null },
+          eligibility: {
+            waitingPeriod: null,
+            description: null,
+            employeeClasses: [],
+          },
+          offeredBenefits: [],
+          selectedPlans: [],
+          contributions: [],
+          contacts: [],
+          accounts: [],
+          sectionOrder: [],
+          templateRole: "none",
+          extractionMethod: "pdf_text",
+          warnings: [],
+          documentPlanOptions: [],
+          requirementCandidates: [],
+        },
+      });
+    const file: LoadedUploadedFile = {
+      id: "vision-comparison-repair",
+      companyId: "pebb",
+      fileName: "benefits-comparison.pdf",
+      storagePath: "benefits-comparison.pdf",
+      mimeType: "application/pdf",
+      uploadedAt: "2026-07-18T00:00:00.000Z",
+      sha256: "fixture",
+      processingStatus: "uploaded",
+      data: Buffer.from("pdf fixture"),
+    };
+    const result = await extractBookletDocument({
+      file,
+      classification: {
+        fileId: file.id,
+        documentType: "benefit_guide",
+        confidence: 0.99,
+        reasoningSummary: "Official vision comparison.",
+        benefitTypes: ["vision"],
+        documentSubtype: "vision benefits comparison",
+        scope: "current_employer",
+        authority: "administrator_material",
+      },
+      client: { responses: { parse } } as any,
+    });
+
+    expect(parse).toHaveBeenCalledTimes(4);
+    expect(parse.mock.calls[2][0].input[1].content[1].text).toContain(
+      '"planOrProgramName":"Davis Vision by MetLife","path":"plans.vision.contacts.necessarySchedule"',
+    );
+    const repaired = (result.requirementCandidates || []).find(
+      (candidate) =>
+        candidate.subjectHint.planOrProgramName ===
+          "Davis Vision by MetLife" &&
+        candidate.path === "plans.vision.contacts.necessarySchedule",
+    );
+    expect(repaired?.value).toEqual({
+      adults19Plus: {
+        memberCost: "$0",
+        outOfNetworkReimbursement: "$225",
+      },
+      childrenUnder19: {
+        memberCost: "$0",
+        outOfNetworkReimbursement: "$225",
+      },
+    });
+    expect(repaired?.supportingEvidence).toEqual([
+      expect.objectContaining({
+        locator: expect.objectContaining({ kind: "pdf", page: 3 }),
+      }),
+    ]);
+  });
 });
