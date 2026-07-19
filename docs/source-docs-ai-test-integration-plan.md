@@ -112,14 +112,24 @@ extraction defects; they are not acceptable expected failures:
   Extraction preserved the Basic and Premier plan names but omitted this
   conditional copay. It also inferred a Premier employee cost of zero from text
   stating only that the state pays a portion equal to the Basic plan. That quote
-  does not support a zero employee cost.
+  does not support a zero employee cost. Fixed on 2026-07-18 with a focused
+  vision-schedule pass that preserves conditional groups and named-location
+  copays, plus a zero-cost safety check that requires explicit no-cost or
+  fully-paid source language. The pinned paid regression requires the page-6
+  $35 CCPOA second-pair branch, the $0 Premier Edge exam branch, and no invented
+  Premier employee cost of zero.
 - **Washington PEBB vision comparison incompleteness:** extraction preserved
   the Davis Vision by MetLife, EyeMed, and MetLife Vision identities but omitted
   material values from the three-page comparison table, including eye-exam
   costs, frame allowances, lens and progressive-lens costs, contact-lens
   allowances and fitting fees, and related benefit limits. Earlier runs also
   produced candidates whose evidence quotes did not support all combined
-  multi-page values.
+  multi-page values. Fixed on 2026-07-18 with option-specific vision schedule
+  extraction, multi-page supporting evidence, and a comparison-matrix repair
+  pass that targets missing plan/path cells, adult/child branches, and required
+  row families. The pinned paid regression requires all three plans to preserve
+  exam, frame, standard/progressive lens, enhancement, elective-contact, and
+  medically-necessary-contact schedules with the contributing page pairs.
 
 The paid test itself has one known reliability issue:
 
@@ -129,11 +139,11 @@ The paid test itself has one known reliability issue:
   therefore useful for discovery but cannot be the sole pass/fail oracle for
   these known facts.
 
-Keep the regression red until the extraction defects are fixed. Add pinned,
-deterministic assertions for the MetLife option identities, the conditional
-CalHR $35 copay and nonzero-cost safety rule, and the Washington per-option
-comparison fields and page-level evidence. The paid judge should remain as a
-second layer for finding new issues rather than replacing those assertions.
+All three known defects now have pinned, deterministic paid assertions: the
+MetLife option identities, the conditional CalHR $35 copay and nonzero-cost
+safety rule, and the Washington per-option comparison fields and page-level
+evidence. The paid judge remains a second layer for finding new issues rather
+than replacing those assertions.
 
 ## Important codebase gaps found
 
