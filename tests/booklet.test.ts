@@ -45,6 +45,18 @@ describe("booklet coverage pages", () => {
     expect(medical?.html).toContain("$1,000.00");
   });
 
+  it("renders a no-premium notice without a fake cost table", () => {
+    const medical = renderBookletPreviewPages(company, 52).find((page) =>
+      page.title.startsWith("Medical"),
+    );
+
+    expect(medical?.html).toContain(
+      "Premiums and employee contribution amounts are provided separately",
+    );
+    expect(medical?.html).not.toContain('class="cost-table"');
+    expect(medical?.html).not.toContain("$0.00");
+  });
+
   it("includes every plan when a company has multiple plans", () => {
     const withMultiplePlans = {
       ...company,

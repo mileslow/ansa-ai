@@ -62,4 +62,56 @@ describe("benefits package rendering adapter", () => {
       planName: "Salary Continuation Program",
     });
   });
+
+  it("preserves selected medical, dental, and vision plans when premiums are supplied separately", () => {
+    const benefitsPackage = {
+      employer: { name: "Big Tows Inc." },
+      planYear: {
+        start: "2026-03-01",
+        end: "2027-02-28",
+        label: "March 1, 2026 – February 28, 2027",
+      },
+      eligibility: { employeeClasses: [] },
+      offeredBenefits: [
+        { benefitType: "medical", offered: true },
+        { benefitType: "dental", offered: true },
+        { benefitType: "vision", offered: true },
+      ],
+      plans: [
+        {
+          id: "medical",
+          benefitType: "medical",
+          name: "UnitedHealthcare Freedom EPO ZD 25/50/100",
+          carrier: "UnitedHealthcare",
+        },
+        {
+          id: "dental",
+          benefitType: "dental",
+          name: "UnitedHealthcare Dental Options PPO 20",
+          carrier: "UnitedHealthcare",
+        },
+        {
+          id: "vision",
+          benefitType: "vision",
+          name: "UnitedHealthcare Vision Plan SF020",
+          carrier: "UnitedHealthcare",
+        },
+      ],
+      rates: [],
+      contributions: [],
+      contacts: [],
+      accounts: [],
+    } as unknown as BenefitsPackage;
+
+    const company = benefitsPackageToLegacyCompany(benefitsPackage, {
+      sections: [],
+    });
+
+    expect(company.benefits.health.plans).toHaveLength(1);
+    expect(company.benefits.dental.plans).toHaveLength(1);
+    expect(company.benefits.vision.plans).toHaveLength(1);
+    for (const benefit of Object.values(company.benefits)) {
+      expect(benefit.plans[0]).toMatchObject({ tiers: [] });
+    }
+  });
 });
