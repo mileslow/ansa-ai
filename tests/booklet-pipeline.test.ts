@@ -167,7 +167,9 @@ describe("booklet agent pipeline", () => {
     });
 
     const cover = result.artifacts.find((artifact) => artifact.sectionId === "cover");
-    expect(result.status).toBe("blocked");
+    // A selected plan without a matching premium row is still publishable; the
+    // renderer labels premiums as supplied separately instead of blocking.
+    expect(result.status).toBe("complete");
     expect(cover).toMatchObject({ contentStatus: "provisional" });
     expect(cover?.html).toContain("Civic Center Towing Transport &amp; Road Service");
     expect(cover?.html).toContain("Plan year to be confirmed");
