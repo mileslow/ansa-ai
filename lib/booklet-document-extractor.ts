@@ -24,6 +24,10 @@ import type {
   ExtractedRequirementCandidate,
   RequirementEvidence,
 } from "./benefit-requirements/types";
+import {
+  createPdfPageChunks,
+  type PdfPageChunk,
+} from "./pdf-page-chunks";
 
 const EvidenceTextSchema = z.object({
   value: z.string(),
