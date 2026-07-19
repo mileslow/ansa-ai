@@ -11,16 +11,18 @@ export function benefitsPackageToLegacyCompany(
   for (const benefitType of ["medical", "dental", "vision"] as const) {
     const plans = benefitsPackage.plans
       .filter((plan) => plan.benefitType === benefitType)
-      .flatMap((plan) => {
+      .map((plan) => {
         const rate = benefitsPackage.rates.find((item) => item.id === plan.ratePlanId);
-        if (!rate) return [];
-        return [
-          {
-            name: plan.name,
-            year: plan.year || benefitsPackage.planYear.label,
-            carrier: plan.carrier,
-            attributes: plan.attributes,
-            tiers: rate.tiers.map((tier) => {
+        return {
+          name: plan.name,
+          year: plan.year || benefitsPackage.planYear.label,
+          carrier: plan.carrier,
+          attributes: plan.attributes,
+          // A selected plan remains publishable when premiums are supplied
+          // separately. An absent rate match means "no cost table", not
+          // "drop the plan from the booklet".
+          tiers: rate
+            ? rate.tiers.map((tier) => {
               const rule = findContributionRule(
                 benefitsPackage.contributions,
                 benefitType,
@@ -46,9 +48,9 @@ export function benefitsPackageToLegacyCompany(
                   : 0,
                 enrolled: tier.enrolled || 0,
               };
-            }),
-          },
-        ];
+            })
+            : [],
+        };
       });
     const key = benefitType === "medical" ? "health" : benefitType;
     benefits[key] = { uploadedPlanCount: plans.length, plans };

@@ -206,6 +206,12 @@ function tierTotalsRow(plan: Plan | undefined, payPeriods: number) {
   return `<tr class="enrollment-total"><td>Enrollment total <small>${totals.enrolled} enrolled</small></td><td>${money(totals.premium)}</td><td>${money(totals.employer)}</td><td>${money(totals.employee)}</td><td>${money(employerPerPay)}</td><td>${money(employeePerPay)}</td></tr>`;
 }
 
+function planCostSection(plan: Plan | undefined, payPeriods: number) {
+  if (!plan?.tiers?.length)
+    return `<div class="box"><h2 class="subhead">Premium information</h2><p>Premiums and employee contribution amounts are provided separately. Contact Human Resources or review the official enrollment materials for current costs.</p></div>`;
+  return `<table class="cost-table"><thead><tr><th>Coverage tier</th><th>Total / mo.</th><th>ER / mo.</th><th>EE / mo.</th><th>ER / pay</th><th>EE / pay</th></tr></thead><tbody>${tierRows(plan, payPeriods)}</tbody><tfoot>${tierTotalsRow(plan, payPeriods)}</tfoot></table><p class="note">ER = Employer. EE = Employee. The enrollment total is weighted by saved enrollment counts. Per-pay amounts use ${payPeriods} payroll deductions and are rounded to cents.</p>`;
+}
+
 function medicalPlanDetails(plan: Plan) {
   const attributes = plan.attributes;
   if (!attributes) return "";
@@ -331,8 +337,8 @@ function medicalPages(company: Company, payPeriods: number) {
       plans.length === 1
         ? `Medical ${plan.year}`
         : `Medical - ${plan.name || `Plan ${index + 1}`}`,
-      `<h1 class="title">Medical Plan</h1><p class="carrier">${esc(carrier || plan.attributes?.identity?.carrier || "Medical plan")}</p><p class="plan-name">${esc(plan.name || "Medical plan")}</p><table class="cost-table"><thead><tr><th>Coverage tier</th><th>Total / mo.</th><th>ER / mo.</th><th>EE / mo.</th><th>ER / pay</th><th>EE / pay</th></tr></thead><tbody>${tierRows(plan, payPeriods)}</tbody><tfoot>${tierTotalsRow(plan, payPeriods)}</tfoot></table>${medicalPlanDetails(plan)}<p class="note">ER = Employer. EE = Employee. The enrollment total is weighted by saved enrollment counts. Per-pay amounts use ${payPeriods} payroll deductions and are rounded to cents.</p><p class="note">This summary represents a general overview. Limitations and exclusions may vary depending on your specific benefit plan. Review carrier documents for complete information.</p>${footer(company)}`,
-      `${plan.name} ${plan.year} medical ER EE cost per pay period`,
+      `<h1 class="title">Medical Plan</h1><p class="carrier">${esc(carrier || plan.attributes?.identity?.carrier || "Medical plan")}</p><p class="plan-name">${esc(plan.name || "Medical plan")}</p>${planCostSection(plan, payPeriods)}${medicalPlanDetails(plan)}<p class="note">This summary represents a general overview. Limitations and exclusions may vary depending on your specific benefit plan. Review carrier documents for complete information.</p>${footer(company)}`,
+      `${plan.name} ${plan.year} medical plan${plan.tiers?.length ? " ER EE cost per pay period" : " premiums provided separately"}`,
     ),
   );
 }
@@ -357,8 +363,8 @@ function dentalPages(company: Company, payPeriods: number) {
       dentalPlans.length === 1
         ? "Dental"
         : `Dental - ${plan.name || `Plan ${index + 1}`}`,
-      `<h1 class="title">Dental Plan</h1><p class="carrier">${esc(carrier || "Dental carrier")}</p><p class="plan-name">${esc(plan?.name || "Dental plan")}</p>${comparison}<table class="cost-table"><thead><tr><th>Coverage tier</th><th>Total / mo.</th><th>ER / mo.</th><th>EE / mo.</th><th>ER / pay</th><th>EE / pay</th></tr></thead><tbody>${tierRows(plan, payPeriods)}</tbody><tfoot>${tierTotalsRow(plan, payPeriods)}</tfoot></table><p class="note">ER = Employer. EE = Employee. The enrollment total is weighted by saved enrollment counts. Per-pay amounts use ${payPeriods} payroll deductions and are rounded to cents.</p><p class="note">This summary represents a general overview. Limitations and exclusions may vary depending on your specific benefit plan. Review carrier documents for complete information.</p>${footer(company)}`,
-      `${plan?.name || "Dental"} ${plan?.year || ""} ER EE cost per pay period`,
+      `<h1 class="title">Dental Plan</h1><p class="carrier">${esc(carrier || "Dental carrier")}</p><p class="plan-name">${esc(plan?.name || "Dental plan")}</p>${comparison}${planCostSection(plan, payPeriods)}<p class="note">This summary represents a general overview. Limitations and exclusions may vary depending on your specific benefit plan. Review carrier documents for complete information.</p>${footer(company)}`,
+      `${plan?.name || "Dental"} ${plan?.year || ""} dental plan${plan?.tiers?.length ? " ER EE cost per pay period" : " premiums provided separately"}`,
     );
   });
 }
@@ -428,8 +434,8 @@ function visionPages(company: Company, payPeriods: number) {
       visionPlans.length === 1
         ? "Vision"
         : `Vision - ${plan.name || `Plan ${index + 1}`}`,
-      `<h1 class="title">Vision Plan</h1><p class="carrier">${esc(carrier || "Vision carrier")}</p><p class="plan-name">${esc(plan?.name || "Vision plan")}</p><table class="cost-table"><thead><tr><th>Coverage tier</th><th>Total / mo.</th><th>ER / mo.</th><th>EE / mo.</th><th>ER / pay</th><th>EE / pay</th></tr></thead><tbody>${tierRows(plan, payPeriods)}</tbody><tfoot>${tierTotalsRow(plan, payPeriods)}</tfoot></table><p class="note">The enrollment total is weighted by saved enrollment counts. Refer to the official vision certificate for exams, lenses, frames, contacts, network rules, reimbursements, and exclusions.</p>${footer(company)}`,
-      `${plan?.name || "Vision"} ${plan?.year || ""} vision plan`,
+      `<h1 class="title">Vision Plan</h1><p class="carrier">${esc(carrier || "Vision carrier")}</p><p class="plan-name">${esc(plan?.name || "Vision plan")}</p>${planCostSection(plan, payPeriods)}<p class="note">Refer to the official vision certificate for exams, lenses, frames, contacts, network rules, reimbursements, and exclusions.</p>${footer(company)}`,
+      `${plan?.name || "Vision"} ${plan?.year || ""} vision plan${plan?.tiers?.length ? " ER EE cost per pay period" : " premiums provided separately"}`,
     ),
   );
 }
