@@ -133,10 +133,19 @@ export async function storeUploadedFiles({
   }>;
 }) {
   const { db, bucket } = getAdminServices();
+  const existing = await getUploadedFileRecords(thread.uploadedFileIds);
+  const canonicalBySha = new Map(
+    existing.map((file) => [file.sha256, file] as const),
+  );
   const uploaded: UploadedFile[] = [];
   for (const file of files) {
-    const id = randomUUID();
     const sha256 = createHash("sha256").update(file.data).digest("hex");
+    const duplicate = canonicalBySha.get(sha256);
+    if (duplicate) {
+      uploaded.push(duplicate);
+      continue;
+    }
+    const id = randomUUID();
     const storagePath = `benefitsCompanies/${thread.companyId}/booklet-inputs/${id}/${safeName(file.fileName)}`;
     await bucket.file(storagePath).save(file.data, {
       resumable: false,
@@ -158,17 +167,18 @@ export async function storeUploadedFiles({
       ...(file.intakeCategory ? { intakeCategory: file.intakeCategory } : {}),
     };
     await db.collection("bookletUploadedFiles").doc(id).set({ ...record, threadId: thread.id });
+    canonicalBySha.set(sha256, record);
     uploaded.push(record);
   }
-  if (uploaded.length)
+  if (files.length)
     await db.collection("bookletThreads").doc(thread.id).set(
       {
-        uploadedFileIds: FieldValue.arrayUnion(...uploaded.map((file) => file.id)),
+        uploadedFileIds: [...canonicalBySha.values()].map((file) => file.id),
         updatedAt: new Date().toISOString(),
       },
       { merge: true },
     );
-  return uploaded;
+  return [...new Map(uploaded.map((file) => [file.id, file])).values()];
 }
 
 export async function attachFileIdsToThread(threadId: string, fileIds: string[]) {
@@ -297,10 +307,11 @@ export async function savePipelineEvent(event: PipelineEvent) {
     .collection("events")
     .doc(event.id.replace(/\//g, "_"))
     .set(firestoreEvent);
-  await runRef.set(
-    { stages: FieldValue.arrayUnion(firestoreEvent), status: "processing" },
-    { merge: true },
-  );
+  // The event subcollection is the canonical event stream. Mirroring every
+  // detail into `run.stages` can push otherwise-valid runs past Firestore's
+  // 1 MiB document limit (for example, a warning containing many blocker
+  // IDs). Keep only the current status on the parent run.
+  await runRef.set({ status: "processing" }, { merge: true });
 }
 
 export async function saveExtractedFacts(runId: string, facts: ExtractedFact[]) {

@@ -402,7 +402,7 @@ export function requirementCandidatesFromRates({
   companyId,
   rates,
   contributions,
-  selectedRatePlanIds = [],
+  selectedRatePlanIds,
 }: {
   companyId: string;
   rates: CarrierRatePlan[];
@@ -410,10 +410,14 @@ export function requirementCandidatesFromRates({
   selectedRatePlanIds?: string[];
 }): ExtractedRequirementCandidate[] {
   const result: ExtractedRequirementCandidate[] = [];
-  const selected = new Set(selectedRatePlanIds.filter(Boolean));
+  const selected = new Set((selectedRatePlanIds || []).filter(Boolean));
+  const restrictToSelected = selectedRatePlanIds !== undefined;
   for (const rate of rates) {
     if (!["medical", "dental", "vision"].includes(rate.benefitType)) continue;
-    if (!rate.employerSpecific || (selected.size && !selected.has(rate.id)))
+    if (
+      !rate.employerSpecific ||
+      (restrictToSelected && !selected.has(rate.id))
+    )
       continue;
     const root = `plans.${rate.benefitType}`;
     const evidence = (path: string): RequirementEvidence => ({

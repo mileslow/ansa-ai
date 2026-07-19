@@ -110,18 +110,23 @@ export function buildBlockerQuestions(
     if (!["medical", "dental", "vision"].includes(plan.benefitType)) continue;
     const rate = benefitsPackage.rates.find((item) => item.id === plan.ratePlanId);
     if (!rate) {
-      questions.push(
-        question(
-          `plans.${plan.id}.ratePlanId`,
-          `Which uploaded rate row matches ${plan.name}?`,
-          `The plan was detected, but no rate row matched confidently enough to calculate employee costs.`,
-          plan.sourceRefs,
-          benefitsPackage.rates
-            .filter((item) => item.benefitType === plan.benefitType)
-            .slice(0, 20)
-            .map((item) => item.id),
-        ),
+      const candidateRates = benefitsPackage.rates.filter(
+        (item) => item.benefitType === plan.benefitType,
       );
+      // A missing rate file is not the same thing as an ambiguous rate match.
+      // The requirements engine separately asks whether employee costs are
+      // provided elsewhere. Only ask users to select a row when there are
+      // actual rows of the right benefit type to choose from.
+      if (candidateRates.length)
+        questions.push(
+          question(
+            `plans.${plan.id}.ratePlanId`,
+            `Which uploaded rate row matches ${plan.name}?`,
+            `The plan was detected, but no rate row matched confidently enough to calculate employee costs.`,
+            plan.sourceRefs,
+            candidateRates.slice(0, 20).map((item) => item.id),
+          ),
+        );
       continue;
     }
     for (const tier of rate.tiers) {
