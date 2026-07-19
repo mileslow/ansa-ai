@@ -33,7 +33,7 @@ Retrieved: **2026-07-17**
 - **Why it is distinct:** This is the only long-form, internally staffed federal program example. It demonstrates how a detailed booklet section can describe employee support, management resources, crisis response, training, and confidentiality without presenting a fixed carrier session count.
 - **Source webpage:** https://ors.od.nih.gov/sr/dohs/HealthAndWellness/EAP/Pages/Publications-Videos-and-Media.aspx
 - **Direct file URL:** https://ors.od.nih.gov/sr/dohs/Documents/employee-assistance-program-brochure.pdf
-- **Local filename:** `01_nih_federal_inhouse_eap_brochure.pdf`
+- **Local filename:** `nih-federal-inhouse-eap/program-brochure.pdf`
 - **File metadata:** PDF 1.7; 11 pages; 756,931 bytes (739.2 KiB); created 2013-03-27; modified 2017-12-20
 - **SHA-256:** `ddd9b79a9a1491b0ef2c255f6bd39fcdb7011d0fc5f2c9a00808d5173eb4eed3`
 - **BenefitsPackage fields supported:** sponsor/employer, program name, program description, eligible populations, family eligibility, cost/no-cost status, confidentiality, counseling model, referral/follow-up model, work-life topics, supervisor resources, critical-incident support, workshops/training, access phone/location/hours, and crisis guidance
@@ -50,7 +50,7 @@ Retrieved: **2026-07-17**
 - **Why it is distinct:** It is a recent public-sector benefit summary with unusually explicit session and household rules. It also demonstrates a public-employer EAP that combines mental health, addiction/recovery, parenting/eldercare, workplace issues, and legal/financial help.
 - **Source webpage:** https://eap.wa.gov/resource-library/eap-brochure-pdf
 - **Direct file URL:** https://eap.wa.gov/sites/default/files/2025-03/EAP-brochure-english.pdf
-- **Local filename:** `02_washington_state_public_employee_eap_brochure.pdf`
+- **Local filename:** `washington-state-public-employee-eap/program-brochure.pdf`
 - **File metadata:** PDF 1.6; 2 pages; 679,571 bytes (663.6 KiB); created 2025-10-23; modified 2025-10-23
 - **SHA-256:** `bcc68c3e1ca11d6fed6d695dbf4ed6f66b880d2b3825402a4be3b7e0baee3d6d`
 - **BenefitsPackage fields supported:** sponsor, program name, public-employee market, cost/no-cost status, session allowance, session reset/new-problem rule, eligible household members, counseling modalities, work/life topics, parenting/eldercare, legal/financial services, confidentiality and exceptions, access phone/URL, and intake method
@@ -67,7 +67,7 @@ Retrieved: **2026-07-17**
 - **Why it is distinct:** This example combines a precise per-topic/per-year allowance with counseling, coaching, legal/financial, work-life, and digital self-service. It also contains employer-specific company-code and contact fields suitable for access-instruction extraction.
 - **Source webpage:** https://hr.tulane.edu/employee-assistance-program-eap
 - **Direct file URL:** https://hr.tulane.edu/sites/default/files/2025-01/eap_intro-to-eap_lucet_tulane.pdf
-- **Local filename:** `03_tulane_lucet_university_eap_brochure.pdf`
+- **Local filename:** `tulane-university-lucet-eap/program-brochure.pdf`
 - **File metadata:** PDF 1.6; 2 pages; 726,167 bytes (709.1 KiB); created 2024-10-16; modified 2025-01-06
 - **SHA-256:** `6651327f258d65eb12daed4315ea125efa7a09dfdf113d760d1bb6d5f2b36090`
 - **BenefitsPackage fields supported:** sponsor/employer, vendor, program name, household eligibility, cost/no-cost status, availability, counseling/coaching allowance and reset basis, counseling modalities, legal/financial consultation duration, work-life categories, caregiver/education/career resources, online tools, webinars/training, access phone/URL/company code, and confidentiality language
@@ -84,7 +84,7 @@ Retrieved: **2026-07-17**
 - **Why it is distinct:** This is the strongest example of a compact, employer-specific access flyer. It includes a group number, employer name, access code, contact channels, office-hours caveat, vendor/carrier relationship, and broad non-counseling resources.
 - **Source webpage:** No separate public landing page was identified; the official New York State Public Health Corps resource host serves the PDF directly.
 - **Direct file URL:** https://nysphcresources.health.ny.gov/sites/default/files/nysphc/shared_documents/2024-07/SSO%20Guardian%20-%20Uprise%20Health%20EAP%20EE%20Overview%20%282023%29.pdf
-- **Local filename:** `04_guardian_uprise_health_employee_eap_overview.pdf`
+- **Local filename:** `guardian-uprise-health-eap/employee-overview.pdf`
 - **File metadata:** PDF 1.5; 1 page; 106,794 bytes (104.3 KiB); created 2022-03-03; modified 2023-08-08; tagged; AcroForm present
 - **SHA-256:** `bd2ec3dba64ba7be76c574c618d1cbaa6f4f62a7f84850ebf54d5a3e88c1e61f`
 - **BenefitsPackage fields supported:** carrier/brand, service vendor, employer name, group number, program name, family eligibility wording, service categories, legal/financial subservices, access email/phone/URL/code, service availability, office-hours caveat, non-insurance status, state-availability caveat, and disclaimer text
@@ -101,10 +101,9 @@ Retrieved: **2026-07-17**
 - **Why it is distinct:** Unlike the four employee-facing or program-specific examples, this document targets employers and managers. It is valuable for extracting organization-level services, critical-incident response, management consultation, promotion resources, integration claims, and outcome metrics.
 - **Source webpage:** No distinct current landing page for this archived fact sheet was identified; Optum serves it directly from its official content library.
 - **Direct file URL:** https://campaign.optum.com/content/dam/optum/resources/infographics/EAP-At-a-Glance.pdf
-- **Local filename:** `05_optum_employer_manager_eap_at_a_glance.pdf`
+- **Local filename:** `optum-eap/employer-manager-overview.pdf`
 - **File metadata:** PDF 1.7; 1 page; 63,095 bytes (61.6 KiB); created 2014-05-21; modified 2014-05-21
 - **SHA-256:** `daf5da2e3be641ffc4c82962da25e24f87777318448527f939c2355c53d22ea6`
 - **BenefitsPackage fields supported:** vendor, program name, market/audience, availability, employee consultation model, management consultations, face-to-face referral model, specialty help centers, critical-incident support, WorkLife availability, promotion/engagement resources, behavioral-health integration, vendor sales contact, outcome metrics, evidence footnotes, exclusions/availability caveat, and document version/date
 - **Verification notes:** Extracted text and the rendered page confirm Optum branding, 24/7 access, unlimited consultations, management services, critical-incident support, WorkLife services, and the cited performance metrics. Fine-print footnotes and the program-availability caveat are readable in the source.
 - **Known limitations:** This is a 2014 marketing infographic, not a current plan document or employee access guide. Its outcome statistics and contact information may be stale. A footnote references a five-visit EAP model, but the main design language emphasizes unlimited specialist consultations plus face-to-face referrals; these concepts must not be conflated into a plan-specific visit allowance.
-

@@ -371,6 +371,17 @@ function resolveCandidates(
   candidates: ExtractedRequirementCandidate[],
   searchedSourceFileIds: string[],
 ): FieldResolution {
+  const candidateEvidence = (items: ExtractedRequirementCandidate[]) => {
+    const seen = new Set<string>();
+    return items
+      .flatMap((item) => [item.evidence, ...(item.supportingEvidence || [])])
+      .filter((evidence) => {
+        const id = requirementEvidenceId(evidence);
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+  };
   const authorityAccepted = candidates.filter(
     (item) =>
       !requirement ||
@@ -433,6 +444,7 @@ function resolveCandidates(
     });
   }
   const extractorRank = (item: ExtractedRequirementCandidate) => {
+    if (item.evidence.extractorVersion === "vision-schedule-v1") return 40;
     if (item.evidence.extractorVersion === "medical-plan-schema-v1") return 30;
     if (item.evidence.extractorVersion === "rate-sheet-v1") return 30;
     if (item.evidence.extractorVersion === "benefit-requirements-v1") return 20;
@@ -467,11 +479,11 @@ function resolveCandidates(
       status: "conflicting",
       candidates: [...groups.entries()].map(([key, items]) => ({
         value: items[0].state === "known" ? items[0].value : key,
-        evidence: items.map((item) => item.evidence),
+        evidence: candidateEvidence(items),
       })),
     };
   const item = selected[0];
-  const evidence = selected.map((entry) => entry.evidence);
+  const evidence = candidateEvidence(selected);
   if (item.state === "explicit_none")
     return {
       status: "explicit_none",

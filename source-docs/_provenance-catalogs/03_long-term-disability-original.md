@@ -16,7 +16,7 @@ Retrieved: **2026-07-17**
 
 ## 01 - University of Michigan Basic LTD Plan Booklet (2025)
 
-- **Local file:** `01_university-of-michigan_basic-ltd-plan-booklet_2025.pdf`
+- **Local file:** `university-of-michigan-basic-ltd/2025-plan-booklet.pdf`
 - **Organization / jurisdiction / market:** University of Michigan; Michigan; public-university employees, principally active AFSCME members after four continuous years plus limited legacy groups.
 - **Document subtype:** Employer plan booklet for a self-insured Basic LTD plan.
 - **Plan/program design:** The university pays the full cost. A claimant must be unable to perform their job or another reasonable job, based on education, training, or experience, for at least 12 continuous months. Income replacement is up to $1,200 per month and coordinates with other disability income; specified health, life, dental, and retirement benefits may continue.
@@ -31,7 +31,7 @@ Retrieved: **2026-07-17**
 
 ## 02 - Duke University Health System Voluntary LTD Certificate (2017)
 
-- **Local file:** `02_duke-health-system_voluntary-ltd-certificate_2017.pdf`
+- **Local file:** `combined-disability/duke-health-system-voluntary-std-ltd/combined-certificate-2017.pdf`
 - **Organization / jurisdiction / market:** Duke University Health System / The Hartford; North Carolina employer with multi-state certificate notices; full-time employees described in the schedule.
 - **Document subtype:** Combined short-term and long-term disability group certificate/booklet with schedule of insurance.
 - **Plan/program design:** Employee contributes to coverage. LTD replaces 60% of monthly income loss up to $12,500 per month, with a six-month elimination period and a minimum of $100 or 10% of the calculated benefit. The definition is own occupation during the elimination period and first 24 benefit months, then any occupation. The certificate includes a 365-day pre-existing-condition lookback/coverage test.
@@ -46,7 +46,7 @@ Retrieved: **2026-07-17**
 
 ## 03 - Indiana University Resident Med Plus Advantage LTD Certificate and SPD (updated 2026)
 
-- **Local file:** `03_indiana-university-resident-med-plus_ltd-certificate-spd_2026.pdf`
+- **Local file:** `indiana-university-resident-med-plus-ltd/2026-certificate-spd.pdf`
 - **Organization / jurisdiction / market:** Indiana University School of Medicine / AMA Insurance Agency / Standard Insurance Company; policy issued in Illinois for eligible medical residents.
 - **Document subtype:** Certificate and Summary Plan Description under an AMA group insurance trust.
 - **Plan/program design:** A resident-specific flat benefit: generally $2,500 when disabled and $5,000 when permanently and totally disabled, subject to deductible income, with $100/$200 minimums. The waiting period is 90 days. The own-occupation period is the first 60 benefit months; after that, the any-gainful-occupation definition is specifically Doctor of Medicine. Maximum duration varies by age.
@@ -61,7 +61,7 @@ Retrieved: **2026-07-17**
 
 ## 04 - State of California Voluntary LTD Benefits Guide (2026)
 
-- **Local file:** `04_state-of-california_voluntary-ltd-benefits-guide_2026.pdf`
+- **Local file:** `california-voluntary-ltd/2026-benefits-guide.pdf`
 - **Organization / jurisdiction / market:** California Department of Human Resources (CalHR) / The Standard; California excluded state employees.
 - **Document subtype:** Employee-facing enrollment, cost, and benefit guide; also includes related Accident and Critical Illness coverage.
 - **Plan/program design:** Voluntary, after-tax employee-paid coverage with 55% and 65% benefit options. Both have a $10,000 monthly maximum and a six-month waiting period. Own-occupation applies during the waiting period and first 24 benefit months, followed by any occupation. The pre-existing rule uses a 90-day lookback and 12-month exclusion period. Age-banded premium factors and calculation examples are included.
@@ -76,7 +76,7 @@ Retrieved: **2026-07-17**
 
 ## 05 - University of Alabama System Office LTD Claim FAQ (2026)
 
-- **Local file:** `05_university-of-alabama-system_standard-ltd-claim-faq_2026.pdf`
+- **Local file:** `university-of-alabama-standard-ltd/2026-claim-faq.pdf`
 - **Organization / jurisdiction / market:** University of Alabama System Office / Standard Insurance Company; Alabama public-university system office employees.
 - **Document subtype:** Two-page carrier claim FAQ and filing guide.
 - **Plan/program design:** Operational rather than a benefit schedule. It tells employees to report a claim when absence is expected beyond 90 calendar days, identifies the employee/employer/physician/authorization components, describes decision communications and first-payment timing after the 90-day waiting period, and covers return-to-work reporting.

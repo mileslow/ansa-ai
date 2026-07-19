@@ -24,7 +24,7 @@ Retrieved: 2026-07-17
 - Why it is distinct: It represents a relationship-based virtual primary-care and care-coordination model rather than an episodic urgent-care visit. It also has an explicit no-cost benefit, adult-dependent rule, and HSA-plan exclusion.
 - Source webpage: https://ct-test-web.taftcollege.edu/about/offices-departments/human-resources/health-benefits/
 - Direct file URL: https://ct-test-web.taftcollege.edu/about/offices-departments/human-resources/health-benefits/_files/PF_BC_20230401_Eden-Virtual-Primary-Care.pdf
-- Local filename: `01_taft-college_sisc-eden-virtual-primary-care.pdf`
+- Local filename: `sisc-eden-virtual-primary-care/taft-college-flyer.pdf`
 - File metadata: PDF 1.4; 596,741 bytes; 1 letter-size page
 - SHA-256: `24caa46eb069dbd30a38448e6d328147ccb31096f8328d8285994084d0a66315`
 - Potential BenefitsPackage fields: program name, vendor, associated medical-plan type, eligible population, dependent age minimum, excluded plan types, employer/member cost, service hours, access channels, covered service categories, privacy statement, enrollment instructions, and QR/app activation details
@@ -41,7 +41,7 @@ Retrieved: 2026-07-17
 - Why it is distinct: It supplies a concrete $10 copay, a Kaiser-member exclusion, family eligibility, pediatrics, general-medicine condition taxonomy, and multiple real-time access channels.
 - Source webpage: https://resig.org/departments/employee-benefits/mental-wellness-initiative/
 - Direct file URL: https://resig.org/wp-content/uploads/2023/10/MDLive-Medical-only-10-copay-eff-10-1-23.pdf
-- Local filename: `02_resig_mdlive-24-7-medical-behavioral-10-copay.pdf`
+- Local filename: `sisc-mdlive-medical-behavioral/resig-10-copay-flyer.pdf`
 - File metadata: PDF 1.6; 8,744,434 bytes; 1 page sized 630 x 810 points
 - SHA-256: `1df5069cfe5c32aa34523f592c175104ea9e1b4f38726b4cf1eae898aba4ff37`
 - Potential BenefitsPackage fields: program name, vendor, care types, member copay, eligibility, excluded populations, pediatric availability, service hours, phone/URL/app access, conditions treated, prescription capability, emergency disclaimer, and contact number
@@ -58,7 +58,7 @@ Retrieved: 2026-07-17
 - Why it is distinct: Unlike a short promotional flyer, it provides structured answers about account setup, payment methods including HSA cards, family access, dependent handling, provider credentials, prescriptions, continuity with a primary-care doctor, travel, and support.
 - Source webpage: https://www.guidestone.org/Updates/Employer-Resources-Teladoc
 - Direct file URL: https://www.guidestone.org/-/media/Insurance/HealthMaterials/Current/Teladoc/PPO/FAQ.pdf
-- Local filename: `03_guidestone_teladoc-member-faq.pdf`
+- Local filename: `guidestone-teladoc/member-faq.pdf`
 - File metadata: Tagged PDF 1.7; 698,528 bytes; 2 letter-size pages
 - SHA-256: `e5d415a61ba7661231b5c53f8a65412b4e80b42707b21ad0a54e718d281a4888`
 - Potential BenefitsPackage fields: program name, vendor, care model, service hours, channels, account setup, insurance-card requirement, payment methods, member-cost rules, eligible family members, dependent activation rules, provider qualifications, prescribing rules, travel coverage, record-sharing process, website, phone number, and limitations
@@ -75,7 +75,7 @@ Retrieved: 2026-07-17
 - Why it is distinct: It tests a store-and-forward specialty workflow instead of live video. It includes eligible dependents, condition taxonomy, expected turnaround, pharmacy routing, and a 30-day follow-up message window.
 - Source webpage: https://www.mesaaz.gov/Careers-Benefits/Employee-Benefits/Active/Medical-Prescription-Drug-Plans
 - Direct file URL: https://www.mesaaz.gov/files/assets/public/v/1/careersbenefits/benefits/medicalrx/virtual-dermatology.pdf
-- Local filename: `04_city-of-mesa_cigna-mdlive-virtual-dermatology.pdf`
+- Local filename: `city-of-mesa-cigna-mdlive-dermatology/member-flyer.pdf`
 - File metadata: PDF 1.5; 341,093 bytes; 2 letter-size pages
 - SHA-256: `0b4caa7510d800c6111ce2e02bc64b8fc0d7bcbc82ec8f8297880759927c7a49`
 - Potential BenefitsPackage fields: program name, carrier/vendor, specialty type, eligible dependents, appointment requirement, intake method, image-upload requirement, conditions treated, provider credential, response-time target, prescription routing, post-visit follow-up period, myCigna activation path, and availability/cost disclaimers
@@ -92,7 +92,7 @@ Retrieved: 2026-07-17
 - Why it is distinct: It is the behavioral-health example and documents provider selection, appointment timing, visit duration, condition categories, network status, teen access, payment methods, and crisis limitations.
 - Source webpage: https://www.wittenberg.edu/administration/humanresources/health-dental-and-vision-insurance
 - Direct file URL: https://www.wittenberg.edu/sites/default/files/media/human_resources/03-2020%20Wellness%20LHO_Psychology.pdf
-- Local filename: `05_wittenberg-university_livehealth-online-psychology.pdf`
+- Local filename: `wittenberg-livehealth-psychology/member-guide-faq.pdf`
 - File metadata: Optimized PDF 1.4; 651,227 bytes; 2 letter-size pages
 - SHA-256: `8d2ccfc2867d99a257a01e468f26aabc8ed1fe9af3082ce9a09d5965abad3c6a`
 - Potential BenefitsPackage fields: program name, vendor/carrier, behavioral-health services, conditions supported, appointment channels, hours, expected appointment lead time, visit duration, provider-selection rules, prescribing limitation, cost-share basis, payment methods, network status, child/teen account rules, support phone number, and crisis/emergency disclaimer

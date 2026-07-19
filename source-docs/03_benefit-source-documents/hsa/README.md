@@ -14,7 +14,7 @@ Retrieval date for every file: **2026-07-17**.
 - **Source page URL:** <https://www.irs.gov/forms-pubs/about-publication-969>
 - **Direct file URL:** <https://www.irs.gov/pub/irs-pdf/p969.pdf>
 - **Retrieved:** 2026-07-17
-- **Local filename:** `01_irs_2025_publication_969_hsa_tax_guidance.pdf`
+- **Local filename:** `irs-hsa-tax-guidance/2025-publication-969.pdf`
 - **File facts:** PDF 1.7; 1,306,073 bytes (1.2 MiB); 22 pages; US Letter; tagged; not encrypted
 - **Fields supported:** source authority, tax year, HSA definition, eligible-individual requirements, HDHP minimum-deductible and out-of-pocket rules, disqualifying coverage, preventive-care exceptions, contribution rules, catch-up contributions, employer contributions, rollovers and transfers, excess contributions, distributions, qualified medical expenses, tax forms, account-holder death treatment, Medicare interaction, employer participation, and HSA/FSA/HRA/MSA coordination.
 - **Verification:** The direct URL returned HTTP 200 with `application/pdf`; `file` identified a PDF rather than HTML; `pdfinfo` opened it and reported 22 unencrypted pages; extracted text identified Publication 969, the 2025-return edition, HSA/HDHP rules, and 2025 statutory updates. Page 1 was rendered with Poppler and visually inspected as complete, sharp, and legible. SHA-256: `d51681ecae43d517415500efe6f7dcc1bba65fed09b48d416f18d6407a5b522f`.
@@ -30,7 +30,7 @@ Retrieval date for every file: **2026-07-17**.
 - **Source page URL:** <https://www.cms.gov/marketplace/in-person-assisters/outreach-education/new>
 - **Direct file URL:** <https://www.cms.gov/marketplace/outreach-and-education/health-savings-account.pdf>
 - **Retrieved:** 2026-07-17
-- **Local filename:** `02_cms_2026_marketplace_hsa_consumer_guide.pdf`
+- **Local filename:** `cms-marketplace-hsa-guide/2026-consumer-guide.pdf`
 - **File facts:** PDF 1.7; 882,238 bytes (862 KiB); 3 pages; US Letter; tagged; AcroForm present; not encrypted
 - **Fields supported:** program identity, HSA definition, HSA-eligible-plan/HDHP linkage, 2026 Bronze and Catastrophic availability, Medicare and first-dollar-coverage exclusions, qualified-expense examples, rollover, portability, employer/household contributions, self-only and family limits for 2025 and 2026, age-55 catch-up contribution, tax advantages, nonqualified-withdrawal tax and penalty rules, retirement use, recordkeeping, Marketplace plan-search instructions, and consumer support contacts.
 - **Verification:** The direct URL returned HTTP 200 with `application/pdf`; `file` identified a PDF; `pdfinfo` reported three unencrypted pages; extracted text identified the HSA title, 2026 Bronze/Catastrophic callout, 2025/2026 contribution table, Medicare rules, and CMS product number. Page 1 was rendered with Poppler and visually inspected as complete, legible, and free of clipping or missing-font blocks. SHA-256: `552f9d6884a80465aefa82f5fc66bc721b9a0fe99c2553e253fa038c1a35b342`.
@@ -46,7 +46,7 @@ Retrieval date for every file: **2026-07-17**.
 - **Source page URL:** <https://etf.wi.gov/resource/2026-insurance-benefits-decision-guide-state-wisconsin-group-health-insurance-employees>
 - **Direct file URL:** <https://etf.wi.gov/publications/26et-2107/download>
 - **Retrieved:** 2026-07-17
-- **Local filename:** `03_wisconsin_etf_2026_hdhp_hsa_decision_guide.pdf`
+- **Local filename:** `wisconsin-etf-hdhp-hsa/2026-decision-guide.pdf`
 - **File facts:** PDF 1.5; 1,436,125 bytes (1.4 MiB); 20 pages; US Letter; tagged; not encrypted
 - **Fields supported:** employer/program identity, plan year, open-enrollment dates, offered medical designs, HDHP-to-HSA linkage, HSA administrator, enrollment/re-enrollment requirement, self-only and family contribution limits, age-based catch-up limit, employer contribution by coverage tier, installment funding description, account ownership and portability, unlimited carryover, funds-availability rule, investment threshold, HSA/LPFSA relationship, plan comparison, premiums, enrollment process, and payroll/benefits contact routing.
 - **Verification:** The direct URL returned HTTP 200 with `application/pdf`; `file` identified a PDF; `pdfinfo` reported 20 unencrypted pages; extracted text identified the 2026 State of Wisconsin decision guide, HDHP-only HSA rule, TASC administration, annual individual/family limits, and employer contributions of $852/$1,704. Page 1 was rendered with Poppler and visually inspected as a complete and legible official ETF cover. SHA-256: `a85be27e34fae78f61fc9c852f4ab9068f2a7706179b453581ccc9951686739b`.
@@ -62,7 +62,7 @@ Retrieval date for every file: **2026-07-17**.
 - **Source page URL:** <https://mn.gov/mmb/segip/find-a-form-3.jsp>
 - **Direct file URL:** <https://mn.gov/mmb-stat/segip/doc/hsa-contribution-change-form.pdf>
 - **Retrieved:** 2026-07-17
-- **Local filename:** `04_minnesota_segip_2026_hsa_contribution_change_form.pdf`
+- **Local filename:** `minnesota-segip-hsa/2026-contribution-change-form.pdf`
 - **File facts:** PDF 1.6; 1,122,231 bytes (1.1 MiB); 2 pages; US Letter; tagged; AcroForm and JavaScript present; not encrypted
 - **Fields supported:** employee name, masked SSN structure, employee ID, address, work/home phone, email, requested annual personal HSA contribution, single/family coverage limits, age-55 catch-up rule, employer-versus-personal contribution warning, HDHP linkage, custodian-selection description, requested-change effective timing, employee authorization, signature/date, submission channels, support contact, private-data purpose, refusal consequences, and authorized data-sharing recipients.
 - **Verification:** The direct URL returned HTTP 200 with `application/pdf`; `file` identified a PDF; `pdfinfo` reported two unencrypted pages; extracted text identified the 2026 limits, payroll-election purpose, employer-contribution warning, Advantage HDHP link, authorization, and Minnesota private-data notice. Page 1 was rendered with Poppler and visually inspected; all labels, blank fields, limit table, signature line, and submission instructions are visible and legible. SHA-256: `7d0714b7ac617538c8bcbc5ca6b8447156e586ea2ab8dfebfd3c236ba511b9a5`.
@@ -78,7 +78,7 @@ Retrieval date for every file: **2026-07-17**.
 - **Source page URL:** <https://business.optum.com/en/financial-solutions/health-benefit-accounts/health-savings-accounts.html>
 - **Direct file URL:** <https://www.optum.com/content/dam/optum/consumer-activation/unknown/HSA_Enrollment_and_Contribution_Agreement.pdf>
 - **Retrieved:** 2026-07-17
-- **Local filename:** `05_optum_bank_hsa_enrollment_contribution_agreement.pdf`
+- **Local filename:** `optum-bank-hsa/enrollment-contribution-agreement.pdf`
 - **File facts:** PDF 1.4; 279,370 bytes (273 KiB); 7 pages; US Letter; tagged; not encrypted
 - **Fields supported:** employer identity, effective date, custodian identity, qualified-HDHP representation, employee HSA eligibility, Medicare representation, account opening, payroll and employer contribution transmission, reports, account ownership and nonforfeitability, batch-enrollment method, identity verification, authorized-agent appointment, debit-card issuance, required data exchange, employer contacts/authorized personnel, privacy safeguards, indemnification, communications, term and termination, governing law, signatures/titles/dates, and associated employee authorized-agent language.
 - **Verification:** The direct URL returned HTTP 200 with `application/pdf`; `file` identified a PDF; `pdfinfo` reported seven unencrypted pages; extracted text identified Optum Bank, the employer blank, HSA/HDHP recitals, custodial services, enrollment, contribution transmission, and the numbered agreement sections. Page 1 was rendered with Poppler and visually inspected as complete, readable, and free of clipping or missing content. SHA-256: `22ac2a5bc82f2311d48c086c60aa693846acc844482daa34f82d44fe8d5d26f5`.

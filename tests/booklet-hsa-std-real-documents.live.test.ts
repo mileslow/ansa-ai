@@ -38,7 +38,7 @@ describe.skipIf(!live)("live HSA and STD real-document pipeline", () => {
     "extracts a real Minnesota HSA form but blocks until employer program facts are supplied",
     async () => {
       const file = await loaded(
-        "source-docs/03_benefit-source-documents/hsa/04_minnesota_segip_2026_hsa_contribution_change_form.pdf",
+        "source-docs/03_benefit-source-documents/hsa/minnesota-segip-hsa/2026-contribution-change-form.pdf",
       );
       const result = await runBookletPipeline({
         runId: "live-real-hsa",
@@ -84,7 +84,7 @@ describe.skipIf(!live)("live HSA and STD real-document pipeline", () => {
     "understands a real University of California STD summary but blocks incomplete contract fields",
     async () => {
       const file = await loaded(
-        "source-docs/03_benefit-source-documents/short-term-disability/05_university_california_lincoln_basic_disability_summary.pdf",
+        "source-docs/03_benefit-source-documents/short-term-disability/university-of-california-basic-disability/lincoln-summary.pdf",
       );
       const result = await runBookletPipeline({
         runId: "live-real-std",

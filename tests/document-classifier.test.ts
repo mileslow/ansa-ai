@@ -1,6 +1,9 @@
 import * as XLSX from "xlsx";
 import { describe, expect, it } from "vitest";
-import { classifyDocument } from "../lib/document-classifier";
+import {
+  classifyDocument,
+  classifyDocumentWithFallback,
+} from "../lib/document-classifier";
 import type { LoadedUploadedFile } from "../lib/booklet-types";
 
 function file(
@@ -67,6 +70,59 @@ describe("document classifier", () => {
     expect(classifyDocument(input)).toMatchObject({
       documentType: "carrier_rate_sheet",
       confidence: 0.93,
+    });
+  });
+
+  it("routes a prescription formulary into the medical extraction contract", () => {
+    expect(
+      classifyDocument(
+        file(
+          "july-2026-formulary.pdf",
+          "application/pdf",
+          "CVS Caremark Performance Drug List. Prescription drug formulary.",
+        ),
+      ),
+    ).toMatchObject({
+      documentType: "plan_summary",
+      benefitTypes: ["medical"],
+      scope: "generic_reference",
+      authority: "administrator_material",
+      documentSubtype: "prescription_formulary",
+    });
+  });
+
+  it("normalizes a recognized insurance certificate into the coarse SPD role", async () => {
+    const input = file("certificate.pdf");
+    const parse = async () => ({
+      output_parsed: {
+        documentType: "unknown",
+        confidence: 0.95,
+        detectedBenefitTypes: ["life"],
+        detectedEmployer: "City of Seattle",
+        detectedCarrier: "Securian",
+        detectedPlanYear: "2021",
+        reasoningSummary: "A current group AD&D certificate of insurance.",
+        benefitTypes: ["life"],
+        documentSubtype: "group AD&D certificate of insurance",
+        scope: "current_employer",
+        authority: "current_plan_document",
+        employerOrGroupId: "City of Seattle",
+        planOrProgramIds: ["70468"],
+        effectiveStart: "2021-01-01",
+        effectiveEnd: null,
+      },
+    });
+    await expect(
+      classifyDocumentWithFallback({
+        file: input,
+        apiKey: "test",
+        client: { responses: { parse } } as any,
+      }),
+    ).resolves.toMatchObject({
+      documentType: "spd",
+      documentSubtype: "group AD&D certificate of insurance",
+      benefitTypes: ["life"],
+      authority: "current_plan_document",
     });
   });
 

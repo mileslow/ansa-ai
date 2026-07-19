@@ -1721,6 +1721,26 @@ export const fsaRequirements: BenefitRequirementDefinition = {
       renderPolicy: "render",
     }),
     field({
+      id: "fsa.administration.fee_schedule",
+      path: "fsa.administration.feeSchedule",
+      label: "FSA participant fee schedule",
+      description:
+        "Participant-paid account or administrative fees with amount, unit, frequency, maximum, and affected arrangement.",
+      levels: {
+        complete_extraction: "optional",
+        safe_booklet: "optional",
+        formal_disclosure: "optional",
+      },
+      material: true,
+      evidenceRequired: true,
+      acceptedAuthorities: administrationAuthorities,
+      acceptedExplicitNoneReasons: [
+        "administrator_discloses_no_participant_fees",
+      ],
+      validatorIds: ["money_has_unit_and_frequency", "fee_scope_is_qualified"],
+      renderPolicy: "omit_when_absent",
+    }),
+    field({
       id: "fsa.eligibility.classes",
       path: "fsa.eligibility.employeeClasses",
       label: "FSA eligible classes",

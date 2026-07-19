@@ -38,6 +38,46 @@ export function toFirestoreDocument<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+const MAX_INLINE_GENERATION_RUN_BYTES = 750_000;
+
+type PersistedGenerationRun = BookletGenerationRun & {
+  snapshotStoragePath?: string | null;
+};
+
+function generationRunSnapshotPath(run: BookletGenerationRun) {
+  return `benefitsCompanies/${safeName(run.companyId)}/booklet-runs/${safeName(
+    run.id,
+  )}/run-snapshot.json`;
+}
+
+export function compactGenerationRun(
+  run: BookletGenerationRun,
+  snapshotStoragePath: string,
+): PersistedGenerationRun {
+  return toFirestoreDocument({
+    id: run.id,
+    threadId: run.threadId,
+    companyId: run.companyId,
+    ownerId: run.ownerId,
+    status: run.status,
+    uploadedFileIds: run.uploadedFileIds,
+    stages: [],
+    questions: run.questions,
+    answers: run.answers,
+    snapshotSchemaVersion: run.snapshotSchemaVersion,
+    snapshotStoragePath,
+    pdfStoragePath: run.pdfStoragePath,
+    pdfUrl: run.pdfUrl,
+    contentModel: run.contentModel,
+    qualityReport: run.qualityReport,
+    extractedFactCount: run.extractedFactCount,
+    sectionArtifactCount: run.sectionArtifactCount,
+    createdAt: run.createdAt,
+    completedAt: run.completedAt,
+    error: run.error,
+  } as PersistedGenerationRun);
+}
+
 export async function createBookletThread(companyId: string, ownerId: string) {
   const { db } = getAdminServices();
   const now = new Date().toISOString();
@@ -204,11 +244,27 @@ export async function getUploadedFileRecords(fileIds: string[]) {
 }
 
 export async function saveGenerationRun(run: BookletGenerationRun) {
-  const { db } = getAdminServices();
+  const { bucket, db } = getAdminServices();
+  const normalized = toFirestoreDocument(run) as PersistedGenerationRun;
+  const serialized = JSON.stringify(normalized);
+  let persisted: PersistedGenerationRun = normalized;
+  if (
+    Buffer.byteLength(serialized, "utf8") > MAX_INLINE_GENERATION_RUN_BYTES ||
+    normalized.snapshotStoragePath
+  ) {
+    const snapshotStoragePath =
+      normalized.snapshotStoragePath || generationRunSnapshotPath(run);
+    await bucket.file(snapshotStoragePath).save(Buffer.from(serialized), {
+      resumable: false,
+      contentType: "application/json",
+      metadata: { metadata: { runId: run.id, threadId: run.threadId } },
+    });
+    persisted = compactGenerationRun(run, snapshotStoragePath);
+  }
   await db
     .collection("bookletGenerationRuns")
     .doc(run.id)
-    .set(toFirestoreDocument(run), { merge: true });
+    .set(persisted);
   await db.collection("bookletThreads").doc(run.threadId).set(
     {
       latestRunId: run.id,
@@ -220,9 +276,14 @@ export async function saveGenerationRun(run: BookletGenerationRun) {
 }
 
 export async function getGenerationRun(runId: string) {
-  const { db } = getAdminServices();
+  const { bucket, db } = getAdminServices();
   const snapshot = await db.collection("bookletGenerationRuns").doc(runId).get();
-  return snapshot.exists ? (snapshot.data() as BookletGenerationRun) : null;
+  if (!snapshot.exists) return null;
+  const persisted = snapshot.data() as PersistedGenerationRun;
+  if (!persisted.snapshotStoragePath) return persisted;
+  const [data] = await bucket.file(persisted.snapshotStoragePath).download();
+  const hydrated = JSON.parse(data.toString("utf8")) as BookletGenerationRun;
+  return { ...hydrated, ...persisted };
 }
 
 export async function savePipelineEvent(event: PipelineEvent) {

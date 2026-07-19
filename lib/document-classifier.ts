@@ -122,6 +122,12 @@ function classifyFromSignals(file: LoadedUploadedFile) {
     return result("spd", 0.95, "Summary Plan Description signals found.");
   if (/benefit plan summary|plan summary|benefit summary/.test(combined))
     return result("plan_summary", 0.88, "Plan-summary signals found.");
+  if (/\b(?:formulary|performance drug list|prescription drug list)\b/.test(combined))
+    return result(
+      "plan_summary",
+      0.9,
+      "Prescription formulary or drug-list signals identify an administrative plan reference.",
+    );
   if (/prior|last year|previous/.test(name) && /booklet|guide/.test(name))
     return result("prior_booklet", 0.9, "Filename identifies a prior booklet or guide.");
   if (/booklet/.test(name) || /employee benefits guide/.test(combined))
@@ -155,7 +161,10 @@ function detectBenefitTypes(value: string, documentType: DocumentType): BenefitT
   const add = (type: BenefitType, pattern: RegExp) => {
     if (pattern.test(normalized)) detected.add(type);
   };
-  add("medical", /\b(?:medical|health plan|health coverage|sbc)\b/);
+  add(
+    "medical",
+    /\b(?:medical|health plan|health coverage|sbc|formulary|performance drug list|prescription drug list|pharmacy benefit)\b/,
+  );
   add("dental", /\b(?:dental|dhmo|orthodont)\w*\b/);
   add("vision", /\b(?:vision|eyewear|eye exam|contact lenses)\b/);
   add("life", /\b(?:life insurance|basic life|supplemental life|ad d|accidental death)\b/);
@@ -205,6 +214,12 @@ function documentContext(
       : { scope: "unknown", authority: "unknown", documentSubtype: "unscoped_benefit_guide" };
   }
   if (["sbc", "spd", "plan_summary"].includes(documentType)) {
+    if (/\b(?:formulary|performance drug list|prescription drug list)\b/.test(normalized))
+      return {
+        scope: "generic_reference",
+        authority: "administrator_material",
+        documentSubtype: "prescription_formulary",
+      };
     if (/\b(?:marketing brochure|product flyer|generic overview|sample benefits)\b/.test(normalized))
       return { scope: "generic_reference", authority: "generic_marketing", documentSubtype: documentType };
     return detectedEmployer
@@ -365,12 +380,27 @@ export async function classifyDocumentWithFallback({
   });
   if (!response.output_parsed) return heuristic;
   const parsed = response.output_parsed;
-  const benefitTypes =
-    parsed.documentType === "sbc" && parsed.benefitTypes.includes("medical")
+  const documentType =
+    parsed.documentType === "unknown" &&
+    parsed.authority === "current_plan_document" &&
+    /\bcertificate(?: of insurance)?\b/i.test(
+      `${parsed.documentSubtype} ${parsed.reasoningSummary}`,
+    )
+      ? "spd"
+      : parsed.documentType;
+  const parsedBenefitTypes =
+    documentType === "sbc" && parsed.benefitTypes.includes("medical")
       ? parsed.benefitTypes.filter(
           (benefitType) =>
             benefitType !== "hsa" && benefitType !== "telemedicine",
         )
       : parsed.benefitTypes;
-  return { fileId: file.id, ...parsed, benefitTypes };
+  const inferredBenefitTypes = detectBenefitTypes(
+    `${file.fileName} ${file.storagePath} ${parsed.documentSubtype} ${parsed.reasoningSummary}`,
+    documentType,
+  );
+  const benefitTypes = parsedBenefitTypes.length
+    ? parsedBenefitTypes
+    : inferredBenefitTypes;
+  return { fileId: file.id, ...parsed, documentType, benefitTypes };
 }

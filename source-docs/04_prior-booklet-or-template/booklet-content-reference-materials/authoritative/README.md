@@ -5,7 +5,7 @@ not pre-approved employer booklet copy and not proof of an employer's plans.
 
 - `01_cms_uniform_health_coverage_glossary.pdf`: standardized SBC terminology.
 - IRS Publication 969 remains available through the canonical artifact at
-  `source-docs/03_benefit-source-documents/hsa/01_irs_2025_publication_969_hsa_tax_guidance.pdf`.
+  `source-docs/03_benefit-source-documents/hsa/irs-hsa-tax-guidance/2025-publication-969.pdf`.
   It should receive an `authoritative_content_reference` secondary role in the
   manifest rather than being counted twice.
 

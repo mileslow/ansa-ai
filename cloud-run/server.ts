@@ -3,9 +3,12 @@ import companyProfile from "../api/company-profile";
 import generateBooklet from "../api/generate-booklet";
 import parsePlan from "../api/parse-plan";
 import bookletPipeline from "../api/booklet-pipeline";
+import agentmailWebhook from "../api/agentmail-webhook";
+import agentmailWorker from "../api/agentmail-worker";
 
 type CompatibleRequest = IncomingMessage & {
   body?: unknown;
+  rawBody?: Buffer;
   query?: Record<string, string | string[]>;
 };
 
@@ -24,6 +27,8 @@ const routes = new Map<string, ApiHandler>([
   ["/api/generate-booklet", generateBooklet as ApiHandler],
   ["/api/parse-plan", parsePlan as ApiHandler],
   ["/api/booklet-pipeline", bookletPipeline as ApiHandler],
+  ["/api/agentmail-webhook", agentmailWebhook as ApiHandler],
+  ["/api/agentmail-worker", agentmailWorker as ApiHandler],
 ]);
 
 const port = Number(process.env.PORT || 8080);
@@ -101,8 +106,9 @@ function queryFrom(url: URL) {
   return query;
 }
 
-async function jsonBody(request: IncomingMessage) {
-  if (request.method === "GET" || request.method === "HEAD") return undefined;
+async function readBody(request: IncomingMessage) {
+  if (request.method === "GET" || request.method === "HEAD")
+    return { rawBody: Buffer.alloc(0), body: undefined };
   const chunks: Buffer[] = [];
   let bytes = 0;
   for await (const chunk of request) {
@@ -112,9 +118,10 @@ async function jsonBody(request: IncomingMessage) {
       throw new HttpError(413, `Request body exceeds ${maxBodyBytes} bytes`);
     chunks.push(buffer);
   }
-  if (!chunks.length) return {};
+  const rawBody = Buffer.concat(chunks);
+  if (!chunks.length) return { rawBody, body: {} };
   try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    return { rawBody, body: JSON.parse(rawBody.toString("utf8")) };
   } catch {
     throw new HttpError(400, "Request body must be valid JSON");
   }
@@ -159,7 +166,9 @@ const server = createServer(async (request, rawResponse) => {
     }
     const compatibleRequest = request as CompatibleRequest;
     compatibleRequest.query = queryFrom(url);
-    compatibleRequest.body = await jsonBody(request);
+    const parsed = await readBody(request);
+    compatibleRequest.rawBody = parsed.rawBody;
+    compatibleRequest.body = parsed.body;
     await handler(compatibleRequest, response);
   } catch (error) {
     console.error("cloud-run request failed", {

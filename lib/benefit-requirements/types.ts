@@ -109,6 +109,8 @@ export type ExtractedRequirementCandidate = {
   rawValue?: string;
   reasonCode?: string;
   evidence: RequirementEvidence;
+  /** Additional page/section evidence supporting the same normalized value. */
+  supportingEvidence?: RequirementEvidence[];
   confidence: number;
 };
 
@@ -227,6 +229,7 @@ export const employerPlanAuthorities: SourceAuthority[] = [
 export const planDesignAuthorities: SourceAuthority[] = [
   "current_plan_document",
   "current_amendment_or_rider",
+  "administrator_material",
   "manual_answer",
 ];
 

@@ -270,7 +270,7 @@ describe("canonical benefit requirements registry", () => {
     telemedicine: 21,
     hsa: 31,
     hra: 39,
-    fsa: 39,
+    fsa: 40,
   } as const;
 
   it("covers every supported benefit type with the reviewed field inventory", () => {
@@ -289,7 +289,7 @@ describe("canonical benefit requirements registry", () => {
         (total, entry) => total + entry.fields.length,
         0,
       ),
-    ).toBe(338);
+    ).toBe(339);
   });
 
   it("passes structural validation and uses globally unique IDs", () => {

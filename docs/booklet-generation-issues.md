@@ -58,7 +58,7 @@ This should not yet be described as complete production support:
 - The content agent now covers the full 19-section outline, including HSA and
   STD. All eight added paid/live HSA/STD matrix cases passed, as did two new
   real-document classification/extraction/content/PDF tests.
-- A canonical, researched requirements registry now defines 338 required,
+- A canonical, researched requirements registry now defines 339 required,
   conditional, and optional fields across all 12 benefit types. Its structural
   validator and gate evaluator are tested, but it is not yet wired through the
   extractor router, question engine, content agent, and quality checker.

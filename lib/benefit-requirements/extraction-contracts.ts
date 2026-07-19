@@ -143,3 +143,50 @@ export function validateRequirementCandidateOutput(
     candidate.benefitType
   ].safeParse(candidate);
 }
+
+function pathSignature(path: string) {
+  return path.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+const REQUIREMENT_PATH_ALIASES = new Map(
+  Object.entries({
+    "std.definition": "std.disabilityDefinition",
+    "std.earnings": "std.coveredEarningsDefinition",
+    "std.formula": "std.benefitFormula",
+    "std.duration": "std.maximumBenefitDuration",
+    "std.access": "std.claimOrAccess",
+    "ltd.definition": "ltd.disabilityDefinition",
+    "ltd.earnings": "ltd.coveredEarningsDefinition",
+    "hra.integration.linked_group_health_plans":
+      "hra.integration.linkedGroupHealthPlanIds",
+    "voluntary.safeBookletSummary":
+      "voluntary.products[].safeBookletSummary",
+    "voluntary.booklet-summary":
+      "voluntary.products[].safeBookletSummary",
+    "voluntary.access": "voluntary.claimOrAccess",
+    "life.access": "life.claimOrAccess",
+    "life.formal-claims-reference":
+      "life.formalDisclosure.claimsAndAppealsReference",
+  }).map(([alias, canonical]) => [pathSignature(alias), canonical]),
+);
+
+/**
+ * Recover a unique case/punctuation-equivalent registry path when a model
+ * restyles camelCase as snake_case or kebab-case. Semantic aliases still fail
+ * closed instead of being guessed.
+ */
+export function canonicalizeRequirementCandidatePath(
+  candidate: RequirementCandidateOutput,
+): RequirementCandidateOutput {
+  const allowedPaths =
+    BENEFIT_EXTRACTION_CONTRACTS[candidate.benefitType].allowedPaths;
+  if (allowedPaths.includes(candidate.path)) return candidate;
+  const signature = pathSignature(candidate.path);
+  const explicitAlias = REQUIREMENT_PATH_ALIASES.get(signature);
+  if (explicitAlias && allowedPaths.includes(explicitAlias))
+    return { ...candidate, path: explicitAlias };
+  const matches = allowedPaths.filter(
+    (allowedPath) => pathSignature(allowedPath) === signature,
+  );
+  return matches.length === 1 ? { ...candidate, path: matches[0] } : candidate;
+}

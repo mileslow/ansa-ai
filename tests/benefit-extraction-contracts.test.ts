@@ -8,6 +8,7 @@ import {
   BENEFIT_EXTRACTION_CONTRACTS,
   BENEFIT_REQUIREMENT_CANDIDATE_SCHEMAS,
   BENEFIT_TYPE_VALUES,
+  canonicalizeRequirementCandidatePath,
   validateRequirementCandidateOutput,
 } from "../lib/benefit-requirements/extraction-contracts";
 import type {
@@ -32,7 +33,7 @@ const expectedFieldCounts: Record<BenefitType, number> = {
   telemedicine: 21,
   hsa: 31,
   hra: 39,
-  fsa: 39,
+  fsa: 40,
 };
 
 const benefitTypesWithConditions = BENEFIT_TYPE_VALUES.filter((benefitType) =>
@@ -139,6 +140,23 @@ function completeFixture(benefitType: BenefitType) {
 }
 
 describe("all-benefit extraction contracts", () => {
+  it("canonicalizes only unique punctuation and case variants of registry paths", () => {
+    const snakeCase = rawCandidate(
+      "fsa",
+      "fsa.dependent_care.forfeiture_rule",
+    );
+    expect(canonicalizeRequirementCandidatePath(snakeCase).path).toBe(
+      "fsa.dependentCare.forfeitureRule",
+    );
+    const semanticAlias = rawCandidate(
+      "hra",
+      "hra.integration.linked_group_health_plans",
+    );
+    expect(canonicalizeRequirementCandidatePath(semanticAlias).path).toBe(
+      "hra.integration.linkedGroupHealthPlanIds",
+    );
+  });
+
   it("defines a path-constrained schema for every one of the 12 benefit types", () => {
     expect(Object.keys(BENEFIT_EXTRACTION_CONTRACTS)).toEqual([
       ...BENEFIT_TYPE_VALUES,

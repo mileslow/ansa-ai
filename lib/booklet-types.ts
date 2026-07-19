@@ -362,6 +362,12 @@ export type BookletGenerationRun = {
   questions: BlockerQuestion[];
   answers: Record<string, unknown>;
   snapshotSchemaVersion?: number;
+  /**
+   * Private object-storage fallback for run snapshots that are too large for
+   * Firestore's 1 MiB document limit. `getGenerationRun` hydrates this
+   * transparently, so callers continue to receive the complete run.
+   */
+  snapshotStoragePath?: string | null;
   benefitsPackageSnapshot?: BenefitsPackage | null;
   requirementsSnapshot?: BenefitsPackageRequirements | null;
   renderManifest?: BookletRenderManifest | null;

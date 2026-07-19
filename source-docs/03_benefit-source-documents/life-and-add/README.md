@@ -1,6 +1,6 @@
 # Life and AD&D Source Documents
 
-Exactly five public, real life-insurance and accidental-death-and-dismemberment examples are included. They intentionally vary by jurisdiction, document subtype, funding arrangement, employee versus dependent coverage, guaranteed-issue/evidence-of-insurability treatment, and age/retirement rules.
+Six public, real life-insurance and accidental-death-and-dismemberment examples are included. They intentionally vary by jurisdiction, document subtype, funding arrangement, employee versus dependent coverage, guaranteed-issue/evidence-of-insurability treatment, and age/retirement rules.
 
 ## Coverage Matrix
 
@@ -11,6 +11,7 @@ Exactly five public, real life-insurance and accidental-death-and-dismemberment 
 | 03 | City of Seattle / Securian | Standalone group AD&D certificate | Voluntary and fully contributory | Employee-elected AD&D plus family-composition percentages for spouse/domestic partner and children |
 | 04 | Fairfax County Public Schools / Minnesota Life | Group life and AD&D certificate | Noncontributory Basic; contributory Optional and dependent life | Salary-multiple benefits, $250,000 optional-life guaranteed issue, explicit age reductions, and two dependent-life options |
 | 05 | State of Oregon / The Standard | Optional-life evidence-of-insurability form | Voluntary Optional Employee and Spouse/Domestic Partner Life | Blank EOI/medical-history form with explicit late-enrollment, increase, and threshold triggers |
+| 06 | Plexus Corp. / Unum | Group basic-life and AD&D certificate with ERISA SPD provisions | Employer-paid Basic with supplemental contribution rules | Current 2026 salary multiples, age reductions, accelerated benefit, waiver, conversion, portability, claims, and AD&D terms |
 
 ## 01 - Federal Employees' Group Life Insurance Handbook
 
@@ -23,7 +24,7 @@ Exactly five public, real life-insurance and accidental-death-and-dismemberment 
 - **Source webpage:** https://www.opm.gov/healthcare-insurance/life-insurance/reference-materials/publications-forms/fegli-handbook/
 - **Direct file:** https://piv.opm.gov/healthcare-insurance/life-insurance/reference-materials/feglihandbook.pdf
 - **Retrieved:** 2026-07-17
-- **Local filename:** `01_opm_fegli_handbook.pdf`
+- **Local filename:** `fegli/handbook-basic-option-a-b-c.pdf`
 - **File metadata:** PDF 1.6; 2,815,000 bytes; 217 pages; US Letter (612 x 792 pt)
 - **SHA-256:** `4ac016c49fde4785cd025076c2766430975660a4c0902c1370aaf4cc22277c02`
 - **BenefitsPackage fields:** program and administrator; covered populations; automatic/elective status; Basic benefit formula; employer and employee contribution arrangement; Optional plan names and amounts; spouse/child benefit multiples; election window; AD&D inclusion and benefit amounts; exclusions; age-based extra benefit; retirement reduction choices; beneficiary, assignment, living-benefit, continuation, conversion, and claim rules.
@@ -41,7 +42,7 @@ Exactly five public, real life-insurance and accidental-death-and-dismemberment 
 - **Source webpage:** https://mn.gov/mmb/segip/benefits/life-insurance/
 - **Direct file:** https://assetlibrary.securian.com/content/dam/form/grp/term-life-certificate-006077.pdf
 - **Retrieved:** 2026-07-17
-- **Local filename:** `02_state-of-minnesota_group-term-life-certificate.pdf`
+- **Local filename:** `minnesota-group-term-life/certificate.pdf`
 - **File metadata:** PDF 1.7; 727,362 bytes; 27 pages; US Letter (612 x 792 pt)
 - **SHA-256:** `5cda27996b50f70c5ea6302e2fa6bdbed49a4ee95e8b70bb7aa9fdc17b26c379`
 - **BenefitsPackage fields:** carrier and policyholder; policy number and effective date; employee types/classes and bargaining units; eligibility and waiting period; employer-paid/contributory status; Basic benefit schedules; additional employee-life increments and maximum; spouse and child benefit amounts; employee/spouse AD&D linkage; guaranteed-issue and EOI thresholds; election windows; post-retirement death benefits; waiver of premium; exclusions; continuation, conversion, portability, beneficiary, and claim provisions.
@@ -59,7 +60,7 @@ Exactly five public, real life-insurance and accidental-death-and-dismemberment 
 - **Source webpage:** https://www.seattle.gov/human-resources/benefits/
 - **Direct file:** https://www.seattle.gov/documents/Departments/HumanResources/Benefits/ADandD/ADD_Certificate_of_Insurance.pdf
 - **Retrieved:** 2026-07-17
-- **Local filename:** `03_city-of-seattle_voluntary-add-certificate.pdf`
+- **Local filename:** `seattle-voluntary-add/certificate.pdf`
 - **File metadata:** PDF 1.7; 471,284 bytes; 14 pages; US Letter (612 x 792 pt)
 - **SHA-256:** `f0b22ed0e729bf1318d04f54416ddde1f0798f24b11c571807d931267db6a829`
 - **BenefitsPackage fields:** carrier and policyholder; policy number, situs, and effective date; covered class; eligibility, minimum-hours, and waiting-period rules; voluntary/contributory status; employee election increments and maximum; employee-versus-family election; spouse/domestic-partner and child percentages/maxima; covered losses and benefit percentages; additional benefits; exclusions; enrollment/change rules; continuation, termination, beneficiary, and claim provisions.
@@ -77,7 +78,7 @@ Exactly five public, real life-insurance and accidental-death-and-dismemberment 
 - **Source webpage:** https://www.fcps.edu/careers/salary-and-benefits/insurance-benefits/life-insurance
 - **Direct file:** https://www.fcps.edu/sites/default/files/media/pdf/Fairfax%20County%20Public%20Schools%20Certificate%20Eff%201-1-2020.pdf
 - **Retrieved:** 2026-07-17
-- **Local filename:** `04_fairfax-county-public-schools_life-add-certificate.pdf`
+- **Local filename:** `fcps-life-add/certificate.pdf`
 - **File metadata:** PDF 1.6; 903,344 bytes; 20 pages; US Letter (612 x 792 pt)
 - **SHA-256:** `8111df20a7f9bc9e6b5c150e27e54bae91768b4ae966643b9c637a9bbf86c9df`
 - **BenefitsPackage fields:** carrier and policyholder; policy number and certificate-specification date; employee classes; Basic salary multiple and maximum; Optional salary multiples and maximum; employer-paid/contributory status; AD&D linkage; guaranteed-issue and EOI rules; annual-enrollment increase rules; age/retirement reductions; dependent package options and eligibility ages; spouse/child amounts; exclusions; continuation, conversion, portability, beneficiary, accelerated-benefit, and claim provisions.
@@ -95,16 +96,28 @@ Exactly five public, real life-insurance and accidental-death-and-dismemberment 
 - **Source webpage:** https://hrs.sou.edu/benefits-and-leaves/health-benefits/open-enrollment/
 - **Direct file:** https://www.standard.com/eforms/16119_606814a.pdf
 - **Retrieved:** 2026-07-17
-- **Local filename:** `05_state-of-oregon_optional-life-eoi-form.pdf`
+- **Local filename:** `oregon-optional-life/evidence-of-insurability-form.pdf`
 - **File metadata:** PDF 1.6; 108,062 bytes; 4 pages; US Letter (612 x 792 pt)
 - **SHA-256:** `f1936d580e117a687f8728b61a53d815d5a080417f67d269af20ef907ca1705e`
 - **BenefitsPackage fields:** carrier; group name and number; covered optional products; applicant type; EOI/late-enrollment/increase triggers; guaranteed-issue boundary implied by the thresholds; current, additional-requested, and total-requested amounts; form identifier and revision; underwriting contact. Sensitive applicant health answers should not be copied into a benefits booklet.
 - **Verification:** `file` identifies a PDF; `pdfinfo` opens it and reports four pages; `pdftotext` confirms State of Oregon group 606814, Optional Employee Life and Optional Spouse/Domestic Partner Life, the $100,000/$20,000 thresholds, 30-day timing, and increase trigger; page 1 rendered successfully and was visually inspected as a complete, legible State of Oregon/The Standard EOI form.
 - **Known limitations:** Poppler reports a non-fatal optional-content-group warning, but the file opens, text extracts, all pages are counted, and page 1 renders correctly. The form revision is June 2019 even though a 2026 public-employer page still links it; thresholds should be checked against the applicable current plan. It is not a plan schedule, rate sheet, child-life form, or AD&D document. Its blank PII/health fields make it useful as a classifier fixture, but a production system should minimize collection and retention of completed forms.
 
+## 06 - Plexus Corp. / Unum Basic Life and AD&D
+
+- **Source webpage:** https://plexusbenefits.uhc.com/finances/life-insurance/
+- **Direct file:** https://plexusbenefits.uhc.com/wp-content/uploads/2025/12/Basic-Life-and-ADD-Salary.pdf
+- **Local filename:** `plexus-corp-unum-basic-life-add/2026-certificate-spd.pdf`
+- **File metadata:** PDF 1.5; 54 pages; 211,553 bytes
+- **SHA-256:** `adeca7893de077e8aabca354b847484f44783fa212a885ef1a3ab6389e914c18`
+- **Scope:** Current employer group Basic Life and AD&D certificate with ERISA SPD provisions. It also documents contribution rules when supplemental group life is elected.
+- **Verification:** Text extraction identified Plexus Corp., policy 912097 012, the Life and AD&D plan, 2026 form dates, and contribution rules. The table-of-contents page rendered correctly.
+
+Full provenance is in `docs/source-docs-valuable-benefit-additions.md`.
+
 ## Verification Notes
 
-- All five files are original public PDFs from official government, public-employer, university, carrier, or plan-program domains.
+- All six files are original public PDFs from official government, public-employer, university, carrier, or plan-program domains.
 - No file is HTML disguised as PDF; every file has a valid PDF signature and is recognized by `file` and `pdfinfo`.
 - Text was extracted from each file to confirm identity and the relevant life/AD&D terms.
 - Page 1 of every PDF was rendered with Poppler and visually inspected for identity, completeness, and legibility.

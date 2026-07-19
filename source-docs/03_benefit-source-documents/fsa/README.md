@@ -8,15 +8,15 @@ All files were retrieved on 2026-07-17. Each file was checked by file signature,
 
 | File | Primary FSA design or role | Organization | Market or jurisdiction | Why it is distinct |
 | --- | --- | --- | --- | --- |
-| `01_calhr_2026_medical-reimbursement-account-flyer.pdf` | Health care FSA / Medical Reimbursement Account | California Department of Human Resources (CalHR), administered by ASIFlex | California state employees | A short, employee-facing health care FSA flyer with eligible expenses, grace-period language, and reimbursement channels. |
-| `02_irs_2025_publication-503-dependent-care-expenses.pdf` | Dependent care FSA / federal tax rules | Internal Revenue Service | United States federal tax jurisdiction | Primary federal guidance on qualifying people, work-related care, dependent care benefits, tax limits, and interaction with the dependent care credit. |
-| `03_washington-sebb_2025_salary-reduction-plan-limited-purpose-fsa.pdf` | Limited-purpose FSA, general FSA, and DCAP formal plan document | Washington State Health Care Authority / School Employees' Benefits Board | Washington charter-school employees | A legal plan instrument defining elections, claims, forfeiture, carryover, COBRA, LPFSA/HSA coordination, and DCAP. |
-| `04_wex_fsa-employee-guide.pdf` | FSA administrator and claims/member guide | WEX Benefits You / Mercer Marketplace 365+ | National employer-sponsored benefits market | A visual employee guide spanning Medical, Combination/Post-Deductible, and Dependent Care FSAs, card use, claims, substantiation, and mobile/online administration. |
-| `05_nyc_2026_fsa-enrollment-change-form.pdf` | Enrollment and midyear change form for HCFSA and DeCAP | City of New York Office of Labor Relations | New York City public employees | A fillable operational form containing participant, dependent, election, payroll, qualifying-event, direct-deposit, and authorization fields. |
+| `calhr-medical-reimbursement-account/2026-health-care-fsa-flyer.pdf` | Health care FSA / Medical Reimbursement Account | California Department of Human Resources (CalHR), administered by ASIFlex | California state employees | A short, employee-facing health care FSA flyer with eligible expenses, grace-period language, and reimbursement channels. |
+| `irs-dependent-care-tax-guidance/2025-publication-503.pdf` | Dependent care FSA / federal tax rules | Internal Revenue Service | United States federal tax jurisdiction | Primary federal guidance on qualifying people, work-related care, dependent care benefits, tax limits, and interaction with the dependent care credit. |
+| `washington-sebb-fsa-program/2025-plan-general-limited-purpose-dependent-care.pdf` | Limited-purpose FSA, general FSA, and DCAP formal plan document | Washington State Health Care Authority / School Employees' Benefits Board | Washington charter-school employees | A legal plan instrument defining elections, claims, forfeiture, carryover, COBRA, LPFSA/HSA coordination, and DCAP. |
+| `wex-fsa-program/employee-guide-medical-combination-dependent-care.pdf` | FSA administrator and claims/member guide | WEX Benefits You / Mercer Marketplace 365+ | National employer-sponsored benefits market | A visual employee guide spanning Medical, Combination/Post-Deductible, and Dependent Care FSAs, card use, claims, substantiation, and mobile/online administration. |
+| `nyc-fsa-program/2026-enrollment-change-form-health-care-dependent-care.pdf` | Enrollment and midyear change form for HCFSA and DeCAP | City of New York Office of Labor Relations | New York City public employees | A fillable operational form containing participant, dependent, election, payroll, qualifying-event, direct-deposit, and authorization fields. |
 
 ## 01 - CalHR 2026 Medical Reimbursement Account Flyer
 
-- **Local file:** `01_calhr_2026_medical-reimbursement-account-flyer.pdf`
+- **Local file:** `calhr-medical-reimbursement-account/2026-health-care-fsa-flyer.pdf`
 - **Title:** 2026 Medical Reimbursement Account Flyer
 - **Organization:** California Department of Human Resources (CalHR); program administrator ASIFlex
 - **Jurisdiction / market:** California state employees
@@ -34,7 +34,7 @@ All files were retrieved on 2026-07-17. Each file was checked by file signature,
 
 ## 02 - IRS Publication 503, Child and Dependent Care Expenses
 
-- **Local file:** `02_irs_2025_publication-503-dependent-care-expenses.pdf`
+- **Local file:** `irs-dependent-care-tax-guidance/2025-publication-503.pdf`
 - **Title:** Publication 503 (2025), Child and Dependent Care Expenses
 - **Organization:** U.S. Department of the Treasury, Internal Revenue Service
 - **Jurisdiction / market:** United States federal tax rules; 2025 tax returns
@@ -52,7 +52,7 @@ All files were retrieved on 2026-07-17. Each file was checked by file signature,
 
 ## 03 - Washington SEBB Charter Schools Salary Reduction Plan
 
-- **Local file:** `03_washington-sebb_2025_salary-reduction-plan-limited-purpose-fsa.pdf`
+- **Local file:** `washington-sebb-fsa-program/2025-plan-general-limited-purpose-dependent-care.pdf`
 - **Title:** State of Washington Salary Reduction Plan for the School Employees' Benefits Board: Charter Schools, Fifth Restatement
 - **Organization:** Washington State Health Care Authority / School Employees' Benefits Board (SEBB)
 - **Jurisdiction / market:** Washington charter-school employees; effective 2025-01-01
@@ -70,7 +70,7 @@ All files were retrieved on 2026-07-17. Each file was checked by file signature,
 
 ## 04 - WEX Flexible Spending Account Employee Guide
 
-- **Local file:** `04_wex_fsa-employee-guide.pdf`
+- **Local file:** `wex-fsa-program/employee-guide-medical-combination-dependent-care.pdf`
 - **Title:** Flexible Spending Account Employee Guide, Mercer Marketplace 365+
 - **Organization:** WEX Benefits You / Mercer Marketplace 365+
 - **Jurisdiction / market:** National employer-sponsored benefits administration
@@ -88,7 +88,7 @@ All files were retrieved on 2026-07-17. Each file was checked by file signature,
 
 ## 05 - New York City 2026 FSA Enrollment/Change Form
 
-- **Local file:** `05_nyc_2026_fsa-enrollment-change-form.pdf`
+- **Local file:** `nyc-fsa-program/2026-enrollment-change-form-health-care-dependent-care.pdf`
 - **Title:** Plan Year 2026 Enrollment/Change Form, Flexible Spending Accounts Program
 - **Organization:** City of New York Office of Labor Relations, Flexible Spending Accounts Program
 - **Jurisdiction / market:** New York City public employees; 2026 plan year

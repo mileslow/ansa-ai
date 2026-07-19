@@ -23,7 +23,7 @@ Retrieved: 2026-07-17
 - **Why this example is distinct:** This is a real public-employer plan that shows how an HRA is integrated with a group health plan. It contains detailed participation, reimbursement, forfeiture, COBRA, HIPAA, and plan-administration language rather than only a general HRA explanation.
 - **Source webpage URL:** https://www.cincinnati-oh.gov/finance/risk-management/
 - **Direct file URL:** https://www.cincinnati-oh.gov/sites/finance/assets/File/Risk/Integrated%20HRA%20Plan%20Doc%202020.pdf
-- **Local filename:** `01_city-of-cincinnati_integrated-hra-plan-spd.pdf`
+- **Local filename:** `city-of-cincinnati-integrated-hra/active-plan-spd.pdf`
 - **File metadata:** PDF 1.7; 466,366 bytes; 28 pages; U.S. Letter; tagged; not encrypted.
 - **SHA-256:** `1d2d3882c9c8055cf780ec8b402056552c6d05d4adbdc26dff333c71680de417`
 - **Fields it could populate in `BenefitsPackage`:** employer and plan names; section type; active/retiree status; HRA integration type; effective date; plan year; eligible employee classes; participation start/end rules; claims administrator and sponsor contacts; employer funding mechanics; eligible and excluded expenses; reimbursement sequencing; claim and appeal procedures; carryover/forfeiture rules; COBRA terms; HIPAA/privacy notices.
@@ -39,7 +39,7 @@ Retrieved: 2026-07-17
 - **Why this example is distinct:** Unlike the active-employee integrated HRA, this source describes a retiree-only arrangement, Medicare eligibility, annual employer subsidy funding, premium reimbursement, surviving-dependent treatment, and coordination with a private Medicare exchange.
 - **Source webpage URL:** https://www.jpmcbenefitsguide.com/
 - **Direct file URL:** https://www.jpmcbenefitsguide.com/content/dam/jpmorganchase/jpmc-benefits-guide/documents/jpm-0d5-ret-hra-print.pdf
-- **Local filename:** `02_jpmorgan-chase_medicare-retiree-hra-plan-spd.pdf`
+- **Local filename:** `jpmorgan-chase-medicare-retiree-hra/plan-spd.pdf`
 - **File metadata:** PDF 1.4; 1,264,576 bytes; 13 pages; U.S. Letter; tagged; not encrypted.
 - **SHA-256:** `870fe997266e33d0d08b01c88a4d15dc8cabe962e297217b52845cb816082ec5`
 - **Fields it could populate in `BenefitsPackage`:** employer and plan names; retiree/Medicare market; eligibility age and service rules; dependent eligibility; enrollment prerequisite; plan effective date; employer-paid status; funding timing and proration; eligible premiums and out-of-pocket expenses; carryover; reimbursement method; claims administrator; COBRA; rehire, divorce, and death rules; plan contacts and amendment disclaimer.
@@ -55,7 +55,7 @@ Retrieved: 2026-07-17
 - **Why this example is distinct:** This source defines the QSEHRA-specific employer and employee eligibility rules, same-terms requirement, statutory limits, written notice, minimum essential coverage proof, substantiation, reporting, premium-tax-credit coordination, and HSA interaction. A QSEHRA is not a group health plan, so it materially differs from the City integrated HRA and JPMorgan retiree HRA.
 - **Source webpage URL:** https://www.irs.gov/government-entities/federal-state-local-governments/where-can-i-learn-more-about-health-savings-accounts-hsa-and-health-reimbursement-arrangements-hra
 - **Direct file URL:** https://www.irs.gov/pub/irs-drop/n-17-67.pdf
-- **Local filename:** `03_irs_qsehra-notice-2017-67.pdf`
+- **Local filename:** `irs-qsehra-guidance/notice-2017-67.pdf`
 - **File metadata:** PDF 1.5; 215,830 bytes; 59 pages; U.S. Letter; tagged; not encrypted.
 - **SHA-256:** `89d21732d63d5caec8a7114e59b22f9db250479155ab53dcee652cb36b3322d9`
 - **Fields it could populate in `BenefitsPackage`:** HRA subtype; eligible-employer constraints; eligible and excluded employee classes; permitted-benefit methodology; family-status variation; plan-year and midyear proration concepts; reimbursable expense rules; MEC proof; substantiation requirements; written-notice requirements; W-2 reporting; premium tax credit coordination; HSA compatibility caveats.
@@ -71,7 +71,7 @@ Retrieved: 2026-07-17
 - **Why this example is distinct:** This is an employer-fillable communication template rather than a governing SPD. It exposes the specific facts needed to explain an ICHRA offer: allowance, family eligibility, dates, opt-out procedures, required individual coverage or Medicare, substantiation, special enrollment, and premium-tax-credit effects.
 - **Source webpage URL:** https://www.cms.gov/marketplace/private-health-insurance/health-reimbursement-arrangements
 - **Direct file URL:** https://www.cms.gov/files/document/cms-10704-hra-model-notice.pdf
-- **Local filename:** `04_cms_ichra-model-notice.pdf`
+- **Local filename:** `cms-ichra-guidance/model-notice.pdf`
 - **File metadata:** PDF 1.6; 157,709 bytes; 7 pages; U.S. Letter; tagged; AcroForm present; not encrypted.
 - **SHA-256:** `2a8407d914eb97c896bfcace7649cfdda33499b4dc1f3fcb97007b5d16d6a20d`
 - **Fields it could populate in `BenefitsPackage`:** HRA subtype; notice date; annual allowance and variation by family size or age; proration; dependent coverage; coverage and plan-year dates; funding availability dates; opt-out/forfeiture process; required individual coverage or Medicare; reimbursable-expense reference; substantiation procedure; employer HRA contact; Marketplace and premium-tax-credit disclosures.
@@ -87,7 +87,7 @@ Retrieved: 2026-07-17
 - **Why this example is distinct:** This source represents the operational layer that plan documents often omit. It explains how members pay, submit claims, provide documentation, receive reimbursement, retain receipts, use funds, and distinguish an HRA from an HSA or FSA.
 - **Source webpage URL:** https://www.optum.com/en/financial-services/health-reimbursement-arrangements.html
 - **Direct file URL:** https://my5.optum.com/content/dam/internal-resources/pdfs/employer-resources/faq-hra.pdf
-- **Local filename:** `05_optum_hra-reimbursement-administration-faq.pdf`
+- **Local filename:** `optum-hra-administration/faq.pdf`
 - **File metadata:** PDF 1.6; 745,677 bytes; 2 pages; U.S. Letter; tagged; not encrypted.
 - **SHA-256:** `ed2f0e1d4ee3420773a617695a4bb1bff86481968ce1cf163d8920207e0f0e29`
 - **Fields it could populate in `BenefitsPackage`:** account funding party; general eligible-expense categories; participant/dependent use; payment-card availability; out-of-pocket reimbursement channel; online/mobile claims process; required supporting documentation; receipt-retention guidance; rollover as a plan-dependent setting; comparison language for HRA, HSA, and FSA; administrator identity and member support concepts.

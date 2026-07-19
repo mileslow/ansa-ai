@@ -26,7 +26,7 @@ disclosure applicability and delivery remain a separate compliance workflow.
 The completed registry work created:
 
 - one definition for each of the 12 supported benefit types;
-- 338 required, conditional, and optional field requirements;
+- 339 required, conditional, and optional field requirements;
 - separate extraction, safe-booklet, and formal-disclosure gates;
 - explicit resolution states instead of treating every missing value as
   `null`;
@@ -649,7 +649,7 @@ Keep each slice deployable and tested:
     fallbacks.
 12. Enable release-gate live scenarios only after deterministic fixtures pass.
 
-Do not start by wiring all 338 paths directly into the renderer. Complete one
+Do not start by wiring all 339 paths directly into the renderer. Complete one
 benefit vertically from raw file to final quality report, then reuse that
 pattern.
 

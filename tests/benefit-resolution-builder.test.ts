@@ -327,6 +327,47 @@ describe("benefit requirement resolution wiring", () => {
     ).toMatchObject({ status: "known", value: "UnitedHealthcare" });
   });
 
+  it("retains every page of supporting evidence for a resolved value", () => {
+    const candidate = extracted(
+      "plan-a",
+      "current_plan_document",
+      "Acme PPO",
+      "plans.medical.financial.deductible",
+      { individual: 1000, family: 2000 },
+    );
+    candidate.supportingEvidence = [
+      {
+        ...candidate.evidence,
+        id: "plan-a:deductible:page-2",
+        locator: {
+          kind: "pdf",
+          page: 2,
+          quote: "Family deductible: $2,000",
+        },
+      },
+    ];
+    const subjects = buildBenefitRequirementSubjects({
+      companyId: "acme",
+      classifications: [classification("plan-a", "current_plan_document")],
+      candidates: [candidate],
+      manualAnswers: {},
+    });
+
+    expect(
+      subjects[0].resolutions["plans.medical.financial.deductible"],
+    ).toMatchObject({
+      status: "known",
+      evidence: [
+        expect.objectContaining({
+          locator: expect.objectContaining({ kind: "pdf", page: 1 }),
+        }),
+        expect.objectContaining({
+          locator: expect.objectContaining({ kind: "pdf", page: 2 }),
+        }),
+      ],
+    });
+  });
+
   it("uses current plan identity while retaining employer selection as offering proof", () => {
     const subjects = buildBenefitRequirementSubjects({
       companyId: "acme",

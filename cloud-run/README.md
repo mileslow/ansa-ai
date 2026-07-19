@@ -6,6 +6,8 @@ This container exposes the existing backend handlers at their current paths:
 - `POST /api/generate-booklet`
 - `POST /api/parse-plan`
 - `GET|POST /api/booklet-pipeline`
+- `POST /api/agentmail-webhook` (AgentMail/Svix-signed events)
+- `POST /api/agentmail-worker` (private queued email processing)
 - `GET /healthz`
 
 The frontend calls Cloud Run directly. During a Vercel build, the Vite plugin
@@ -29,6 +31,25 @@ Required Cloud Run environment:
 - `CORS_ALLOWED_ORIGINS`, comma-separated. Exact origins and wildcard entries
   are supported. Keep this limited to the production app, preview deployment
   pattern, and explicit local origins.
+- `AGENTMAIL_INBOX_ID`, the one personal inbox this agent is allowed to process.
+- `AGENTMAIL_TASK_QUEUE=ansa-email-agent`, `AGENTMAIL_TASK_LOCATION=us-east1`,
+  and `AGENTMAIL_WORKER_URL`, the permanent Cloud Run URL ending in
+  `/api/agentmail-worker`.
+
+The email agent also needs these Secret Manager values mounted as environment
+variables: `AGENTMAIL_API_KEY`, `AGENTMAIL_WEBHOOK_SECRET`, and
+`AGENTMAIL_WORKER_SECRET`. The webhook secret is the signing secret returned
+when the inbox-scoped AgentMail webhook is created. Never put any of these
+values in `env.yaml` or source control.
+
+Incoming AgentMail events are signature-verified against the exact raw request
+body, acknowledged quickly, and sent to Cloud Tasks. The worker uses a shared
+secret, a deterministic task ID, and a Firestore event lease to prevent
+duplicate replies. General messages and supported attachments go to the email
+LLM. Explicit benefits-booklet requests are persisted in the existing booklet
+thread store; missing required facts produce a polite email questionnaire, and
+later replies or source documents resume the same thread. A completed run is
+replied to with the generated PDF attached.
 
 `/api/booklet-pipeline` requires a Firebase ID token in the `Authorization:
 Bearer ...` header. Enable Anonymous authentication (or replace the frontend
@@ -40,6 +61,8 @@ performs this Firebase token verification itself.
 Optional environment:
 
 - `OPENAI_PLAN_MODEL` and `OPENAI_BOOKLET_CONTENT_MODEL`.
+- `OPENAI_EMAIL_MODEL`, default `gpt-5.4-mini`.
+- `AGENTMAIL_MAX_ATTACHMENT_BYTES`, default 45 MiB combined per incoming email.
 - `MAX_JSON_BODY_BYTES`, default 30 MiB inside the container. Cloud Run request
   limits still apply, so existing uploaded file IDs are preferable for large inputs.
 
@@ -51,6 +74,7 @@ These commands are documentation only; they are not run automatically.
 
 ```bash
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com --project flux-ebfb0
+gcloud services enable cloudtasks.googleapis.com --project flux-ebfb0
 
 gcloud artifacts repositories create ansa \
   --project flux-ebfb0 \
@@ -72,6 +96,8 @@ gcloud storage buckets add-iam-policy-binding gs://flux-ebfb0.firebasestorage.ap
 gcloud secrets add-iam-policy-binding OPENAI_API_KEY \
   --project flux-ebfb0 \
   --member "serviceAccount:${ANSA_RUNTIME_SA}" --role roles/secretmanager.secretAccessor
+gcloud projects add-iam-policy-binding flux-ebfb0 \
+  --member "serviceAccount:${ANSA_RUNTIME_SA}" --role roles/cloudtasks.enqueuer
 gcloud iam service-accounts add-iam-policy-binding "$ANSA_RUNTIME_SA" \
   --project flux-ebfb0 \
   --member "serviceAccount:${ANSA_RUNTIME_SA}" --role roles/iam.serviceAccountTokenCreator
@@ -98,6 +124,15 @@ gcloud run deploy ansa-booklet-backend \
   --timeout 900 \
   --max-instances 5 \
   --port 8080
+
+gcloud tasks queues create ansa-email-agent \
+  --project flux-ebfb0 \
+  --location us-east1 \
+  --max-concurrent-dispatches 1 \
+  --max-dispatches-per-second 1 \
+  --max-attempts 3 \
+  --min-backoff 10s \
+  --max-backoff 300s
 ```
 
 The runtime service account needs Firestore read/write, Storage object access,

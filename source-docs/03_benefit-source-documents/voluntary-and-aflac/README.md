@@ -22,7 +22,7 @@ This folder contains exactly five real, publicly accessible examples spanning fi
 - **Source webpage:** https://www.aflac.com/individuals/products/accident-insurance.aspx
 - **Direct file:** https://www.aflac.com/products/accident/docs/A36225CAW.pdf
 - **Retrieved:** 2026-07-17
-- **Local filename:** `01_aflac_california_accident_outline_of_coverage.pdf`
+- **Local filename:** `aflac-california-accident/outline-of-coverage.pdf`
 - **File metadata:** PDF 1.3; 496,945 bytes; 6 pages; US Letter
 - **SHA-256:** `ac44272538ffeea1c1bf18160e562e26fec8fb1c25e69138d698f6a85d84e327`
 - **Potential `BenefitsPackage` fields:** carrier; product type; jurisdiction; policy/form identifiers; supplemental/not-major-medical disclosure; wellness benefit; eligibility definitions; covered-person definitions; accident treatment benefits; emergency-room and office-visit amounts; hospital admission, confinement, ICU, ambulance, rehabilitation, surgical, injury, follow-up, accidental-death, and dismemberment benefits; benefit timing; exclusions; limitations; continuation/termination language; carrier contacts
@@ -39,7 +39,7 @@ This folder contains exactly five real, publicly accessible examples spanning fi
 - **Source webpage:** https://www.metlife.com/insurance/accident-health/critical-illness-insurance/
 - **Direct file:** https://www.metlife.com/content/dam/metlifecom/us/homepage/regional/critical-illness-insurance-benefit-overview.PDF
 - **Retrieved:** 2026-07-17
-- **Local filename:** `02_metlife_critical_illness_benefit_overview.pdf`
+- **Local filename:** `metlife-critical-illness/benefit-overview.pdf`
 - **File metadata:** PDF 1.7; 307,314 bytes; 5 pages; US Letter
 - **SHA-256:** `a6ee80f7ecbf39f4d9e30c76a022345c7f1e8693f8aa1825bb406bd099e08348`
 - **Potential `BenefitsPackage` fields:** carrier; product type; purpose/employee-facing description; covered illness categories; initial benefit; recurrence benefit; health-screening benefit; employee/spouse/child coverage; guaranteed-issue language; portability; benefit-use explanation; enrollment guidance; claim scenario; exclusions/disclosures; carrier contacts
@@ -56,7 +56,7 @@ This folder contains exactly five real, publicly accessible examples spanning fi
 - **Source webpage:** https://www.sunlife.com/us/en/employers/products-and-services/supplemental-health/
 - **Direct file:** https://www.sunlife.com/content/dam/sunlife/regional/usa/documents/hifl-9445-p.pdf
 - **Retrieved:** 2026-07-17
-- **Local filename:** `03_sun_life_hospital_indemnity_product_flyer.pdf`
+- **Local filename:** `sun-life-hospital-indemnity/low-and-high-options.pdf`
 - **File metadata:** PDF 1.4; 97,158 bytes; 2 pages; US Letter
 - **SHA-256:** `c93516d692b8e8c852493c10dfbfa7fff2aff4b50caf6caa7746334bb73a6cb9`
 - **Potential `BenefitsPackage` fields:** carrier; product type; plan level/name; first-day hospital amount; daily confinement amount and day maximum; ICU amount and day maximum; rehabilitation amount and day maximum; extended hospitalization amount and trigger; wellness benefit; covered confinement reasons; employee eligibility/hours; enrollment minimum; guaranteed-issue status; rate guarantee; portability; HSA compatibility; example claim calculations; policy form series; exclusions and state availability
@@ -73,7 +73,7 @@ This folder contains exactly five real, publicly accessible examples spanning fi
 - **Source webpage:** https://allstatevoluntary.com/scenrollmentCancer-wICU/
 - **Direct file:** https://allstatevoluntary.com/scenrollmentCancer-wICU/pdf/scenrollmentcancer-wicu_cancer.pdf
 - **Retrieved:** 2026-07-17
-- **Local filename:** `04_allstate_south_carolina_cancer_specified_disease.pdf`
+- **Local filename:** `south-carolina-cancer-specified-disease/three-plan-levels-enrollment-brochure.pdf`
 - **File metadata:** PDF 1.7; 216,510 bytes; 6 pages; US Letter
 - **SHA-256:** `839fa4554135a01e20e01472d5580fad3dcd1660adad009591a2273cebf2ee5c`
 - **Potential `BenefitsPackage` fields:** carrier/underwriter/marketing name; product type; jurisdiction; employee population; language; plan levels; employee/spouse/child/family tiers; monthly premiums; initial diagnosis; hospital confinement; government/charity hospital; private duty nursing; extended care; hospice; home nursing; radiation/chemotherapy; blood/plasma/platelets; hematologic drugs; imaging; surgery; anesthesia; transplant; outpatient surgery; second opinion; transportation; lodging; physical/speech therapy; experimental treatment; prostheses; anti-nausea medication; wellness; ICU; covered specified diseases; waiver of premium; eligibility ages; portability; limitations and exclusions
@@ -90,7 +90,7 @@ This folder contains exactly five real, publicly accessible examples spanning fi
 - **Source webpage:** https://trustmarkbenefits.com/voluntary-benefits/products/universal-life
 - **Direct file:** https://trustmarkbenefits.com/Trustmark-Benefits-Web/media/Files/VB/A112-129_PCUL.pdf
 - **Retrieved:** 2026-07-17
-- **Local filename:** `05_trustmark_universal_life_ltc_product_overview.pdf`
+- **Local filename:** `trustmark-universal-life-ltc/universal-life-and-lifeevents-options.pdf`
 - **File metadata:** PDF 1.4; 863,067 bytes; 3 pages; US Letter
 - **SHA-256:** `bc86a0abaec78c217daad11b58bb49e956059cc52b449ab763b32b9f7d2d4e02`
 - **Potential `BenefitsPackage` fields:** carrier; product type/subtype; product names; permanent-life status; death benefit; living benefit; long-term-care acceleration; terminal-illness benefit; death-benefit restoration; extension of long-term-care benefits; rider combinations; age-based benefit reductions; premium/cash-value flexibility; EZ Value increases; underwriting method; issue ages; smoker/gender assumptions; illustrative premium and face amounts; employee portability/ownership; exclusions/disclosures; policy/rider form identifiers; state variations

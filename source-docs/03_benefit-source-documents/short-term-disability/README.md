@@ -1,6 +1,6 @@
 # Short-Term Disability Source Documents
 
-Exactly five public, real short-term disability (STD) examples are included. They intentionally vary by funding model, jurisdiction, document depth, waiting period, benefit percentage, duration, and interaction with statutory leave.
+Six public, real short-term disability (STD) examples are included. They intentionally vary by funding model, jurisdiction, document depth, waiting period, benefit percentage, duration, and interaction with statutory leave.
 
 ## Coverage Matrix
 
@@ -11,6 +11,7 @@ Exactly five public, real short-term disability (STD) examples are included. The
 | 03 | New York Workers' Compensation Board | Statutory statement of rights and concise claim guide | State-mandated disability benefits | Benefits begin day 8; 50% up to $170/week; up to 26 weeks; explicit PFL coordination |
 | 04 | University of Hartford / Reliance Standard | Group weekly-income insurance certificate | Employer paid; employee contribution not required | Benefits begin after the greater of 5 days or service bank; 50% up to $1,500/week; 25 payable weeks |
 | 05 | University of California / Lincoln Financial | Two-page benefit summary | Employer-paid basic STD | 15-day/sick-leave wait; 55% up to $800/week in the PDF; 24 payable weeks; lists state/PFL offsets |
+| 06 | Caltech / Unum | Current group STD certificate | Contributory; employee-paid outside named statutory-disability states | Seven-day elimination period, 60% income replacement, partial-disability rules, claims, and appeals |
 
 ## 01 - Yale University Salary Continuation Program
 
@@ -23,7 +24,7 @@ Exactly five public, real short-term disability (STD) examples are included. The
 - **Source webpage:** https://your.yale.edu/working-at-yale/benefits/benefits-forms-documents/short-and-long-term-disability-forms-and-plan
 - **Direct file:** https://your.yale.edu/sites/default/files/2026-01/Yale_Hartford_ASO_STD_Plan_document.pdf
 - **Retrieved:** 2026-07-17
-- **Local filename:** `01_yale_hartford_employer_administered_std_plan.pdf`
+- **Local filename:** `yale-salary-continuation/employer-administered-plan.pdf`
 - **File metadata:** PDF 1.5; 140,527 bytes; 16 pages; US Letter (612 x 792 pt)
 - **SHA-256:** `69b2f720fdf5c9d0cd9e1bf97bdd862954e12e56b2dc0e77fe1f482dff2cc549`
 - **BenefitsPackage fields:** employer and program number; program effective date; funding arrangement; eligibility; injury/sickness waiting period; salary-replacement tiers; maximum duration; deductible income/offsets; partial-disability calculation; recurrent-disability rules; exclusions; claims-evaluator information; proof-of-loss and appeal rules.
@@ -41,7 +42,7 @@ Exactly five public, real short-term disability (STD) examples are included. The
 - **Source webpage:** https://www.utsystem.edu/documents/docs/publication/2023/short-term-disability-certificate
 - **Direct file:** https://www.utsystem.edu/sites/default/files/documents/publication/2023/short-term-disability-certificate/bcbstxstdcert20230901.pdf
 - **Retrieved:** 2026-07-17
-- **Local filename:** `02_ut_system_dearborn_voluntary_std_certificate.pdf`
+- **Local filename:** `ut-system-voluntary-std/dearborn-certificate.pdf`
 - **File metadata:** PDF 1.6; 565,012 bytes; 30 pages; US Letter (612 x 792 pt)
 - **SHA-256:** `c678cff7c568c9e7cf0d576c613f17da39942f53acd661f256a6f738701e59c2`
 - **BenefitsPackage fields:** carrier and policyholder; group policy number; employee class; eligibility; annual enrollment period; funding/contribution; benefit percentage and weekly maximum; injury/sickness elimination periods; maximum period payable; pre-existing-condition treatment; partial-disability/work-incentive rules; deductible income; exclusions; continuation and termination; claim submission and appeal details.
@@ -59,7 +60,7 @@ Exactly five public, real short-term disability (STD) examples are included. The
 - **Source webpage:** https://www.wcb.ny.gov/content/main/DisabilityBenefits/employee-disability-benefits.jsp
 - **Direct file:** https://www.wcb.ny.gov/content/main/forms/db271s.pdf
 - **Retrieved:** 2026-07-17
-- **Local filename:** `03_new_york_statutory_disability_statement_of_rights.pdf`
+- **Local filename:** `new-york-statutory-disability/statement-of-rights.pdf`
 - **File metadata:** PDF 1.7; 99,801 bytes; 1 page; US Letter (612 x 792 pt)
 - **SHA-256:** `0fa2c9288432d23825238c3e3125934cd23e67debbae5bacabb22db0fb935ba6`
 - **BenefitsPackage fields:** jurisdiction; statutory/mandatory status; covered cause; waiting period; benefit percentage and cap; duration; permitted employee contribution; PFL coordination; non-concurrency rule; combined leave maximum; claim form; filing deadline; payer; denial/rejection timing; regulator contact.
@@ -77,7 +78,7 @@ Exactly five public, real short-term disability (STD) examples are included. The
 - **Source webpage:** https://www.hartford.edu/about/offices-divisions/human-resources-development/employee-resources/benefits-policies-listing.aspx
 - **Direct file:** https://www.hartford.edu/about/offices-divisions/human-resources-development/_files/plan-documents/STD-CERT.pdf
 - **Retrieved:** 2026-07-17
-- **Local filename:** `04_university_hartford_reliance_group_std_certificate.pdf`
+- **Local filename:** `university-of-hartford-group-std/reliance-standard-certificate.pdf`
 - **File metadata:** PDF 1.7; 276,168 bytes; 37 pages; 396 x 612 pt
 - **SHA-256:** `a49198604b3441d226008afe21a576a6458b89f3ffdfc2bed765e6c593f305fc`
 - **BenefitsPackage fields:** carrier; policyholder; group policy number; eligible classes; eligibility waiting period; employee contribution; benefit percentage and cap; benefit start; service-bank interaction; maximum duration; partial-disability and rehabilitation rules; other-income offsets; exclusions; claim and appeal provisions; continuation and termination.
@@ -95,16 +96,27 @@ Exactly five public, real short-term disability (STD) examples are included. The
 - **Source webpage:** https://ucnet.universityofcalifornia.edu/benefits/health-welfare/disability/
 - **Direct file:** https://ucnet.universityofcalifornia.edu/forms/pdf/summary-basic-disability.pdf
 - **Retrieved:** 2026-07-17
-- **Local filename:** `05_university_california_lincoln_basic_disability_summary.pdf`
+- **Local filename:** `university-of-california-basic-disability/lincoln-summary.pdf`
 - **File metadata:** PDF 1.7; 798,019 bytes; 2 pages; US Letter (612 x 792 pt)
 - **SHA-256:** `e4a603438c16b680e19994cc949b8e52ee3c18ad311cbe98cfafb399fdb07ad2`
 - **BenefitsPackage fields:** carrier; employer; basic/voluntary designation; eligibility; funding/contribution; replacement percentage; weekly maximum; maximum benefit period; injury and illness elimination periods; sick-leave exhaustion; recurrent disability; pre-existing-condition status; exclusions; other-income offsets; state/PFL coordination; disclaimer and carrier contact.
 - **Verification:** `file` identifies a PDF; `pdfinfo` opens it and reports two pages; `pdftotext` confirms the employer-paid design, 55%/$800 benefit text, 24-week maximum, 15-day/sick-leave elimination period, and state/PFL offsets; page 1 rendered successfully and was visually inspected as a complete, legible benefit-summary table.
 - **Known limitations:** Poppler reports a malformed optional-content-group metadata warning, but the PDF opens, text extracts, both pages are counted, and page 1 renders correctly. Also, the current UCnet webpage describes the basic-plan cap differently from this downloaded summary; this is useful as a conflict-detection fixture, but plan-year facts must be reconciled against the controlling certificate/policy before booklet publication.
 
+## 06 - Caltech / Unum Short-Term Disability
+
+- **Direct file:** https://hr.caltech.edu/documents/7273/2026_Short_Term_Disability_STD_Certificate_Outside_of_CA.pdf
+- **Local filename:** `caltech-unum-std/2026-certificate.pdf`
+- **File metadata:** PDF 1.5; 43 pages; 180,216 bytes
+- **SHA-256:** `24791e0ce0bbc922b917325446aa425295487eda9906a109f61130e2ebbb24bb`
+- **Scope:** Governing contributory group STD certificate for eligible Caltech employees outside California, Hawaii, New Jersey, New York, and Rhode Island.
+- **Verification:** Text extraction identified Caltech, policy 943495 011, the STD-only schedule, 2026 dates, and employee contribution requirements. The Schedule of Benefits rendered correctly.
+
+Full provenance is in `docs/source-docs-valuable-benefit-additions.md`.
+
 ## Verification Notes
 
-- All five files are original public PDFs from government, employer, university, or official benefit-program domains.
+- All six files are original public PDFs from government, employer, university, or official benefit-program domains.
 - No file is HTML disguised as PDF; every file has a valid PDF signature and is recognized by `file` and `pdfinfo`.
 - Text was extracted from each file to confirm identity and relevant STD terms.
 - Page 1 of every PDF was rendered with Poppler and visually inspected for legibility and identity.

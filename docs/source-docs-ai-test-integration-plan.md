@@ -92,6 +92,49 @@ raw source corpus:
 As a result, the current suite verifies several downstream behaviors without
 proving that varied real-world files can reach those behaviors.
 
+### Known issues found by paid/live AI extraction tests
+
+The seeded dental and vision regression run on 2026-07-18 sampled four source
+documents and failed after 79.68 seconds with three critical findings. The
+NYSHIP dental certificate passed. The remaining failures represent production
+extraction defects; they are not acceptable expected failures:
+
+- **MetLife FEDVIP dental option collapse:** the brochure visibly defines
+  separate High and Standard options, each with Self Only, Self Plus One, and
+  Self and Family enrollment tiers. Extraction returned one generic MetLife
+  dental plan and did not preserve High and Standard as distinct plan options.
+  This was a plan-identity defect that could merge materially different
+  benefits. Fixed on 2026-07-18 with a focused plan-option index, deterministic
+  option-subject reconciliation, and a pinned paid regression that requires
+  exactly two page-1-backed identities with all three enrollment types.
+- **CalHR VSP conditional copay omission:** page 6 states that CCPOA Supervisors
+  enrolled in the Premier plan pay a $35 copay for the second-pair benefit.
+  Extraction preserved the Basic and Premier plan names but omitted this
+  conditional copay. It also inferred a Premier employee cost of zero from text
+  stating only that the state pays a portion equal to the Basic plan. That quote
+  does not support a zero employee cost.
+- **Washington PEBB vision comparison incompleteness:** extraction preserved
+  the Davis Vision by MetLife, EyeMed, and MetLife Vision identities but omitted
+  material values from the three-page comparison table, including eye-exam
+  costs, frame allowances, lens and progressive-lens costs, contact-lens
+  allowances and fitting fees, and related benefit limits. Earlier runs also
+  produced candidates whose evidence quotes did not support all combined
+  multi-page values.
+
+The paid test itself has one known reliability issue:
+
+- **LLM-judge false negatives are possible:** the latest judge did not report
+  the CalHR $35 omission even though the sampled page contained the term and the
+  structured extraction did not. Previous runs did report it. An LLM judge is
+  therefore useful for discovery but cannot be the sole pass/fail oracle for
+  these known facts.
+
+Keep the regression red until the extraction defects are fixed. Add pinned,
+deterministic assertions for the MetLife option identities, the conditional
+CalHR $35 copay and nonzero-cost safety rule, and the Washington per-option
+comparison fields and page-level evidence. The paid judge should remain as a
+second layer for finding new issues rather than replacing those assertions.
+
 ## Important codebase gaps found
 
 ### 1. The classification model is too narrow

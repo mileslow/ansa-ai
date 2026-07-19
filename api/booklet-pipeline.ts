@@ -1,10 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { createGenerationRun, runBookletPipeline } from "../lib/booklet-pipeline";
+import { createGenerationRun } from "../lib/booklet-pipeline";
+import {
+  executeBookletRun,
+  getBookletRunStatus,
+  presentBookletRun,
+} from "../lib/booklet-run-service";
 import { assertOwner, BookletAuthError, requireBookletUser } from "../lib/booklet-auth";
 import type {
   BookletGenerationRun,
-  BookletSectionArtifact,
-  PipelineEvent,
   UploadedFile,
 } from "../lib/booklet-types";
 import { generateCompanyProfile } from "../lib/company-profile.js";
@@ -14,20 +17,9 @@ import {
   createBookletThread,
   deleteUploadedFileFromThread,
   getBookletThread,
-  getExtractedFacts,
   getGenerationRun,
-  getPipelineEvents,
-  getSectionArtifacts,
   getUploadedFileRecords,
-  loadUploadedFiles,
-  pruneSectionArtifacts,
-  refreshGeneratedPdfUrl,
-  resetPipelineEvents,
-  saveGeneratedPdf,
   saveGenerationRun,
-  saveExtractedFacts,
-  savePipelineEvent,
-  saveSectionArtifact,
   storeUploadedFiles,
 } from "../lib/booklet-thread-store";
 
@@ -54,8 +46,20 @@ function decodeUploads(value: unknown) {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "application/vnd.ms-excel",
         "text/csv",
+        "application/csv",
+        "text/tab-separated-values",
+        "text/tsv",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+        "application/rtf",
+        "text/rtf",
+        "application/vnd.oasis.opendocument.text",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/vnd.ms-powerpoint",
         "message/rfc822",
         "text/plain",
+        "text/markdown",
+        "application/json",
       ].includes(mimeType)
     )
       throw new Error(`${upload.fileName} has an unsupported file type (${mimeType})`);
@@ -116,127 +120,6 @@ async function assertOwnedFiles(
   return files;
 }
 
-async function presentRun(run: BookletGenerationRun) {
-  if (run.status === "complete" && run.pdfStoragePath) {
-    return {
-      ...run,
-      pdfUrl: await refreshGeneratedPdfUrl(run.pdfStoragePath),
-    };
-  }
-  return run;
-}
-
-async function runStatusPayload(run: BookletGenerationRun) {
-  const [events, facts, sections] = await Promise.all([
-    getPipelineEvents(run.id),
-    getExtractedFacts(run.id),
-    getSectionArtifacts(run.id),
-  ]);
-  return { run: await presentRun(run), events, facts, sections };
-}
-
-async function executeRun(
-  run: BookletGenerationRun,
-  onEvent?: (event: PipelineEvent) => void | Promise<void>,
-  onArtifact?: (artifact: BookletSectionArtifact) => void | Promise<void>,
-) {
-  await resetPipelineEvents(run.id);
-  const files = await loadUploadedFiles(run.uploadedFileIds);
-  run.status = "processing";
-  run.error = null;
-  run.stages = [];
-  run.questions = [];
-  run.bookletOutline = null;
-  run.qualityReport = null;
-  run.pdfStoragePath = null;
-  run.pdfUrl = null;
-  run.completedAt = null;
-  run.sectionArtifactCount = 0;
-  await saveGenerationRun(run);
-  try {
-    const result = await runBookletPipeline({
-      runId: run.id,
-      companyId: run.companyId,
-      files,
-      answers: run.answers,
-      onEvent: async (event) => {
-        await savePipelineEvent(event);
-        await onEvent?.(event);
-      },
-      onArtifact: async (artifact) => {
-        await saveSectionArtifact(artifact);
-        await onArtifact?.(artifact);
-      },
-    });
-    run.questions = result.questions;
-    run.classifications = result.classifications;
-    run.benefitsPackageSnapshot = result.benefitsPackage;
-    run.requirementsSnapshot = result.benefitsPackage.requirements;
-    run.renderManifest = result.renderManifest || null;
-    run.claimLedger = result.content?.claims || [];
-    run.contentModel = result.content?.model || null;
-    run.qualityReport = result.qualityReport || null;
-    run.confidenceReport = result.benefitsPackage.confidenceReport;
-    run.extractedFactCount = result.facts.length;
-    run.sectionArtifactCount = result.artifacts.length;
-    run.bookletOutline = result.outline || null;
-    await pruneSectionArtifacts(
-      run.id,
-      result.artifacts.map((artifact) => artifact.id),
-    );
-    await saveExtractedFacts(run.id, result.facts);
-    if (result.status === "blocked") {
-      run.status = "blocked";
-      await saveGenerationRun(run);
-      await Promise.all(
-        result.questions.map((question) =>
-          addBookletMessage({
-            threadId: run.threadId,
-            role: "agent",
-            text: question.question,
-            attachmentFileIds: [],
-            kind: "question",
-          }),
-        ),
-      );
-      return run;
-    }
-    const stored = await saveGeneratedPdf({
-      run,
-      pdf: result.pdf!,
-      employerName: result.benefitsPackage.employer.name,
-    });
-    run.status = "complete";
-    run.questions = [];
-    run.bookletOutline = result.outline;
-    run.qualityReport = result.qualityReport || null;
-    run.pdfStoragePath = stored.storagePath;
-    run.pdfUrl = stored.url;
-    run.completedAt = new Date().toISOString();
-    await saveGenerationRun(run);
-    await addBookletMessage({
-      threadId: run.threadId,
-      role: "agent",
-      text: "The source-backed benefits booklet is complete.",
-      attachmentFileIds: [],
-      kind: "result",
-    });
-    return run;
-  } catch (error) {
-    run.status = "failed";
-    run.error = error instanceof Error ? error.message : "Booklet generation failed";
-    await saveGenerationRun(run);
-    await addBookletMessage({
-      threadId: run.threadId,
-      role: "agent",
-      text: run.error,
-      attachmentFileIds: [],
-      kind: "error",
-    });
-    throw error;
-  }
-}
-
 async function streamExecution(res: VercelResponse, run: BookletGenerationRun) {
   res.status(202);
   res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
@@ -248,7 +131,7 @@ async function streamExecution(res: VercelResponse, run: BookletGenerationRun) {
   };
   send({ type: "run", run });
   try {
-    const completed = await executeRun(
+    const completed = await executeBookletRun(
       run,
       (event) => {
         send({ type: "event", event });
@@ -257,7 +140,7 @@ async function streamExecution(res: VercelResponse, run: BookletGenerationRun) {
         send({ type: "section", section });
       },
     );
-    send({ type: "result", run: await presentRun(completed) });
+    send({ type: "result", run: await presentBookletRun(completed) });
   } catch (error) {
     send({
       type: "error",
@@ -401,9 +284,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
       await saveGenerationRun(run);
       if (wantsStream(input.stream)) return streamExecution(res, run);
-      const completed = await executeRun(run);
+      const completed = await executeBookletRun(run);
       return res.status(completed.status === "blocked" ? 202 : 200).json({
-        run: await presentRun(completed),
+        run: await presentBookletRun(completed),
       });
     }
 
@@ -451,9 +334,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
       if (wantsStream(input.stream)) return streamExecution(res, run);
-      const completed = await executeRun(run);
+      const completed = await executeBookletRun(run);
       return res.status(completed.status === "blocked" ? 202 : 200).json({
-        run: await presentRun(completed),
+        run: await presentBookletRun(completed),
       });
     }
 
@@ -463,7 +346,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const run = await getGenerationRun(String(input.runId));
       if (!run) return res.status(404).json({ error: "Generation run not found" });
       assertOwner(run.ownerId, user.uid);
-      return res.status(200).json(await runStatusPayload(run));
+      return res.status(200).json(await getBookletRunStatus(run));
     }
 
     if (action === "thread_status") {
@@ -477,7 +360,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const run = await getGenerationRun(thread.latestRunId);
       if (!run) return res.status(200).json({ thread, files, run: null, events: [], facts: [], sections: [] });
       assertOwner(run.ownerId, user.uid);
-      return res.status(200).json({ thread, files, ...(await runStatusPayload(run)) });
+      return res.status(200).json({ thread, files, ...(await getBookletRunStatus(run)) });
     }
 
     return res.status(400).json({

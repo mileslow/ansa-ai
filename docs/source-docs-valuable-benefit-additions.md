@@ -11,14 +11,14 @@ web page. All source files are preserved as downloaded.
 
 | Benefit area | Accepted subtype | Local destination |
 | --- | --- | --- |
-| Dental | Exact DHMO Schedule of Benefits / ADA-code copayment schedule | `dental/companion-schedules/01_western-dental_2026-california-state-dhmo-schedule-of-benefits.pdf` |
-| Life and AD&D | Employer group life and AD&D certificate / ERISA SPD | `life-and-add/governing-certificates/01_plexus-corp_unum-basic-life-and-add-certificate-2026.pdf` |
-| Short-term disability | Contributory group STD certificate | `short-term-disability/governing-certificates/01_caltech_unum-short-term-disability-certificate-2026.pdf` |
-| Long-term disability | Employer-paid group LTD certificate / ERISA SPD | `long-term-disability/governing-certificates/01_middlebury-college_unum-employer-paid-ltd-certificate-2026.pdf` |
-| Long-term disability | Employer-paid Core plus employee-paid Buy-Up LTD SPD with embedded carrier certificate | `long-term-disability/governing-certificates/02_university-of-missouri-system_metlife-core-buy-up-ltd-spd-and-certificate-2026.pdf` |
-| Vision | Full standalone vision certificate | `vision/governing-certificates/01_washington-hca-pebb_metlife-davis-vision-certificate-2026.pdf` |
-| Prescription and pharmacy | Standalone prescription-drug plan SPD | `prescription-and-pharmacy/benefit-summaries/01_kentucky-kehp_livingwell-ppo-prescription-drug-spd-2026.pdf` |
-| Prescription and pharmacy | PBM/member administration and claims guide | `prescription-and-pharmacy/member-and-claims-guides/01_new-jersey-shbp-sehbp_prescription-drug-member-guidebook-2026.pdf` |
+| Dental | Exact DHMO Schedule of Benefits / ADA-code copayment schedule | `dental/calhr-western-dental-2026/standard-dhmo/schedule-of-benefits.pdf` |
+| Life and AD&D | Employer group life and AD&D certificate / ERISA SPD | `life-and-add/plexus-corp-unum-basic-life-add/2026-certificate-spd.pdf` |
+| Short-term disability | Contributory group STD certificate | `short-term-disability/caltech-unum-std/2026-certificate.pdf` |
+| Long-term disability | Employer-paid group LTD certificate / ERISA SPD | `long-term-disability/middlebury-college-unum-employer-paid-ltd/2026-certificate-spd.pdf` |
+| Long-term disability | Employer-paid Core plus employee-paid Buy-Up LTD SPD with embedded carrier certificate | `long-term-disability/university-of-missouri-metlife-core-buy-up-ltd/2026-core-and-buy-up-certificate-spd.pdf` |
+| Vision | Full standalone vision certificate | `vision/washington-pebb-2026/davis-vision-by-metlife/certificate-of-coverage.pdf` |
+| Prescription and pharmacy | Standalone prescription-drug plan SPD | `prescription-and-pharmacy/kentucky-kehp-livingwell-ppo-rx/2026-prescription-drug-spd.pdf` |
+| Prescription and pharmacy | PBM/member administration and claims guide | `prescription-and-pharmacy/new-jersey-shbp-sehbp-rx/2026-member-guidebook.pdf` |
 
 ## 1. Western Dental 2026 Schedule of Benefits
 
@@ -187,7 +187,7 @@ web page. All source files are preserved as downloaded.
 - **Direct PDF:**
   https://extranet.personnel.ky.gov/KEHP/2026%20RX%20SPD%20LivingWell%20PPO.pdf
 - **Exact subtype:** Standalone prescription-drug plan Summary Plan Description.
-- **Bucket decision:** `prescription-and-pharmacy/benefit-summaries`. It defines
+- **Bucket decision:** `prescription-and-pharmacy/kentucky-kehp-livingwell-ppo-rx`. It defines
   pharmacy plan coverage and cost sharing; it is not a list of covered drugs and
   therefore does not belong under `formularies`.
 - **Distinct test value:** Exercises a pharmacy carve-out with plan definitions,
@@ -214,7 +214,7 @@ web page. All source files are preserved as downloaded.
   https://www.nj.gov/treasury/pensions/documents/guidebooks/hp0506.pdf
 - **Exact subtype:** Prescription Drug Plans Member Guidebook for SHBP and
   SEHBP, administered through OptumRx.
-- **Bucket decision:** `prescription-and-pharmacy/member-and-claims-guides`. It
+- **Bucket decision:** `prescription-and-pharmacy/new-jersey-shbp-sehbp-rx`. It
   explains use and administration of the pharmacy benefit; it is not a formulary
   and not a complete medical plan.
 - **Distinct test value:** Adds retail, mail-order, specialty, eligibility,

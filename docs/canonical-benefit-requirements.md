@@ -10,7 +10,7 @@ know for every supported benefit. It replaces scattered notions of "complete"
 with explicit fields, conditional dependencies, evidence rules, source
 authority, blocker codes, render policy, and cross-field invariants.
 
-It covers all 12 `BenefitType` values and 338 field requirements:
+It covers all 12 `BenefitType` values and 339 field requirements:
 
 | Benefit | Fields | Benefit | Fields |
 | --- | ---: | --- | ---: |
@@ -19,7 +19,7 @@ It covers all 12 `BenefitType` values and 338 field requirements:
 | Vision | 26 | LTD | 28 |
 | EAP | 18 | Voluntary products | 23 |
 | Telemedicine | 21 | HSA | 31 |
-| HRA | 39 | FSA | 39 |
+| HRA | 39 | FSA | 40 |
 
 The implementation is in `lib/benefit-requirements/`:
 
