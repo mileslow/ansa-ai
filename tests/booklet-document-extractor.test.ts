@@ -376,6 +376,88 @@ describe("booklet document extractor", () => {
     ]);
   });
 
+  it("rejects emergency warnings that add unsupported emergency language", async () => {
+    const parse = vi.fn().mockResolvedValue({
+      output_parsed: {
+        employer: { name: null, legalName: null, address: null, website: null },
+        planYear: { start: null, end: null, label: null },
+        eligibility: {
+          waitingPeriod: null,
+          description: null,
+          employeeClasses: [],
+        },
+        offeredBenefits: [],
+        selectedPlans: [],
+        contributions: [],
+        contacts: [],
+        accounts: [],
+        sectionOrder: [],
+        templateRole: "none",
+        extractionMethod: "pdf_text",
+        warnings: [],
+        documentPlanOptions: [
+          {
+            benefitType: "telemedicine",
+            planOrProgramName: "MDLIVE telemedicine program",
+            planOrProgramId: "MDLIVE",
+            enrollmentTypes: [],
+            page: 1,
+            quote: "Welcome to MDLIVE!",
+            confidence: 0.99,
+          },
+        ],
+        requirementCandidates: [
+          {
+            benefitType: "telemedicine",
+            planOrProgramName: "MDLIVE telemedicine program",
+            planOrProgramId: "MDLIVE",
+            path: "telemedicine.emergencyWarning",
+            state: "known",
+            value:
+              "May not substitute for in-person care; do not use for emergency services.",
+            valueJson: null,
+            rawValue:
+              "May not substitute for traditional in-person care in every case.",
+            reasonCode: null,
+            page: 1,
+            quote:
+              "May not substitute for traditional in-person care in every case.",
+            confidence: 0.96,
+          },
+        ],
+      },
+    });
+    const file: LoadedUploadedFile = {
+      id: "telemedicine-flyer",
+      companyId: "example",
+      fileName: "mdlive-flyer.pdf",
+      storagePath: "mdlive-flyer.pdf",
+      mimeType: "application/pdf",
+      uploadedAt: "2026-07-18T00:00:00.000Z",
+      sha256: "fixture",
+      processingStatus: "uploaded",
+      data: Buffer.from("pdf fixture"),
+    };
+    const result = await extractBookletDocument({
+      file,
+      classification: {
+        fileId: file.id,
+        documentType: "benefit_guide",
+        confidence: 0.99,
+        reasoningSummary: "Telemedicine flyer.",
+        benefitTypes: ["telemedicine"],
+        scope: "generic_reference",
+        authority: "generic_marketing",
+      },
+      client: { responses: { parse } } as any,
+    });
+
+    expect(result.requirementCandidates).toEqual([]);
+    expect(result.warnings).toContainEqual(
+      expect.stringContaining("an emergency warning needs a quote"),
+    );
+  });
+
   it("keeps only candidates allowed by the classified benefit contract", async () => {
     const candidate = (benefitType: "medical" | "hsa", path: string) => ({
       benefitType,
