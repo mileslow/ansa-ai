@@ -916,6 +916,18 @@ function requirementCandidates(
       return [];
     }
     if (
+      candidate.state === "known" &&
+      candidate.path === "telemedicine.emergencyWarning" &&
+      !/\b(?:emergenc\w*|911|crisis|suicid\w*|emergency room|nearest er)\b/i.test(
+        candidate.quote || "",
+      )
+    ) {
+      warnings.push(
+        `Rejected requirement candidate ${candidate.path}: an emergency warning needs a quote that explicitly mentions an emergency, crisis, 911, or equivalent emergency direction.`,
+      );
+      return [];
+    }
+    if (
       ["explicit_none", "not_applicable"].includes(candidate.state) &&
       /\b(?:not mentioned|not shown|not provided|no information|source is silent|silent on|supplied pages do not|document does not mention|no\b.{0,80}\b(?:is|are|was|were)?\s*(?:mentioned|shown|provided))\b/i.test(
         `${candidate.rawValue || ""} ${candidate.quote || ""}`,
