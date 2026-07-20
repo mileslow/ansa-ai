@@ -281,6 +281,55 @@ export default defineConfig(({ mode, command }) => {
         });
       },
     },
+    {
+      name: "local-broker-agent-api",
+      configureServer(server) {
+        server.middlewares.use("/api/broker-agent/turn", (req, res) => {
+          let body = "";
+          let tooLarge = false;
+          req.on("data", (chunk) => {
+            if (tooLarge) return;
+            body += chunk;
+            if (Buffer.byteLength(body) > 20 * 1024 * 1024) {
+              tooLarge = true;
+              res.statusCode = 413;
+              res.setHeader("Content-Type", "application/json");
+              res.end(JSON.stringify({ error: "Request body exceeds 20 MiB" }));
+            }
+          });
+          req.on("end", async () => {
+            if (tooLarge) return;
+            try {
+              req.bookletDevUserId = "local-booklet-studio";
+              req.body = body ? JSON.parse(body) : {};
+              req.query = {};
+              req.headers = req.headers || {};
+              res.status = (code) => {
+                res.statusCode = code;
+                return res;
+              };
+              res.json = (payload) => {
+                if (!res.headersSent)
+                  res.setHeader("Content-Type", "application/json; charset=utf-8");
+                res.end(JSON.stringify(payload));
+                return res;
+              };
+              const module = await server.ssrLoadModule("/api/broker-agent/turn.ts");
+              await module.default(req, res);
+            } catch (error) {
+              if (res.writableEnded) return;
+              res.statusCode = 500;
+              res.setHeader("Content-Type", "application/json");
+              res.end(
+                JSON.stringify({
+                  error: error.message || "Local broker agent API failed",
+                }),
+              );
+            }
+          });
+        });
+      },
+    },
   ],
   };
 });

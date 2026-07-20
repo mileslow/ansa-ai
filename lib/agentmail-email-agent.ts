@@ -16,6 +16,11 @@ import {
   storeUploadedFiles,
 } from "./booklet-thread-store";
 import { getAdminServices } from "./firebase-admin";
+import {
+  answersFromFollowup,
+  BOOKLET_INTAKE_QUESTIONS,
+  createAgentSession,
+} from "./broker-agent";
 
 export type AgentMailReceivedEvent = {
   type?: string;
@@ -36,6 +41,7 @@ type EmailThreadRecord = {
   companyId: string;
   bookletThreadId: string;
   bookletRunId?: string | null;
+  brokerAgentSessionId?: string | null;
   status: "open" | "processing" | "blocked" | "complete" | "failed";
   createdAt: string;
   updatedAt: string;
@@ -51,16 +57,6 @@ const IntentSchema = z.object({
   intent: z.enum(["benefits_booklet", "general"]),
   confidence: z.number().min(0).max(1),
   reason: z.string(),
-});
-
-const FollowupAnswersSchema = z.object({
-  answers: z.array(
-    z.object({
-      fieldPath: z.string(),
-      answerJson: z.string(),
-      evidence: z.string(),
-    }),
-  ),
 });
 
 const SUPPORTED_ATTACHMENT_MIMES = new Set([
@@ -118,52 +114,6 @@ const INTENT_PROMPT = `Classify the latest incoming email. Choose benefits_bookl
 sender is asking the agent to create, generate, revise, or continue an employee benefits booklet,
 benefits guide, or enrollment packet. Questions about benefits, general document analysis, and
 casual mentions of booklets are general. Attachment names are context, not proof of intent.`;
-
-const BOOKLET_INTAKE_QUESTIONS: BlockerQuestion[] = [
-  {
-    id: "email-intake-employer",
-    fieldPath: "employer.name",
-    question: "What employer name should appear on this booklet?",
-    reason: "The employer name is required on the cover.",
-    sourceRefs: [],
-    blocking: true,
-  },
-  {
-    id: "email-intake-plan-start",
-    fieldPath: "planYear.start",
-    question: "What is the plan-year start date?",
-    reason: "The plan-year start date is required on the cover.",
-    sourceRefs: [],
-    blocking: true,
-    expectedAnswerKind: "date_or_period",
-  },
-  {
-    id: "email-intake-plan-end",
-    fieldPath: "planYear.end",
-    question: "What is the plan-year end date?",
-    reason: "The plan-year end date is required on the cover.",
-    sourceRefs: [],
-    blocking: true,
-    expectedAnswerKind: "date_or_period",
-  },
-  {
-    id: "email-intake-eligibility",
-    fieldPath: "eligibility.waitingPeriod",
-    question: "What eligibility waiting period should employees see in the booklet?",
-    reason: "Employees need the eligibility rule.",
-    sourceRefs: [],
-    blocking: true,
-  },
-  {
-    id: "email-intake-plans",
-    fieldPath: "plans.selected",
-    question: "Which current plans should be included in this booklet?",
-    reason: "The current employer-selected plans must be identified.",
-    sourceRefs: [],
-    blocking: true,
-    expectedAnswerKind: "list_or_schedule",
-  },
-];
 
 const safeText = (value: unknown, limit = 120_000) =>
   String(value || "").replace(/\u0000/g, "").trim().slice(0, limit);
@@ -383,66 +333,6 @@ function emailEvidence(message: {
   };
 }
 
-function parseAnswerJson(value: string) {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return value.trim();
-  }
-}
-
-async function answersFromFollowup({
-  subject,
-  body,
-  attachmentFileNames,
-  questions,
-  client = openAIClient(),
-}: {
-  subject: string;
-  body: string;
-  attachmentFileNames: string[];
-  questions: BlockerQuestion[];
-  client?: Pick<OpenAI, "responses">;
-}) {
-  if (!questions.length) return {};
-  const questionContract = questions.map((question) => ({
-    fieldPath: question.fieldPath,
-    question: question.question,
-    options: question.options || [],
-    expectedAnswerKind: question.expectedAnswerKind || "text",
-    specialShape:
-      question.fieldPath === "plans.selected"
-        ? "JSON array of {planName, benefitType, carrier?} objects"
-        : question.fieldPath.startsWith("contributions.")
-          ? "JSON object {mode: percent|flat_monthly|flat_per_pay, value: number, payPeriods?: number}"
-          : undefined,
-  }));
-  const response = await client.responses.parse({
-    model: process.env.OPENAI_EMAIL_MODEL || "gpt-5.4-mini",
-    reasoning: { effort: "low" },
-    input: [
-      {
-        role: "system",
-        content:
-          "Extract only answers explicitly stated in the latest email. Map them only to the supplied fieldPath values. Never guess. answerJson must be valid JSON representing the answer. Omit unanswered questions. Attachment names do not prove their contents.",
-      },
-      {
-        role: "user",
-        content: `Blocking questions:\n${JSON.stringify(questionContract)}\n\nLatest subject: ${subject}\nAttachments: ${attachmentFileNames.join(", ") || "none"}\n\nLatest email:\n${body}`,
-      },
-    ],
-    text: {
-      format: zodTextFormat(FollowupAnswersSchema, "booklet_followup_answers"),
-    },
-  });
-  const allowed = new Set(questions.map((question) => question.fieldPath));
-  return Object.fromEntries(
-    (response.output_parsed?.answers || [])
-      .filter((answer) => allowed.has(answer.fieldPath))
-      .map((answer) => [answer.fieldPath, parseAnswerJson(answer.answerJson)]),
-  );
-}
-
 function emailThreadRecordId(inboxId: string, threadId: string) {
   return stableId(`${inboxId}:${threadId}`);
 }
@@ -466,6 +356,12 @@ async function createEmailThreadRecord(inboxId: string, agentmailThreadId: strin
   const ownerId = `agentmail:${inboxId}`;
   const companyId = `email-${stableId(agentmailThreadId, 24)}`;
   const thread = await createBookletThread(companyId, ownerId);
+  const brokerSession = await createAgentSession({
+    ownerId,
+    companyId,
+    channel: "email",
+    bookletThreadId: thread.id,
+  });
   const now = new Date().toISOString();
   const record: EmailThreadRecord = {
     id,
@@ -475,6 +371,7 @@ async function createEmailThreadRecord(inboxId: string, agentmailThreadId: strin
     companyId,
     bookletThreadId: thread.id,
     bookletRunId: null,
+    brokerAgentSessionId: brokerSession.id,
     status: "open",
     createdAt: now,
     updatedAt: now,

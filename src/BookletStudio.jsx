@@ -156,6 +156,7 @@ export default function BookletStudio({
   companies = [],
   onSelectCompany,
   onOpenCompanies,
+  onOpenBrokerAgent,
   onUpdateCompany,
   onCreateCompany,
 }) {
@@ -330,6 +331,7 @@ export default function BookletStudio({
           setNewCompanyOpen(true);
         }}
         onHome={onOpenCompanies}
+        onOpenBrokerAgent={() => onOpenBrokerAgent?.(company?.id)}
         colorPickerEnabled={colorPickerEnabled}
         accentColor={accentColor}
         onAccentColorChange={setAccentColor}
@@ -447,7 +449,7 @@ export default function BookletStudio({
   );
 }
 
-function CompanySidebar({ companies, selectedCompanyId, onSelect, onCreate, onHome, colorPickerEnabled, accentColor, onAccentColorChange }) {
+function CompanySidebar({ companies, selectedCompanyId, onSelect, onCreate, onHome, onOpenBrokerAgent, colorPickerEnabled, accentColor, onAccentColorChange }) {
   const [query, setQuery] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const normalizedQuery = query.trim().toLowerCase();
@@ -482,6 +484,9 @@ function CompanySidebar({ companies, selectedCompanyId, onSelect, onCreate, onHo
         {!filteredCompanies.length && <p>No companies found</p>}
       </nav>
       <div className="bs-company-sidebar__foot">
+        <button type="button" onClick={onOpenBrokerAgent}>
+          <Sparkles /><span><b>Broker agent</b><small>Voice-ready booklet chat demo</small></span>
+        </button>
         <button className={settingsOpen ? "active" : ""} onClick={() => colorPickerEnabled && setSettingsOpen((open) => !open)} aria-expanded={colorPickerEnabled ? settingsOpen : undefined}>
           <Settings /><span><b>Settings</b><small>Workspace and appearance</small></span>
         </button>

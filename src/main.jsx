@@ -46,6 +46,7 @@ import {
 import { db, storage } from "./firebase";
 import AddCompany from "./AddCompany";
 import BookletStudio from "./BookletStudio";
+import BrokerAgentDemo from "./BrokerAgentDemo";
 import "./styles.css";
 import "./inline.css";
 import "./add-company.css";
@@ -118,6 +119,16 @@ function App() {
     };
   }, []);
   if (loading) return <Loading />;
+  if (route[0] === "broker-agent") {
+    const company = companies.find((c) => c.id === route[1]);
+    return (
+      <BrokerAgentDemo
+        companyId={company?.id || route[1] || ""}
+        companyName={company?.name || ""}
+        onBack={() => go(company ? `/companies/${company.id}` : "/", setRoute)}
+      />
+    );
+  }
   let ordered = [...companies].sort((a, b) =>
       a.renewalDate.localeCompare(b.renewalDate),
     ),
@@ -141,6 +152,9 @@ function App() {
       companies={ordered}
       onSelectCompany={(companyId) => go(`/companies/${companyId}`, setRoute)}
       onOpenCompanies={() => go("/", setRoute)}
+      onOpenBrokerAgent={(companyId) =>
+        go(companyId ? `/broker-agent/${companyId}` : "/broker-agent", setRoute)
+      }
       onUpdateCompany={update}
       onCreateCompany={add}
     />

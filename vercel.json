@@ -3,6 +3,14 @@
     {
       "source": "/companies/:path*",
       "destination": "/index.html"
+    },
+    {
+      "source": "/broker-agent",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/broker-agent/:path*",
+      "destination": "/index.html"
     }
   ]
 }

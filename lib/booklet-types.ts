@@ -58,7 +58,13 @@ export type UploadedFile = {
   uploadedAt: string;
   sha256: string;
   processingStatus: ProcessingStatus;
-  sourceKind?: "file_upload" | "company_website" | "thread_message";
+  sourceKind?:
+    | "file_upload"
+    | "company_website"
+    | "thread_message"
+    | "company_library"
+    | "mailbox_message"
+    | "mailbox_attachment";
   sourceUrl?: string | null;
   intakeCategory?: "employer" | "rates" | "documents" | "template" | "census" | "instructions";
 };
