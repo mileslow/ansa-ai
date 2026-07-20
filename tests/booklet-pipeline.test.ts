@@ -197,6 +197,7 @@ describe("booklet agent pipeline", () => {
     const pipeline = runBookletPipeline({
       runId: "run-incremental",
       companyId: "big-tows",
+      enforceRegistry: false,
       files: [employerFile, dentalPlanFile],
       dependencies: {
         classify: async (file) =>
