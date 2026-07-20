@@ -327,7 +327,10 @@ imputed income, or taxable benefits.
 
 For disability, always capture a visible benefit formula, weekly/monthly cap, elimination period,
 and maximum duration. For FSA/HSA/HRA, capture participant administrative fees with their units and
-frequency. For dental multi-option sources, documentPlanOptions must contain separate subjects for
+frequency. For HRA sources, capture every separately named supplemental benefit, including its total
+pool or per-participant amount, triggering threshold, year, allocation rule, eligible expenses,
+exclusions, claim deadline, and reimbursement instructions. For dental multi-option sources,
+documentPlanOptions must contain separate subjects for
 every named option such as the MetLife Federal Dental Plan High Option and Standard Option; attach
 their Self Only, Self Plus One, and Self and Family variants as enrollmentTypes. For vision
 comparison tables, scan every supplied page and capture each option's

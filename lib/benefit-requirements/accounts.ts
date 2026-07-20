@@ -1484,6 +1484,24 @@ export const hraRequirements: BenefitRequirementDefinition = {
       renderPolicy: "render",
     }),
     field({
+      id: "hra.supplemental_benefits",
+      path: "hra.supplementalBenefits",
+      label: "Supplemental benefits administered with the HRA",
+      description:
+        "Every separately named supplemental benefit tied to the HRA, preserving its benefit type, total or per-participant amount, threshold, effective period, allocation basis, eligible expenses, exclusions, claim deadline, and reimbursement instructions.",
+      levels: {
+        complete_extraction: "optional",
+        safe_booklet: "optional",
+        formal_disclosure: "optional",
+      },
+      material: true,
+      evidenceRequired: true,
+      acceptedAuthorities: [...planAuthorities, "administrator_material"],
+      validatorIds: ["supplemental_benefit_amounts_and_qualifiers_complete"],
+      blockerCode: "HRA_SUPPLEMENTAL_BENEFIT_INCOMPLETE",
+      renderPolicy: "render",
+    }),
+    field({
       id: "hra.formal.claims_and_appeals_reference",
       path: "hra.formal.claimsAndAppealsReference",
       label: "HRA formal claims and appeals procedure",

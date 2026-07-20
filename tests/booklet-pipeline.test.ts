@@ -420,6 +420,58 @@ describe("booklet agent pipeline", () => {
     expect(result.html).toContain("Hartford Life and Accident Insurance Company");
   }, 15_000);
 
+  it("extracts a benefit-bearing source even when its coarse document role is unknown", async () => {
+    const unknownVisionFile: LoadedUploadedFile = {
+      ...employerFile,
+      id: "unknown-vision-source",
+      fileName: "carrier-document-2026.pdf",
+      storagePath: "fixtures/carrier-document-2026.pdf",
+    };
+    const extractDocument = vi.fn(async () => ({
+      ...employerExtraction(null),
+      fileId: unknownVisionFile.id,
+      fileName: unknownVisionFile.fileName,
+      documentType: "unknown" as const,
+      employer: { name: null, legalName: null, address: null, website: null },
+      planYear: { start: null, end: null, label: null },
+      eligibility: {
+        waitingPeriod: null,
+        description: null,
+        employeeClasses: [],
+      },
+      offeredBenefits: [],
+      selectedPlans: [],
+      requirementCandidates: [],
+    }));
+
+    await runBookletPipeline({
+      runId: "run-unknown-vision-source",
+      companyId: "acme",
+      enforceRegistry: false,
+      files: [unknownVisionFile],
+      dependencies: {
+        classify: async () => ({
+          fileId: unknownVisionFile.id,
+          documentType: "unknown",
+          confidence: 0.74,
+          reasoningSummary:
+            "The source contains vision benefits but its exact document role is unclear.",
+          benefitTypes: ["vision"],
+          documentSubtype: "vision benefit source",
+          scope: "generic_reference",
+          authority: "administrator_material",
+          employerOrGroupId: null,
+          planOrProgramIds: [],
+          effectiveStart: null,
+          effectiveEnd: null,
+        }),
+        extractDocument,
+      },
+    });
+
+    expect(extractDocument).toHaveBeenCalledOnce();
+  });
+
   it("blocks an enriched ancillary source when only an offered flag and plan name were extracted", async () => {
     const stdFile: LoadedUploadedFile = {
       ...employerFile,

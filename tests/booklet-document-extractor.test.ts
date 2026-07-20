@@ -1080,8 +1080,8 @@ describe("booklet document extractor", () => {
     const file: LoadedUploadedFile = {
       id: "vision-comparison-repair",
       companyId: "pebb",
-      fileName: "benefits-comparison.pdf",
-      storagePath: "benefits-comparison.pdf",
+      fileName: "hca-50-0108.pdf",
+      storagePath: "hca-50-0108.pdf",
       mimeType: "application/pdf",
       uploadedAt: "2026-07-18T00:00:00.000Z",
       sha256: "fixture",
