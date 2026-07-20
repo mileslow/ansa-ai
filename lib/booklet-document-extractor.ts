@@ -39,7 +39,7 @@ const EvidenceTextSchema = z.object({
 const OptionalEvidenceTextSchema = EvidenceTextSchema.nullable();
 
 const DocumentPlanOptionSchema = z.object({
-  benefitType: z.enum(["medical", "dental", "vision"]),
+  benefitType: BenefitTypeSchema,
   planOrProgramName: z.string().min(1),
   planOrProgramId: z.string().min(1).nullable(),
   enrollmentTypes: z.array(z.string().min(1)),
@@ -52,6 +52,10 @@ export type DocumentPlanOption = z.infer<typeof DocumentPlanOptionSchema>;
 
 const DocumentPlanOptionIndexSchema = z.object({
   documentPlanOptions: z.array(DocumentPlanOptionSchema),
+});
+
+const RequirementCandidateRepairSchema = z.object({
+  requirementCandidates: z.array(RequirementCandidateOutputSchema),
 });
 
 const VisionSchedulePathSchema = z.enum([
@@ -297,12 +301,15 @@ only for an explicit source statement and an allowed reason code. Never make a l
 Every known material candidate needs a page and short supporting quote.
 
 Before requirementCandidates, build documentPlanOptions as the source's entity index. Include one
-entry for each distinct medical, dental, or vision plan option visible in the supplied document,
-including single-option documents. planOrProgramName must contain the exact product and option name
+entry for each distinct plan, account, program, or product option visible in the supplied document,
+including single-option documents and separate STD/LTD, life/AD&D, voluntary, and account programs.
+planOrProgramName must contain the exact product and option name
 needed to distinguish it from every sibling option. Enrollment types or coverage tiers (for example,
 Self Only, Self Plus One, and Self and Family) belong in enrollmentTypes under their plan option;
 they are not separate plan options. Use a direct identity quote and its page. Then use those exact
 documentPlanOptions names as planOrProgramName on every corresponding requirement candidate.
+Regulatory publications describe arrangement types but are not themselves employer plan options;
+do not index hypothetical or generic regulatory examples as documentPlanOptions.
 
 offeredBenefits and selectedPlans mean an employer actually offers or selected the benefit/plan.
 Never populate either from a plan document, SBC, certificate, carrier brochure, or compatibility
@@ -313,7 +320,10 @@ including camelCase and [] markers; never translate paths to snake_case or kebab
 clearly visible material formula, maximum, duration, frequency, dollar cap, and option-specific rate
 on the supplied pages, even when the source authority cannot prove an employer offering. Never call
 coverage employer-paid, employee-paid, contributory, or noncontributory unless the supporting quote
-explicitly states who pays or uses that exact funding term.
+explicitly states who pays or uses that exact funding term. Funding labels such as shared or contributory
+are not product subtypes. A premium contribution statement does not establish benefit taxability; emit a
+taxabilityBasis candidate only when the quote explicitly addresses taxes, pre-tax/after-tax treatment,
+imputed income, or taxable benefits.
 
 For disability, always capture a visible benefit formula, weekly/monthly cap, elimination period,
 and maximum duration. For FSA/HSA/HRA, capture participant administrative fees with their units and
@@ -464,6 +474,13 @@ function indexedPlanOptions(
   classification: ClassifiedDocument,
 ) {
   const warnings: string[] = [];
+  if (classification.authority === "regulatory_source") {
+    if (parsed.documentPlanOptions.length)
+      warnings.push(
+        `Rejected ${parsed.documentPlanOptions.length} regulatory concept(s) from the plan-option index because regulatory guidance does not establish plan entities.`,
+      );
+    return { options: [], warnings };
+  }
   const seen = new Set<string>();
   const filtered = parsed.documentPlanOptions.filter((option) => {
     if (!benefitAllowedForDocument(option.benefitType, file, classification)) {
@@ -735,6 +752,7 @@ function reconcilePlanOptionCandidates(
   options: DocumentPlanOption[],
   file: LoadedUploadedFile,
   classification: ClassifiedDocument,
+  warnings: string[] = [],
 ) {
   const indexed = new Map<BenefitType, DocumentPlanOption[]>();
   for (const option of options) {
@@ -752,7 +770,30 @@ function reconcilePlanOptionCandidates(
     const siblings = indexed.get(candidate.subjectHint.benefitType) || [];
     if (!siblings.length) return [candidate];
     const matches = matchingPlanOptions(candidate, siblings);
-    const targets = matches.length ? matches : siblings;
+    const isCoreIdentity =
+      ["medical", "dental", "vision"].includes(
+        candidate.subjectHint.benefitType,
+      ) &&
+      candidate.path ===
+        `plans.${candidate.subjectHint.benefitType}.identity.planName`;
+    const sharedCorePath =
+      ["medical", "dental", "vision"].includes(
+        candidate.subjectHint.benefitType,
+      ) &&
+      /\.identity\.(?:carrierOrAdministrator|coveragePeriod|planDesign)$|\.contacts\.memberServices$|\.documents\.governingTerms$/.test(
+        candidate.path,
+      );
+    const targets = matches.length
+      ? matches
+      : siblings.length === 1 || isCoreIdentity || sharedCorePath
+        ? siblings
+        : [];
+    if (!targets.length) {
+      warnings.push(
+        `Rejected requirement candidate ${candidate.path}: its subject ${candidate.subjectHint.planOrProgramName || "was unnamed"} could not be matched unambiguously to ${siblings.length} indexed ${candidate.subjectHint.benefitType} options.`,
+      );
+      return [];
+    }
     return targets.map((option) => {
       const index =
         optionIndex.get(
@@ -796,6 +837,8 @@ function reconcilePlanOptionCandidates(
   });
 
   for (const [index, option] of options.entries()) {
+    if (!["medical", "dental", "vision"].includes(option.benefitType))
+      continue;
     const path = `plans.${option.benefitType}.identity.planName`;
     const exists = reconciled.some(
       (candidate) =>
@@ -873,6 +916,53 @@ function requirementCandidates(
       return [];
     }
     if (
+      ["explicit_none", "not_applicable"].includes(candidate.state) &&
+      /\b(?:not mentioned|not shown|not provided|no information|source is silent|silent on|supplied pages do not|document does not mention|no\b.{0,80}\b(?:is|are|was|were)?\s*(?:mentioned|shown|provided))\b/i.test(
+        `${candidate.rawValue || ""} ${candidate.quote || ""}`,
+      )
+    ) {
+      warnings.push(
+        `Rejected requirement candidate ${candidate.path}: source silence cannot establish ${candidate.state}.`,
+      );
+      return [];
+    }
+    if (
+      candidate.state === "known" &&
+      /\.(?:productSubtype)$/.test(candidate.path) &&
+      /^(?:shared|employer[- ]paid|employee[- ]paid|contributory|noncontributory|cost[- ]sharing)$/i.test(
+        candidateValue.trim(),
+      )
+    ) {
+      warnings.push(
+        `Rejected requirement candidate ${candidate.path}: a funding label is not a product subtype.`,
+      );
+      return [];
+    }
+    if (
+      candidate.state === "known" &&
+      /\.taxabilityBasis$/.test(candidate.path) &&
+      !/\b(?:tax|taxable|pre[- ]?tax|post[- ]?tax|after[- ]?tax|imputed income|internal revenue|irc)\b/i.test(
+        candidate.quote || "",
+      )
+    ) {
+      warnings.push(
+        `Rejected requirement candidate ${candidate.path}: a contribution statement alone does not establish taxability.`,
+      );
+      return [];
+    }
+    if (
+      candidate.state === "known" &&
+      /\.effectivePeriod$/.test(candidate.path) &&
+      !/\b(?:20\d{2}|19\d{2}|january|february|march|april|may|june|july|august|september|october|november|december|effective\s+(?:date|on)|begins?|ends?|through|anniversary)\b/i.test(
+        `${candidateValue} ${candidate.quote || ""}`,
+      )
+    ) {
+      warnings.push(
+        `Rejected requirement candidate ${candidate.path}: a period label without a date or effective-date rule is not an effective period.`,
+      );
+      return [];
+    }
+    if (
       candidate.state === "known" &&
       /\.rates\.employeeCost$/.test(candidate.path) &&
       claimsZeroEmployeeCost(parsedValue(candidate)) &&
@@ -898,6 +988,18 @@ function requirementCandidates(
     const requirement = BENEFIT_REQUIREMENTS_REGISTRY[candidate.benefitType].fields.find(
       (field) => field.path === candidate.path,
     );
+    if (
+      !file.textContent &&
+      candidate.state !== "not_found" &&
+      requirement?.material &&
+      requirement.evidenceRequired &&
+      (!candidate.page || !candidate.quote?.trim())
+    ) {
+      warnings.push(
+        `Rejected requirement candidate ${candidate.path}: a material PDF fact needs an in-range page and supporting quote.`,
+      );
+      return [];
+    }
     if (
       candidate.state !== "not_found" &&
       requirement &&
@@ -978,12 +1080,14 @@ function requirementCandidates(
     planOptions.options,
     file,
     classification,
+    warnings,
   );
   const focused = reconcilePlanOptionCandidates(
     focusedVisionCandidates,
     planOptions.options,
     file,
     classification,
+    warnings,
   );
   const focusedKeys = new Set(
     focused.map(
@@ -1024,6 +1128,7 @@ function fileContent(file: LoadedUploadedFile) {
 }
 
 function needsPlanOptionIndex(classification: ClassifiedDocument) {
+  if (classification.authority === "regulatory_source") return false;
   if (
     [
       "company_website",
@@ -1033,9 +1138,7 @@ function needsPlanOptionIndex(classification: ClassifiedDocument) {
     ].includes(classification.documentType)
   )
     return false;
-  return (classification.benefitTypes || []).some((benefitType) =>
-    ["medical", "dental", "vision"].includes(benefitType),
-  );
+  return Boolean((classification.benefitTypes || []).length);
 }
 
 async function discoverDocumentPlanOptions({
@@ -1056,7 +1159,7 @@ async function discoverDocumentPlanOptions({
     input: [
       {
         role: "system",
-        content: `You identify medical, dental, and vision plan-option entities in an employee-benefit source.
+        content: `You identify every plan, account, program, and product-option entity in an employee-benefit source.
 This is an entity-indexing task, not a general summary. Inspect every supplied page before answering.
 Return exactly one documentPlanOptions entry per distinct product or benefit-design option, including
 the only option in a single-option source. Never return only a carrier, program, or parent product when
@@ -1064,12 +1167,18 @@ named child options are visible. Never turn enrollment types or coverage tiers i
 attach them to their parent option as enrollmentTypes. Names must combine enough visible parent-product
 and option wording to remain unique outside this document. Each identity needs a direct quote and page.
 
+For combined sources, keep different benefit families separate (for example, one STD program and one
+LTD program). Preserve named life/AD&D choices, Core versus Buy-Up disability, Low versus High voluntary
+options, and distinct HSA/HRA/FSA arrangements when the source presents them as selectable designs.
+Do not turn service categories, benefit amounts, employee classes, network tiers, enrollment tiers,
+dependent tiers, riders, notices, translations, or claim forms into plan options.
+
 Example: a MetLife Federal Dental Plan source that lists High Option - Self Only, High Option - Self Plus
 One, High Option - Self and Family, followed by the same three enrollment types for Standard Option has
 exactly two documentPlanOptions: MetLife Federal Dental Plan High Option and MetLife Federal Dental Plan
 Standard Option. Each entry has the three Self enrollment types. It does not have one generic MetLife
 option, and it does not have six plan options. Use only visible evidence; return an empty array when the
-source genuinely contains no medical, dental, or vision plan identity.`,
+source genuinely contains no plan, account, program, or product identity.`,
       },
       {
         role: "user",
@@ -1106,12 +1215,14 @@ async function discoverVisionScheduleCandidates({
   documentPlanOptions,
   client,
   model,
+  repairIncomplete = true,
 }: {
   file: LoadedUploadedFile;
   classification: ClassifiedDocument;
   documentPlanOptions: DocumentPlanOption[];
   client: Pick<OpenAI, "responses">;
   model: string;
+  repairIncomplete?: boolean;
 }) {
   if (!(classification.benefitTypes || []).includes("vision")) return [];
   const response = await client.responses.parse({
@@ -1170,6 +1281,8 @@ cost and must not appear in these schedules. Return no candidate for a path abse
   if (!response.output_parsed)
     throw new Error(`OpenAI returned no vision schedule index for ${file.fileName}`);
   const initial = VisionScheduleIndexSchema.parse(response.output_parsed);
+  if (!repairIncomplete)
+    return focusedVisionScheduleCandidates(initial, file, classification);
   const repairTargets = visionScheduleRepairTargets(
     file,
     initial.candidates,
@@ -1244,32 +1357,708 @@ Never invent a benefit or value; if a requested schedule truly is absent, return
   );
 }
 
-export async function extractBookletDocument({
-  file,
-  classification,
-  apiKey = process.env.OPENAI_API_KEY,
-  client = new OpenAI({ apiKey }),
-  model = process.env.OPENAI_BOOKLET_MODEL || "gpt-5.4-mini",
-}: {
-  file: LoadedUploadedFile;
-  classification: ClassifiedDocument;
-  apiKey?: string;
-  client?: Pick<OpenAI, "responses">;
-  model?: string;
-}): Promise<BookletDocumentExtraction> {
-  if (!file.data.length && !file.textContent) throw new Error(`${file.fileName} is empty`);
-  const discoveredPlanOptions = await discoverDocumentPlanOptions({
-    file,
-    classification,
-    client,
-    model,
+function extractionConcurrency() {
+  const configured = Number.parseInt(
+    process.env.BOOKLET_EXTRACTION_CONCURRENCY || "3",
+    10,
+  );
+  return Number.isInteger(configured) && configured > 0
+    ? Math.min(configured, 8)
+    : 3;
+}
+
+async function mapWithConcurrency<T, R>(
+  values: T[],
+  concurrency: number,
+  task: (value: T, index: number) => Promise<R>,
+) {
+  const output = new Array<R>(values.length);
+  let nextIndex = 0;
+  const workers = Array.from(
+    { length: Math.min(concurrency, Math.max(1, values.length)) },
+    async () => {
+      while (nextIndex < values.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        output[index] = await task(values[index], index);
+      }
+    },
+  );
+  await Promise.all(workers);
+  return output;
+}
+
+function loadedChunkFile(
+  file: LoadedUploadedFile,
+  chunk: PdfPageChunk,
+  index: number,
+): LoadedUploadedFile {
+  if (
+    chunk.method === "original" &&
+    chunk.startPage === 1 &&
+    (chunk.totalPages === null || chunk.endPage === chunk.totalPages)
+  )
+    return file;
+  return {
+    ...file,
+    id: `${file.id}:pages:${chunk.startPage}-${chunk.endPage}`,
+    storagePath: `${file.storagePath}#pages=${chunk.startPage}-${chunk.endPage}`,
+    data: chunk.data,
+    textContent: undefined,
+    sha256: `${file.sha256}:chunk:${index}`,
+  };
+}
+
+function originalChunkPage(page: number | null, chunk: PdfPageChunk) {
+  if (page === null) return null;
+  if (chunk.totalPages === null) return page;
+  const localPageCount = chunk.endPage - chunk.startPage + 1;
+  if (page < 1 || page > localPageCount) return null;
+  return chunk.startPage + page - 1;
+}
+
+function remapDocumentPlanOption(
+  option: DocumentPlanOption,
+  chunk: PdfPageChunk,
+): DocumentPlanOption {
+  return { ...option, page: originalChunkPage(option.page, chunk) };
+}
+
+function remapParsedExtractionPages(
+  parsed: ParsedBookletDocumentExtraction,
+  chunk: PdfPageChunk,
+): ParsedBookletDocumentExtraction {
+  const remapEvidence = <T extends { page: number | null }>(value: T | null) =>
+    value ? { ...value, page: originalChunkPage(value.page, chunk) } : null;
+  return {
+    ...parsed,
+    employer: {
+      name: remapEvidence(parsed.employer.name),
+      legalName: remapEvidence(parsed.employer.legalName),
+      address: remapEvidence(parsed.employer.address),
+      website: remapEvidence(parsed.employer.website),
+    },
+    planYear: {
+      start: remapEvidence(parsed.planYear.start),
+      end: remapEvidence(parsed.planYear.end),
+      label: remapEvidence(parsed.planYear.label),
+    },
+    eligibility: {
+      waitingPeriod: remapEvidence(parsed.eligibility.waitingPeriod),
+      description: remapEvidence(parsed.eligibility.description),
+      employeeClasses: parsed.eligibility.employeeClasses.map((item) => ({
+        ...item,
+        page: originalChunkPage(item.page, chunk),
+      })),
+    },
+    offeredBenefits: parsed.offeredBenefits.map((item) => ({
+      ...item,
+      page: originalChunkPage(item.page, chunk),
+    })),
+    selectedPlans: parsed.selectedPlans.map((item) => ({
+      ...item,
+      page: originalChunkPage(item.page, chunk),
+    })),
+    contributions: parsed.contributions.map((item) => ({
+      ...item,
+      page: originalChunkPage(item.page, chunk),
+    })),
+    contacts: parsed.contacts.map((item) => ({
+      ...item,
+      page: originalChunkPage(item.page, chunk),
+    })),
+    accounts: parsed.accounts.map((item) => ({
+      ...item,
+      page: originalChunkPage(item.page, chunk),
+    })),
+    documentPlanOptions: parsed.documentPlanOptions.map((option) =>
+      remapDocumentPlanOption(option, chunk),
+    ),
+    requirementCandidates: parsed.requirementCandidates.map((candidate) => ({
+      ...candidate,
+      page: originalChunkPage(candidate.page, chunk),
+    })),
+  };
+}
+
+function remapRequirementEvidence(
+  evidence: RequirementEvidence,
+  chunk: PdfPageChunk,
+  sourceFile: LoadedUploadedFile,
+): RequirementEvidence {
+  if (evidence.locator?.kind !== "pdf")
+    return {
+      ...evidence,
+      sourceFileId: sourceFile.id,
+      sourceFileName: sourceFile.fileName,
+    };
+  const page = originalChunkPage(evidence.locator.page, chunk);
+  return {
+    ...evidence,
+    sourceFileId: sourceFile.id,
+    sourceFileName: sourceFile.fileName,
+    ...(page
+      ? { locator: { ...evidence.locator, page } }
+      : { locator: undefined }),
+  };
+}
+
+function remapFocusedCandidates(
+  candidates: ExtractedRequirementCandidate[],
+  chunk: PdfPageChunk,
+  sourceFile: LoadedUploadedFile,
+) {
+  return candidates.map((candidate) => ({
+    ...candidate,
+    evidence: remapRequirementEvidence(candidate.evidence, chunk, sourceFile),
+    ...(candidate.supportingEvidence
+      ? {
+          supportingEvidence: candidate.supportingEvidence.map((evidence) =>
+            remapRequirementEvidence(evidence, chunk, sourceFile),
+          ),
+        }
+      : {}),
+  }));
+}
+
+function optionSpecificTokens(value: string) {
+  return new Set(
+    normalizedIdentity(value)
+      .split(" ")
+      .filter((token) =>
+        /^(?:high|standard|basic|premier|focus|enhanced|core|buy|up|buyup|low|bronze|silver|gold|platinum|general|limited|purpose|combination|post|deductible|dependent|care|medical|health|option|plan|[ivx]+|\d+)$/.test(
+          token,
+        ),
+      ),
+  );
+}
+
+function mergeOptionRecords(
+  left: DocumentPlanOption,
+  right: DocumentPlanOption,
+): DocumentPlanOption {
+  const leftName = normalizedIdentity(left.planOrProgramName);
+  const rightName = normalizedIdentity(right.planOrProgramName);
+  const preferred = rightName.length > leftName.length ? right : left;
+  const alternate = preferred === left ? right : left;
+  return {
+    ...preferred,
+    planOrProgramId:
+      preferred.planOrProgramId || alternate.planOrProgramId || null,
+    enrollmentTypes: [
+      ...new Set([...left.enrollmentTypes, ...right.enrollmentTypes]),
+    ],
+    confidence: Math.max(left.confidence, right.confidence),
+  };
+}
+
+function consolidateDocumentPlanOptions(options: DocumentPlanOption[]) {
+  const exact = new Map<string, DocumentPlanOption>();
+  for (const option of options) {
+    const key = `${option.benefitType}:${normalizedIdentity(option.planOrProgramName)}`;
+    exact.set(
+      key,
+      exact.has(key) ? mergeOptionRecords(exact.get(key)!, option) : option,
+    );
+  }
+  let consolidated = [...exact.values()];
+
+  const mergedById: DocumentPlanOption[] = [];
+  for (const option of consolidated) {
+    const optionId = normalizedIdentity(option.planOrProgramId || "");
+    if (!optionId) {
+      mergedById.push(option);
+      continue;
+    }
+    const compatible = mergedById
+      .map((candidate, index) => ({ candidate, index }))
+      .filter(({ candidate }) => {
+        if (
+          candidate.benefitType !== option.benefitType ||
+          normalizedIdentity(candidate.planOrProgramId || "") !== optionId
+        )
+          return false;
+        const left = optionSpecificTokens(candidate.planOrProgramName);
+        const right = optionSpecificTokens(option.planOrProgramName);
+        return ![...left].some(
+          (token) =>
+            token !== "plan" && token !== "option" && !right.has(token),
+        ) &&
+          ![...right].some(
+            (token) =>
+              token !== "plan" && token !== "option" && !left.has(token),
+          );
+      });
+    if (compatible.length === 1) {
+      const match = compatible[0];
+      mergedById[match.index] = mergeOptionRecords(match.candidate, option);
+    } else {
+      mergedById.push(option);
+    }
+  }
+  consolidated = mergedById;
+
+  const stopwords = new Set([
+    "the",
+    "of",
+    "and",
+    "for",
+    "plan",
+    "option",
+    "insurance",
+    "income",
+    "group",
+    "university",
+  ]);
+  const identityWords = (value: string) =>
+    new Set(
+      normalizedIdentity(value)
+        .split(" ")
+        .filter((token) => token.length > 1 && !stopwords.has(token)),
+    );
+  const fuzzyMerged: DocumentPlanOption[] = [];
+  for (const option of consolidated) {
+    if (["medical", "dental", "vision"].includes(option.benefitType)) {
+      fuzzyMerged.push(option);
+      continue;
+    }
+    const words = identityWords(option.planOrProgramName);
+    const specific = optionSpecificTokens(option.planOrProgramName);
+    const matches = fuzzyMerged
+      .map((candidate, index) => ({ candidate, index }))
+      .filter(({ candidate }) => {
+        if (candidate.benefitType !== option.benefitType) return false;
+        const candidateSpecific = optionSpecificTokens(
+          candidate.planOrProgramName,
+        );
+        const specificConflict =
+          [...specific].some(
+            (token) =>
+              token !== "plan" &&
+              token !== "option" &&
+              !candidateSpecific.has(token),
+          ) ||
+          [...candidateSpecific].some(
+            (token) =>
+              token !== "plan" && token !== "option" && !specific.has(token),
+          );
+        if (specificConflict) return false;
+        const candidateWords = identityWords(candidate.planOrProgramName);
+        const overlap = [...words].filter((token) =>
+          candidateWords.has(token),
+        ).length;
+        return overlap / Math.max(1, Math.min(words.size, candidateWords.size)) >= 0.75;
+      });
+    if (matches.length === 1) {
+      const match = matches[0];
+      fuzzyMerged[match.index] = mergeOptionRecords(match.candidate, option);
+    } else {
+      fuzzyMerged.push(option);
+    }
+  }
+  consolidated = fuzzyMerged;
+
+  // Drop a generic parent label when the same source has two or more named
+  // descendants. It is a product family, not a third selectable option.
+  consolidated = consolidated.filter((option, optionIndex) => {
+    const name = normalizedIdentity(option.planOrProgramName);
+    const descendants = consolidated.filter((candidate, candidateIndex) => {
+      if (
+        candidateIndex === optionIndex ||
+        candidate.benefitType !== option.benefitType
+      )
+        return false;
+      const candidateName = normalizedIdentity(candidate.planOrProgramName);
+      return candidateName.length > name.length && candidateName.includes(name);
+    });
+    return descendants.length < 2;
   });
-  const discoveredVisionCandidates = await discoverVisionScheduleCandidates({
-    file,
+
+  // Merge a short label (for example, "High Option") into its one uniquely
+  // matching fully-qualified identity, without merging High and Standard.
+  const removed = new Set<number>();
+  for (let index = 0; index < consolidated.length; index += 1) {
+    if (removed.has(index)) continue;
+    const option = consolidated[index];
+    const name = normalizedIdentity(option.planOrProgramName);
+    const matches = consolidated
+      .map((candidate, candidateIndex) => ({ candidate, candidateIndex }))
+      .filter(({ candidate, candidateIndex }) => {
+        if (
+          candidateIndex === index ||
+          removed.has(candidateIndex) ||
+          candidate.benefitType !== option.benefitType
+        )
+          return false;
+        const candidateName = normalizedIdentity(candidate.planOrProgramName);
+        if (!(candidateName.includes(name) || name.includes(candidateName)))
+          return false;
+        const leftSpecific = optionSpecificTokens(name);
+        const rightSpecific = optionSpecificTokens(candidateName);
+        const conflictingSpecific = [...leftSpecific].some(
+          (token) => !rightSpecific.has(token) && token !== "option" && token !== "plan",
+        );
+        return !conflictingSpecific;
+      });
+    if (matches.length !== 1) continue;
+    const match = matches[0];
+    consolidated[index] = mergeOptionRecords(option, match.candidate);
+    removed.add(match.candidateIndex);
+  }
+  return consolidated
+    .filter((_, index) => !removed.has(index))
+    .map((option) =>
+      ["medical", "dental", "vision"].includes(option.benefitType)
+        ? option
+        : { ...option, enrollmentTypes: [] },
+    );
+}
+
+function bestEvidenceText<T extends { confidence: number }>(
+  values: Array<T | null>,
+) {
+  return values
+    .filter((value): value is T => Boolean(value))
+    .sort((left, right) => right.confidence - left.confidence)[0] || null;
+}
+
+function uniqueEvidenceRows<T extends { page: number | null; confidence: number }>(
+  values: T[],
+) {
+  const rows = new Map<string, T>();
+  for (const value of values) {
+    const { page: _page, confidence: _confidence, ...identity } = value;
+    const key = JSON.stringify(identity);
+    const existing = rows.get(key);
+    if (!existing || value.confidence > existing.confidence) rows.set(key, value);
+  }
+  return [...rows.values()];
+}
+
+function mergeParsedExtractions(
+  parsed: ParsedBookletDocumentExtraction[],
+  options: DocumentPlanOption[],
+  chunkWarnings: string[],
+): ParsedBookletDocumentExtraction {
+  const first = parsed[0];
+  const templatePriority: ParsedBookletDocumentExtraction["templateRole"][] = [
+    "employer_factual",
+    "employer_prior_context",
+    "master_template",
+    "none",
+  ];
+  return {
+    ...first,
+    employer: {
+      name: bestEvidenceText(parsed.map((item) => item.employer.name)),
+      legalName: bestEvidenceText(parsed.map((item) => item.employer.legalName)),
+      address: bestEvidenceText(parsed.map((item) => item.employer.address)),
+      website: bestEvidenceText(parsed.map((item) => item.employer.website)),
+    },
+    planYear: {
+      start: bestEvidenceText(parsed.map((item) => item.planYear.start)),
+      end: bestEvidenceText(parsed.map((item) => item.planYear.end)),
+      label: bestEvidenceText(parsed.map((item) => item.planYear.label)),
+    },
+    eligibility: {
+      waitingPeriod: bestEvidenceText(
+        parsed.map((item) => item.eligibility.waitingPeriod),
+      ),
+      description: bestEvidenceText(
+        parsed.map((item) => item.eligibility.description),
+      ),
+      employeeClasses: uniqueEvidenceRows(
+        parsed.flatMap((item) => item.eligibility.employeeClasses),
+      ),
+    },
+    offeredBenefits: uniqueEvidenceRows(
+      parsed.flatMap((item) => item.offeredBenefits),
+    ),
+    selectedPlans: uniqueEvidenceRows(
+      parsed.flatMap((item) => item.selectedPlans),
+    ),
+    contributions: uniqueEvidenceRows(
+      parsed.flatMap((item) => item.contributions),
+    ),
+    contacts: uniqueEvidenceRows(parsed.flatMap((item) => item.contacts)),
+    accounts: uniqueEvidenceRows(parsed.flatMap((item) => item.accounts)),
+    sectionOrder:
+      [...parsed].sort(
+        (left, right) => right.sectionOrder.length - left.sectionOrder.length,
+      )[0]?.sectionOrder || [],
+    templateRole:
+      templatePriority.find((role) =>
+        parsed.some((item) => item.templateRole === role),
+      ) || "none",
+    extractionMethod: parsed.some((item) => item.extractionMethod === "ocr")
+      ? "ocr"
+      : parsed.some((item) => item.extractionMethod === "pdf_text")
+        ? "pdf_text"
+        : first.extractionMethod,
+    warnings: [
+      ...new Set([...parsed.flatMap((item) => item.warnings), ...chunkWarnings]),
+    ],
+    documentPlanOptions: options,
+    requirementCandidates: parsed.flatMap(
+      (item) => item.requirementCandidates,
+    ),
+  };
+}
+
+function stableCandidateValue(candidate: ExtractedRequirementCandidate) {
+  return JSON.stringify({
+    state: candidate.state,
+    value: candidate.state === "known" ? candidate.value : undefined,
+    reasonCode: candidate.reasonCode,
+  });
+}
+
+function evidenceKey(evidence: RequirementEvidence) {
+  return JSON.stringify({
+    sourceFileId: evidence.sourceFileId,
+    authority: evidence.authority,
+    locator: evidence.locator,
+  });
+}
+
+function candidateEvidence(candidate: ExtractedRequirementCandidate) {
+  return [candidate.evidence, ...(candidate.supportingEvidence || [])];
+}
+
+function mergeCandidateEvidence(
+  preferred: ExtractedRequirementCandidate,
+  others: ExtractedRequirementCandidate[],
+) {
+  const uniqueEvidence = [
+    ...new Map(
+      [preferred, ...others]
+        .flatMap(candidateEvidence)
+        .map((evidence) => [evidenceKey(evidence), evidence]),
+    ).values(),
+  ];
+  return {
+    ...preferred,
+    evidence: uniqueEvidence[0],
+    ...(uniqueEvidence.length > 1
+      ? { supportingEvidence: uniqueEvidence.slice(1) }
+      : { supportingEvidence: undefined }),
+    confidence: Math.max(
+      preferred.confidence,
+      ...others.map((candidate) => candidate.confidence),
+    ),
+  };
+}
+
+function isDeepSubset(subset: unknown, superset: unknown): boolean {
+  if (Object.is(subset, superset)) return true;
+  if (Array.isArray(subset) && Array.isArray(superset))
+    return subset.every((value) =>
+      superset.some((candidate) => isDeepSubset(value, candidate)),
+    );
+  if (
+    subset &&
+    superset &&
+    typeof subset === "object" &&
+    typeof superset === "object" &&
+    !Array.isArray(subset) &&
+    !Array.isArray(superset)
+  )
+    return Object.entries(subset).every(
+      ([key, value]) =>
+        key in (superset as Record<string, unknown>) &&
+        isDeepSubset(value, (superset as Record<string, unknown>)[key]),
+    );
+  return false;
+}
+
+function mergeDuplicateRequirementCandidates(
+  candidates: ExtractedRequirementCandidate[],
+) {
+  const merged = new Map<string, ExtractedRequirementCandidate>();
+  for (const candidate of candidates) {
+    const key = [
+      candidate.subjectHint.benefitType,
+      normalizedIdentity(candidate.subjectHint.planOrProgramName),
+      candidate.subjectHint.planOrProgramId || "",
+      candidate.path,
+      stableCandidateValue(candidate),
+    ].join(":");
+    const existing = merged.get(key);
+    if (!existing) {
+      merged.set(key, candidate);
+      continue;
+    }
+    const preferred =
+      candidate.confidence > existing.confidence ? candidate : existing;
+    merged.set(
+      key,
+      mergeCandidateEvidence(preferred, [
+        preferred === candidate ? existing : candidate,
+      ]),
+    );
+  }
+  const bySubjectPath = new Map<string, ExtractedRequirementCandidate[]>();
+  for (const candidate of merged.values()) {
+    const key = [
+      candidate.subjectHint.benefitType,
+      normalizedIdentity(candidate.subjectHint.planOrProgramName),
+      candidate.subjectHint.planOrProgramId || "",
+      candidate.path,
+    ].join(":");
+    const group = bySubjectPath.get(key) || [];
+    group.push(candidate);
+    bySubjectPath.set(key, group);
+  }
+  return [...bySubjectPath.values()].flatMap((group) => {
+    let survivors = group.some((candidate) => candidate.state !== "not_found")
+      ? group.filter((candidate) => candidate.state !== "not_found")
+      : group;
+    const removed = new Set<number>();
+    for (let left = 0; left < survivors.length; left += 1) {
+      if (removed.has(left) || survivors[left].state !== "known") continue;
+      for (let right = 0; right < survivors.length; right += 1) {
+        if (
+          left === right ||
+          removed.has(right) ||
+          survivors[right].state !== "known"
+        )
+          continue;
+        const leftValue = survivors[left].value;
+        const rightValue = survivors[right].value;
+        if (
+          isDeepSubset(leftValue, rightValue) &&
+          !isDeepSubset(rightValue, leftValue)
+        ) {
+          survivors[right] = mergeCandidateEvidence(survivors[right], [
+            survivors[left],
+          ]);
+          removed.add(left);
+          break;
+        }
+      }
+    }
+    survivors = survivors.filter((_, index) => !removed.has(index));
+    return survivors;
+  });
+}
+
+function rawCandidateSubjectKey(candidate: RequirementCandidateOutput) {
+  return [
+    candidate.benefitType,
+    normalizedIdentity(candidate.planOrProgramName || ""),
+    candidate.path,
+  ].join(":");
+}
+
+async function auditChunkRequirementCandidates({
+  chunkFile,
+  classification,
+  discoveredPlanOptions,
+  initialCandidates,
+  pageContext,
+  client,
+  model,
+}: {
+  chunkFile: LoadedUploadedFile;
+  classification: ClassifiedDocument;
+  discoveredPlanOptions: DocumentPlanOption[];
+  initialCandidates: RequirementCandidateOutput[];
+  pageContext: string;
+  client: Pick<OpenAI, "responses">;
+  model: string;
+}) {
+  const response = await client.responses.parse({
+    model,
+    reasoning: { effort: "low" },
+    input: [
+      {
+        role: "system",
+        content: `You are the completeness and evidence repair pass for employee-benefit extraction.
+Inspect every supplied page and compare it with the initial requirement candidates. Return only:
+(1) complete replacements for candidates whose value, quote, option identity, or qualifiers are incomplete,
+and (2) material registry candidates that the initial pass omitted. A replacement must use the same exact
+planOrProgramName and registry path. Never shorten a value with ellipses. Preserve every included and excluded
+employee class, hours/service threshold, waiting period, active-work rule, network, tier, population, frequency,
+duration, formula, cap, exception, limitation, and conditional branch visible on the page. Quotes must be short
+but verbatim and must directly support the whole normalized value; use valueJson when the value needs structure.
+
+Do not repeat already complete candidates. Do not emit not_found for a page-window absence. Do not infer an
+employer offering, plan selection, funding label, taxability rule, legal conclusion, or zero employee cost.
+Funding is not a product subtype, a contribution is not a taxability statement, and silence is not explicit none.
+Use only registry paths in the supplied contract and local page numbers from the supplied PDF window.`,
+      },
+      {
+        role: "user",
+        content: [
+          ...fileContent(chunkFile),
+          {
+            type: "input_text",
+            text: `${pageContext}\n${promptFor(classification)}\nExact entity index: ${JSON.stringify(discoveredPlanOptions)}\nInitial candidates to audit: ${JSON.stringify(initialCandidates)}`,
+          },
+        ],
+      },
+    ],
+    text: {
+      format: zodTextFormat(
+        RequirementCandidateRepairSchema,
+        "requirement_candidate_repairs",
+      ),
+    },
+  });
+  if (!response.output_parsed)
+    throw new Error(`OpenAI returned no requirement repair for ${chunkFile.fileName}`);
+  const repairs = RequirementCandidateRepairSchema.parse(
+    response.output_parsed,
+  ).requirementCandidates.map(canonicalizeRequirementCandidatePath);
+  const usableRepairs = repairs.filter((candidate) => {
+    if (!validateRequirementCandidateOutput(candidate).success) return false;
+    if (
+      candidate.state !== "not_found" &&
+      (!candidate.page || !candidate.quote?.trim())
+    )
+      return false;
+    return true;
+  });
+  const repairedKeys = new Set(usableRepairs.map(rawCandidateSubjectKey));
+  return [
+    ...initialCandidates.filter(
+      (candidate) => !repairedKeys.has(rawCandidateSubjectKey(candidate)),
+    ),
+    ...usableRepairs,
+  ];
+}
+
+async function parseBookletChunk({
+  chunkFile,
+  sourceFile,
+  chunk,
+  classification,
+  discoveredPlanOptions,
+  client,
+  model,
+}: {
+  chunkFile: LoadedUploadedFile;
+  sourceFile: LoadedUploadedFile;
+  chunk: PdfPageChunk;
+  classification: ClassifiedDocument;
+  discoveredPlanOptions: DocumentPlanOption[];
+  client: Pick<OpenAI, "responses">;
+  model: string;
+}) {
+  const pageContext =
+    chunk.totalPages !== null && chunk.totalPages > chunk.endPage
+      ? `This input contains original source pages ${chunk.startPage}-${chunk.endPage} of ${chunk.totalPages}. Exhaustively extract every applicable visible fact from this page window. Do not emit not_found merely because a field is absent from this window. Page numbers in your response must refer to the supplied chunk (1-${chunk.endPage - chunk.startPage + 1}); they will be remapped to original pages after validation.`
+      : "Exhaustively inspect every supplied page and emit every applicable visible registry fact.";
+  const focused = await discoverVisionScheduleCandidates({
+    file: chunkFile,
     classification,
     documentPlanOptions: discoveredPlanOptions,
     client,
     model,
+    repairIncomplete:
+      chunk.method === "original" &&
+      chunk.startPage === 1 &&
+      (chunk.totalPages === null || chunk.endPage === chunk.totalPages),
   });
   const response = await client.responses.parse({
     model,
@@ -1279,52 +2068,174 @@ export async function extractBookletDocument({
       {
         role: "user",
         content: [
-          ...fileContent(file),
+          ...fileContent(chunkFile),
           {
             type: "input_text",
-            text: `${promptFor(classification)}\nFocused document plan-option index (copy these exact identities into documentPlanOptions and use their names on requirementCandidates): ${JSON.stringify(discoveredPlanOptions)}`,
+            text: `${pageContext}\n${promptFor(classification)}\nFocused document plan-option index (copy these exact identities into documentPlanOptions and use their names on requirementCandidates): ${JSON.stringify(discoveredPlanOptions)}`,
           },
         ],
       },
     ],
     text: {
-      format: zodTextFormat(BookletDocumentExtractionSchema, "booklet_document_extraction"),
+      format: zodTextFormat(
+        BookletDocumentExtractionSchema,
+        "booklet_document_extraction",
+      ),
     },
   });
   if (!response.output_parsed)
-    throw new Error(`OpenAI returned no parsed extraction for ${file.fileName}`);
+    throw new Error(`OpenAI returned no parsed extraction for ${sourceFile.fileName}`);
   const parsed = BookletDocumentExtractionSchema.parse({
     ...response.output_parsed,
-    documentPlanOptions: discoveredPlanOptions.length
-      ? discoveredPlanOptions
-      : (response.output_parsed as { documentPlanOptions?: unknown })
-          .documentPlanOptions || [],
+    documentPlanOptions:
+      (response.output_parsed as { documentPlanOptions?: unknown })
+        .documentPlanOptions || [],
     requirementCandidates:
       (response.output_parsed as { requirementCandidates?: unknown })
         .requirementCandidates || [],
   });
+  const shouldRepair =
+    sourceFile.data.subarray(0, 5).toString("ascii") === "%PDF-" &&
+    process.env.BOOKLET_EXTRACTOR_DISABLE_REPAIR !== "1";
+  const repairedCandidates = shouldRepair
+    ? await auditChunkRequirementCandidates({
+        chunkFile,
+        classification,
+        discoveredPlanOptions,
+        initialCandidates: parsed.requirementCandidates,
+        pageContext,
+        client,
+        model,
+      })
+    : parsed.requirementCandidates;
+  return {
+    parsed: remapParsedExtractionPages(
+      { ...parsed, requirementCandidates: repairedCandidates },
+      chunk,
+    ),
+    focused: remapFocusedCandidates(focused, chunk, sourceFile),
+  };
+}
+
+export async function extractBookletDocument({
+  file,
+  classification,
+  apiKey = process.env.OPENAI_API_KEY,
+  client = new OpenAI({ apiKey }),
+  model = process.env.OPENAI_BOOKLET_MODEL || "gpt-5.4-mini",
+  maxPagesPerPass,
+}: {
+  file: LoadedUploadedFile;
+  classification: ClassifiedDocument;
+  apiKey?: string;
+  client?: Pick<OpenAI, "responses">;
+  model?: string;
+  /** Test/operations override; production defaults to bounded 24-page passes. */
+  maxPagesPerPass?: number;
+}): Promise<BookletDocumentExtraction> {
+  if (!file.data.length && !file.textContent) throw new Error(`${file.fileName} is empty`);
+  const configuredPageLimit = Number.parseInt(
+    process.env.BOOKLET_EXTRACTOR_MAX_PAGES_PER_PASS || "24",
+    10,
+  );
+  const pageLimit =
+    maxPagesPerPass ||
+    (Number.isInteger(configuredPageLimit) && configuredPageLimit > 1
+      ? configuredPageLimit
+      : 24);
+  const looksLikePdf =
+    !file.textContent &&
+    (file.mimeType === "application/pdf" || file.fileName.toLowerCase().endsWith(".pdf")) &&
+    file.data.subarray(0, 5).toString("ascii") === "%PDF-";
+  const chunks: PdfPageChunk[] = looksLikePdf
+    ? await createPdfPageChunks(file.data, {
+        maxPages: pageLimit,
+        overlapPages: 1,
+      })
+    : [
+        {
+          data: file.data,
+          startPage: 1,
+          endPage: 1,
+          totalPages: null,
+          method: "original",
+        },
+      ];
+  const chunkFiles = chunks.map((chunk, index) =>
+    loadedChunkFile(file, chunk, index),
+  );
+  const discoveredPlanOptions = needsPlanOptionIndex(classification)
+    ? consolidateDocumentPlanOptions(
+        (
+          await mapWithConcurrency(
+            chunkFiles,
+            extractionConcurrency(),
+            async (chunkFile, index) =>
+              (
+                await discoverDocumentPlanOptions({
+                  file: chunkFile,
+                  classification,
+                  client,
+                  model,
+                })
+              ).map((option) => remapDocumentPlanOption(option, chunks[index])),
+          )
+        ).flat(),
+      )
+    : [];
+  const chunkResults = await mapWithConcurrency(
+    chunkFiles,
+    extractionConcurrency(),
+    (chunkFile, index) =>
+      parseBookletChunk({
+        chunkFile,
+        sourceFile: file,
+        chunk: chunks[index],
+        classification,
+        discoveredPlanOptions,
+        client,
+        model,
+      }),
+  );
+  const allPlanOptions = consolidateDocumentPlanOptions([
+    ...discoveredPlanOptions,
+    ...chunkResults.flatMap((result) => result.parsed.documentPlanOptions),
+  ]);
+  const parsed = mergeParsedExtractions(
+    chunkResults.map((result) => result.parsed),
+    allPlanOptions,
+    chunks.flatMap((chunk) => (chunk.warning ? [chunk.warning] : [])),
+  );
   const validatedCandidates = requirementCandidates(
     parsed,
     file,
     classification,
-    discoveredVisionCandidates,
+    chunkResults.flatMap((result) => result.focused),
+  );
+  validatedCandidates.candidates = mergeDuplicateRequirementCandidates(
+    validatedCandidates.candidates,
   );
   const allowed = (benefitType: BenefitType) =>
     benefitAllowedForDocument(benefitType, file, classification);
+  const templateOnly =
+    classification.scope === "master_template" ||
+    parsed.templateRole === "master_template";
   // Legacy callers may not yet supply authority. Once authority is known, the
   // employer-level arrays fail closed: plan design is not employer selection.
   const canProveEmployerOffering =
-    !classification.authority ||
-    employerOfferingAuthorities.includes(classification.authority) ||
-    classification.authority === "prior_year_context";
+    !templateOnly &&
+    (!classification.authority ||
+      employerOfferingAuthorities.includes(classification.authority) ||
+      classification.authority === "prior_year_context");
   const canProveEmployerContribution =
-    !classification.authority ||
-    [
-      "employer_selection",
-      "rate_or_contribution",
-      "manual_answer",
-      "prior_year_context",
-    ].includes(classification.authority);
+    !templateOnly &&
+    (!classification.authority ||
+      [
+        "employer_selection",
+        "rate_or_contribution",
+        "manual_answer",
+        "prior_year_context",
+      ].includes(classification.authority));
   const offeredBenefits = canProveEmployerOffering
     ? parsed.offeredBenefits.filter((item) => allowed(item.benefitType))
     : [];
@@ -1332,7 +2243,14 @@ export async function extractBookletDocument({
     ? parsed.selectedPlans.filter((item) => allowed(item.benefitType))
     : [];
   const contributions = canProveEmployerContribution
-    ? parsed.contributions.filter((item) => allowed(item.benefitType))
+    ? parsed.contributions.filter(
+        (item) =>
+          allowed(item.benefitType) &&
+          (item.value !== 0 ||
+            /(?:\$\s*0(?:\.0+)?\b|\bzero\b|\bno (?:employer |employee )?contribution\b|\bdoes not contribute\b)/i.test(
+              item.quote || "",
+            )),
+      )
     : [];
   const accounts = parsed.accounts.filter((item) => allowed(item.type));
   const planDocumentAddressNeedsContext =
@@ -1346,19 +2264,26 @@ export async function extractBookletDocument({
     !/\b(?:employer|policyholder|plan sponsor|group address)\b/i.test(
       parsed.employer.address.quote || "",
     );
-  const employer = planDocumentAddressNeedsContext
-    ? { ...parsed.employer, address: null }
-    : parsed.employer;
+  const employer = templateOnly
+    ? { name: null, legalName: null, address: null, website: null }
+    : planDocumentAddressNeedsContext
+      ? { ...parsed.employer, address: null }
+      : parsed.employer;
   const validDateEvidence = (value: typeof parsed.planYear.start) =>
     !value || !Number.isNaN(new Date(value.value).getTime()) ? value : null;
-  const planYear = {
-    ...parsed.planYear,
-    start: validDateEvidence(parsed.planYear.start),
-    end: validDateEvidence(parsed.planYear.end),
-  };
+  const regulatoryPlanYear = classification.authority === "regulatory_source";
+  const planYear = regulatoryPlanYear
+    ? { start: null, end: null, label: null }
+    : {
+        ...parsed.planYear,
+        start: validDateEvidence(parsed.planYear.start),
+        end: validDateEvidence(parsed.planYear.end),
+      };
   const rejectedPlanYearDates =
-    Number(Boolean(parsed.planYear.start && !planYear.start)) +
-    Number(Boolean(parsed.planYear.end && !planYear.end));
+    (regulatoryPlanYear
+      ? 0
+      : Number(Boolean(parsed.planYear.start && !planYear.start)) +
+        Number(Boolean(parsed.planYear.end && !planYear.end)));
   const rejectedLegacyFacts =
     parsed.offeredBenefits.length - offeredBenefits.length +
     parsed.selectedPlans.length - selectedPlans.length +
@@ -1381,14 +2306,24 @@ export async function extractBookletDocument({
             "Rejected employer address from a plan document because its quote did not identify an employer or policyholder address.",
           ]
         : []),
+      ...(templateOnly && Object.values(parsed.employer).some(Boolean)
+        ? [
+            "Rejected employer identity from a master template because sample or placeholder values are not current-employer facts.",
+          ]
+        : []),
       ...(rejectedPlanYearDates
         ? [
             `Rejected ${rejectedPlanYearDates} plan-year date field(s) that were not parseable dates.`,
           ]
         : []),
+      ...(regulatoryPlanYear && Object.values(parsed.planYear).some(Boolean)
+        ? [
+            "Rejected legacy plan-year fields from regulatory guidance because regulatory applicability dates are not an employer plan year.",
+          ]
+        : []),
       ...(rejectedLegacyFacts
         ? [
-            `Rejected ${rejectedLegacyFacts} legacy summary fact(s) outside this document's classified benefit focus.`,
+            `Rejected ${rejectedLegacyFacts} legacy summary fact(s) that failed document authority or evidence safeguards.`,
           ]
         : []),
     ],

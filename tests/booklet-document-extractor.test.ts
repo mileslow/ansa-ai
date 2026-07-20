@@ -1,8 +1,146 @@
 import { describe, expect, it, vi } from "vitest";
+import { PDFDocument } from "pdf-lib";
 import { extractBookletDocument } from "../lib/booklet-document-extractor";
 import type { LoadedUploadedFile } from "../lib/booklet-types";
 
 describe("booklet document extractor", () => {
+  it("exhaustively merges bounded page passes with original-page evidence", async () => {
+    const pdf = await PDFDocument.create();
+    pdf.addPage();
+    pdf.addPage();
+    pdf.addPage();
+    const source = Buffer.from(await pdf.save());
+    const option = {
+      benefitType: "medical" as const,
+      planOrProgramName: "Example PPO",
+      planOrProgramId: "EX-PPO",
+      enrollmentTypes: [],
+      page: 1,
+      quote: "Example PPO",
+      confidence: 0.99,
+    };
+    const extraction = (candidate: Record<string, unknown>) => ({
+      employer: { name: null, legalName: null, address: null, website: null },
+      planYear: { start: null, end: null, label: null },
+      eligibility: {
+        waitingPeriod: null,
+        description: null,
+        employeeClasses: [],
+      },
+      offeredBenefits: [],
+      selectedPlans: [],
+      contributions: [],
+      contacts: [],
+      accounts: [],
+      sectionOrder: [],
+      templateRole: "none",
+      extractionMethod: "pdf_text",
+      warnings: [],
+      documentPlanOptions: [],
+      requirementCandidates: [candidate],
+    });
+    const candidate = (path: string, value: string, quote: string) => ({
+      benefitType: "medical",
+      planOrProgramName: "Example PPO",
+      planOrProgramId: "EX-PPO",
+      path,
+      state: "known",
+      value,
+      valueJson: null,
+      rawValue: value,
+      reasonCode: null,
+      page: 2,
+      quote,
+      confidence: 0.98,
+    });
+    const parse = vi
+      .fn()
+      .mockResolvedValueOnce({
+        output_parsed: { documentPlanOptions: [option] },
+      })
+      .mockResolvedValueOnce({
+        output_parsed: { documentPlanOptions: [] },
+      })
+      .mockResolvedValueOnce({
+        output_parsed: extraction(
+          candidate(
+            "plans.medical.financial.deductible",
+            "$1,000 individual",
+            "Deductible $1,000 individual",
+          ),
+        ),
+      })
+      .mockResolvedValueOnce({
+        output_parsed: extraction(
+          candidate(
+            "plans.medical.financial.outOfPocketLimit",
+            "$5,000 individual",
+            "Out-of-pocket limit $5,000 individual",
+          ),
+        ),
+      })
+      .mockResolvedValueOnce({
+        output_parsed: { requirementCandidates: [] },
+      })
+      .mockResolvedValueOnce({
+        output_parsed: { requirementCandidates: [] },
+      });
+    const file: LoadedUploadedFile = {
+      id: "three-page-medical",
+      companyId: "example",
+      fileName: "example-ppo.pdf",
+      storagePath: "example-ppo.pdf",
+      mimeType: "application/pdf",
+      uploadedAt: "2026-07-18T00:00:00.000Z",
+      sha256: "fixture",
+      processingStatus: "uploaded",
+      data: source,
+    };
+    const result = await extractBookletDocument({
+      file,
+      classification: {
+        fileId: file.id,
+        documentType: "sbc",
+        confidence: 0.99,
+        reasoningSummary: "Medical SBC.",
+        benefitTypes: ["medical"],
+        documentSubtype: "sbc",
+        scope: "unknown",
+        authority: "current_plan_document",
+      },
+      client: { responses: { parse } } as any,
+      maxPagesPerPass: 2,
+    });
+
+    expect(parse).toHaveBeenCalledTimes(6);
+    expect(result.documentPlanOptions).toEqual([
+      expect.objectContaining({
+        planOrProgramName: "Example PPO",
+        page: 1,
+      }),
+    ]);
+    expect(
+      (result.requirementCandidates || []).find(
+        (item) => item.path === "plans.medical.financial.deductible",
+      )?.evidence,
+    ).toEqual(
+      expect.objectContaining({
+        sourceFileId: file.id,
+        locator: expect.objectContaining({ kind: "pdf", page: 2 }),
+      }),
+    );
+    expect(
+      (result.requirementCandidates || []).find(
+        (item) => item.path === "plans.medical.financial.outOfPocketLimit",
+      )?.evidence,
+    ).toEqual(
+      expect.objectContaining({
+        sourceFileId: file.id,
+        locator: expect.objectContaining({ kind: "pdf", page: 3 }),
+      }),
+    );
+  });
+
   it("labels text uploads as source-document evidence for the model", async () => {
     const parse = vi.fn().mockResolvedValue({
       output_parsed: {
@@ -59,6 +197,183 @@ describe("booklet document extractor", () => {
     expect(userContent[0].text).toContain("BEGIN SOURCE DOCUMENT: instructions.eml");
     expect(userContent[0].text).toContain("Employer: Acme");
     expect(userContent[0].text).toContain("END SOURCE DOCUMENT: instructions.eml");
+  });
+
+  it("rejects silence-based none states and blank zero contributions", async () => {
+    const parse = vi.fn().mockResolvedValue({
+      output_parsed: {
+        employer: { name: null, legalName: null, address: null, website: null },
+        planYear: { start: null, end: null, label: null },
+        eligibility: {
+          waitingPeriod: null,
+          description: null,
+          employeeClasses: [],
+        },
+        offeredBenefits: [],
+        selectedPlans: [],
+        contributions: [
+          {
+            benefitType: "hsa",
+            planName: null,
+            tier: "Employee",
+            employeeClass: null,
+            mode: "flat_monthly",
+            value: 0,
+            payPeriods: null,
+            page: 1,
+            quote: "The employer may forward payroll deduction contributions.",
+            confidence: 0.9,
+          },
+        ],
+        contacts: [],
+        accounts: [],
+        sectionOrder: [],
+        templateRole: "none",
+        extractionMethod: "pdf_text",
+        warnings: [],
+        documentPlanOptions: [],
+        requirementCandidates: [
+          {
+            benefitType: "hsa",
+            planOrProgramName: "Health Savings Account",
+            planOrProgramId: null,
+            path: "hsa.interactions.healthFsa.mode",
+            state: "explicit_none",
+            value: null,
+            valueJson: null,
+            rawValue: "No health FSA is offered on this form",
+            reasonCode: "no_health_fsa_offered",
+            page: 1,
+            quote: "No health FSA is mentioned on the supplied pages.",
+            confidence: 0.42,
+          },
+        ],
+      },
+    });
+    const file: LoadedUploadedFile = {
+      id: "blank-hsa-form",
+      companyId: "example",
+      fileName: "hsa-contribution-change-form.pdf",
+      storagePath: "hsa-contribution-change-form.pdf",
+      mimeType: "application/pdf",
+      uploadedAt: "2026-07-18T00:00:00.000Z",
+      sha256: "fixture",
+      processingStatus: "uploaded",
+      data: Buffer.from("pdf fixture"),
+    };
+    const result = await extractBookletDocument({
+      file,
+      classification: {
+        fileId: file.id,
+        documentType: "employer_application",
+        confidence: 0.99,
+        reasoningSummary: "Blank HSA contribution form.",
+        benefitTypes: ["hsa"],
+        scope: "current_employer",
+        authority: "employer_selection",
+      },
+      client: { responses: { parse } } as any,
+    });
+
+    expect(result.requirementCandidates).toEqual([]);
+    expect(result.contributions).toEqual([]);
+    expect(result.warnings).toEqual([
+      expect.stringContaining("source silence cannot establish explicit_none"),
+      expect.stringContaining("Rejected 1 legacy summary fact"),
+    ]);
+  });
+
+  it("does not treat sample values in a master template as employer facts", async () => {
+    const parse = vi.fn().mockResolvedValue({
+      output_parsed: {
+        employer: {
+          name: {
+            value: "1 Test Company for Samples",
+            page: 5,
+            quote: "Employer: 1 Test Company for Samples",
+            confidence: 0.99,
+          },
+          legalName: null,
+          address: null,
+          website: null,
+        },
+        planYear: { start: null, end: null, label: null },
+        eligibility: {
+          waitingPeriod: null,
+          description: null,
+          employeeClasses: [],
+        },
+        offeredBenefits: [
+          {
+            benefitType: "hsa",
+            offered: false,
+            page: 1,
+            quote: "Employer would like to open Health Savings Accounts.",
+            confidence: 0.7,
+          },
+        ],
+        selectedPlans: [],
+        contributions: [
+          {
+            benefitType: "hsa",
+            planName: null,
+            tier: "Employee",
+            employeeClass: null,
+            mode: "flat_monthly",
+            value: 25,
+            payPeriods: null,
+            page: 1,
+            quote: "Employer contribution amount: $____",
+            confidence: 0.7,
+          },
+        ],
+        contacts: [],
+        accounts: [],
+        sectionOrder: [],
+        templateRole: "master_template",
+        extractionMethod: "pdf_text",
+        warnings: [],
+        documentPlanOptions: [],
+        requirementCandidates: [],
+      },
+    });
+    const file: LoadedUploadedFile = {
+      id: "sample-hsa-template",
+      companyId: "example",
+      fileName: "hsa-enrollment-agreement.pdf",
+      storagePath: "hsa-enrollment-agreement.pdf",
+      mimeType: "application/pdf",
+      uploadedAt: "2026-07-18T00:00:00.000Z",
+      sha256: "fixture",
+      processingStatus: "uploaded",
+      data: Buffer.from("pdf fixture"),
+    };
+    const result = await extractBookletDocument({
+      file,
+      classification: {
+        fileId: file.id,
+        documentType: "employer_application",
+        confidence: 0.99,
+        reasoningSummary: "Sample master template.",
+        benefitTypes: ["hsa"],
+        scope: "master_template",
+        authority: "employer_selection",
+      },
+      client: { responses: { parse } } as any,
+    });
+
+    expect(result.employer).toEqual({
+      name: null,
+      legalName: null,
+      address: null,
+      website: null,
+    });
+    expect(result.offeredBenefits).toEqual([]);
+    expect(result.contributions).toEqual([]);
+    expect(result.warnings).toEqual([
+      expect.stringContaining("Rejected employer identity from a master template"),
+      expect.stringContaining("Rejected 2 legacy summary fact(s)"),
+    ]);
   });
 
   it("keeps only candidates allowed by the classified benefit contract", async () => {

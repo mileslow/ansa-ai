@@ -127,8 +127,8 @@ export function benefitsPackageToLegacyCompany(
       planYear: benefitsPackage.planYear,
       eligibility: {
         initialPeriod:
-          benefitsPackage.eligibility.description ||
           benefitsPackage.eligibility.waitingPeriod ||
+          benefitsPackage.eligibility.description ||
           "",
       },
       enrollment: {},

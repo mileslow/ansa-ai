@@ -244,6 +244,8 @@ export function assembleBenefitsPackage({
     );
   const manualSelections = manualAnswers["plans.selected"];
   if (Array.isArray(manualSelections)) {
+    const manualPlanEvidence: (typeof selectedPlanEvidence)[number][] = [];
+    const manuallySelectedBenefitTypes = new Set<string>();
     for (const item of manualSelections) {
       if (!item || typeof item !== "object") continue;
       const value = item as Record<string, unknown>;
@@ -257,7 +259,8 @@ export function assembleBenefitsPackage({
         "std",
         "ltd",
       ].includes(benefitType)) continue;
-      selectedPlanEvidence.push({
+      manuallySelectedBenefitTypes.add(benefitType);
+      manualPlanEvidence.push({
         planName: String(value.planName),
         benefitType: benefitType as "medical" | "dental" | "vision" | "life" | "std" | "ltd",
         carrier: value.carrier ? String(value.carrier) : null,
@@ -275,6 +278,14 @@ export function assembleBenefitsPackage({
         priority: 110,
       });
     }
+    // A direct answer to "which plans should be included" is authoritative for
+    // those benefit types. Keep source evidence for grounding elsewhere, but do
+    // not render generic or stale plan names alongside the user's selection.
+    for (let index = selectedPlanEvidence.length - 1; index >= 0; index -= 1) {
+      if (manuallySelectedBenefitTypes.has(selectedPlanEvidence[index].benefitType))
+        selectedPlanEvidence.splice(index, 1);
+    }
+    selectedPlanEvidence.push(...manualPlanEvidence);
   }
 
   // An explicitly selected plan name from employer instructions/application is

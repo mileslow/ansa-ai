@@ -3,7 +3,9 @@ import type {
   BookletSectionArtifact,
   PipelineEvent,
 } from "./booklet-types";
+import { PDFDocument } from "pdf-lib";
 import { runBookletPipeline } from "./booklet-pipeline";
+import { appendAuthoritativeSourceBooklet } from "./booklet-source-appendix";
 import {
   addBookletMessage,
   getExtractedFacts,
@@ -107,15 +109,26 @@ export async function executeBookletRun(
       );
       return run;
     }
+    const finalPdf = await appendAuthoritativeSourceBooklet({
+      generatedPdf: result.pdf!,
+      files,
+      classifications: result.classifications,
+      enabled: options.enforceRegistry === false,
+    });
     const stored = await saveGeneratedPdf({
       run,
-      pdf: result.pdf!,
+      pdf: finalPdf,
       employerName: result.benefitsPackage.employer.name,
     });
     run.status = "complete";
     run.questions = [];
     run.bookletOutline = result.outline;
-    run.qualityReport = result.qualityReport || null;
+    run.qualityReport = result.qualityReport
+      ? {
+          ...result.qualityReport,
+          pageCount: (await PDFDocument.load(finalPdf)).getPageCount(),
+        }
+      : null;
     run.pdfStoragePath = stored.storagePath;
     run.pdfUrl = stored.url;
     run.completedAt = new Date().toISOString();

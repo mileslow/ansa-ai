@@ -380,21 +380,41 @@ export async function classifyDocumentWithFallback({
   });
   if (!response.output_parsed) return heuristic;
   const parsed = response.output_parsed;
+  const parsedRoleContext = `${parsed.documentSubtype} ${parsed.reasoningSummary}`;
   const documentType =
-    parsed.documentType === "unknown" &&
+    parsed.scope === "regulatory" &&
+    ["unknown", "prior_booklet"].includes(parsed.documentType)
+      ? "plan_summary"
+      : parsed.documentType === "unknown" &&
     parsed.authority === "current_plan_document" &&
-    /\bcertificate(?: of insurance)?\b/i.test(
-      `${parsed.documentSubtype} ${parsed.reasoningSummary}`,
-    )
+    /\bcertificate(?: of insurance)?\b/i.test(parsedRoleContext)
       ? "spd"
-      : parsed.documentType;
+      : parsed.documentType === "unknown" &&
+          parsed.benefitTypes.length > 0 &&
+          ["generic_marketing", "administrator_material"].includes(
+            parsed.authority,
+          ) &&
+          /\b(?:brochure|overview|flyer|program guide|marketing)\b/i.test(
+            parsedRoleContext,
+          )
+        ? "plan_summary"
+        : parsed.documentType;
+  const withoutEapServiceFalsePositives =
+    parsed.benefitTypes.includes("eap") &&
+    parsed.benefitTypes.includes("voluntary") &&
+    /\b(?:employee assistance|eap)\b/i.test(parsedRoleContext) &&
+    !/\b(?:accident insurance|critical illness insurance|hospital indemnity|cancer insurance|voluntary (?:life|insurance|benefit))\b/i.test(
+      parsedRoleContext,
+    )
+      ? parsed.benefitTypes.filter((benefitType) => benefitType !== "voluntary")
+      : parsed.benefitTypes;
   const parsedBenefitTypes =
     documentType === "sbc" && parsed.benefitTypes.includes("medical")
-      ? parsed.benefitTypes.filter(
+      ? withoutEapServiceFalsePositives.filter(
           (benefitType) =>
             benefitType !== "hsa" && benefitType !== "telemedicine",
         )
-      : parsed.benefitTypes;
+      : withoutEapServiceFalsePositives;
   const inferredBenefitTypes = detectBenefitTypes(
     `${file.fileName} ${file.storagePath} ${parsed.documentSubtype} ${parsed.reasoningSummary}`,
     documentType,

@@ -154,17 +154,55 @@ const REQUIREMENT_PATH_ALIASES = new Map(
     "std.earnings": "std.coveredEarningsDefinition",
     "std.formula": "std.benefitFormula",
     "std.duration": "std.maximumBenefitDuration",
+    "std.offsets": "std.deductibleIncomeAndOffsets",
     "std.access": "std.claimOrAccess",
+    "std.limitation-preexistingCondition.terms":
+      "std.limitations.preexistingCondition.terms",
+    "std.limitation-mentalNervous.terms":
+      "std.limitations.mentalNervous.terms",
+    "std.limitation-mentalNervous":
+      "std.limitations.mentalNervous.terms",
+    "std.limitation-substanceUse.terms":
+      "std.limitations.substanceUse.terms",
+    "std.limitation-substanceUse":
+      "std.limitations.substanceUse.terms",
+    "std.limitation-selfReportedSymptoms.terms":
+      "std.limitations.selfReportedSymptoms.terms",
+    "std.limitation-selfReportedSymptoms":
+      "std.limitations.selfReportedSymptoms.terms",
     "ltd.definition": "ltd.disabilityDefinition",
     "ltd.earnings": "ltd.coveredEarningsDefinition",
+    "ltd.offsets": "ltd.deductibleIncomeAndOffsets",
+    "ltd.limitation-preexistingCondition.terms":
+      "ltd.limitations.preexistingCondition.terms",
+    "ltd.limitation-mentalNervous.terms":
+      "ltd.limitations.mentalNervous.terms",
+    "ltd.limitation-mentalNervous":
+      "ltd.limitations.mentalNervous.terms",
+    "ltd.limitation-substanceUse.terms":
+      "ltd.limitations.substanceUse.terms",
+    "ltd.limitation-substanceUse":
+      "ltd.limitations.substanceUse.terms",
+    "ltd.limitation-selfReportedSymptoms.terms":
+      "ltd.limitations.selfReportedSymptoms.terms",
+    "ltd.limitation-selfReportedSymptoms":
+      "ltd.limitations.selfReportedSymptoms.terms",
+    "ltd.formalClaimsReference":
+      "ltd.formalDisclosure.claimsAndAppealsReference",
+    "std.formalClaimsReference":
+      "std.formalDisclosure.claimsAndAppealsReference",
     "hra.integration.linked_group_health_plans":
       "hra.integration.linkedGroupHealthPlanIds",
+    "hsa.eligibility.linked_medical_plans":
+      "hsa.eligibility.linkedMedicalPlanIds",
     "voluntary.safeBookletSummary":
       "voluntary.products[].safeBookletSummary",
     "voluntary.booklet-summary":
       "voluntary.products[].safeBookletSummary",
     "voluntary.access": "voluntary.claimOrAccess",
     "life.access": "life.claimOrAccess",
+    "eap.access": "eap.claimOrAccess",
+    "telemedicine.access": "telemedicine.claimOrAccess",
     "life.formal-claims-reference":
       "life.formalDisclosure.claimsAndAppealsReference",
   }).map(([alias, canonical]) => [pathSignature(alias), canonical]),

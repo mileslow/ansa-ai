@@ -126,6 +126,41 @@ describe("document classifier", () => {
     });
   });
 
+  it("normalizes a benefit brochure role and ignores EAP service-category false positives", async () => {
+    const input = file("eap-overview.pdf");
+    const parse = async () => ({
+      output_parsed: {
+        documentType: "unknown",
+        confidence: 0.97,
+        detectedBenefitTypes: ["eap", "voluntary"],
+        detectedEmployer: null,
+        detectedCarrier: "Optum",
+        detectedPlanYear: null,
+        reasoningSummary:
+          "An EAP marketing brochure with counseling, legal, financial, and work-life resources.",
+        benefitTypes: ["eap", "voluntary"],
+        documentSubtype: "carrier marketing brochure for EAP services",
+        scope: "generic_reference",
+        authority: "generic_marketing",
+        employerOrGroupId: null,
+        planOrProgramIds: [],
+        effectiveStart: null,
+        effectiveEnd: null,
+      },
+    });
+    await expect(
+      classifyDocumentWithFallback({
+        file: input,
+        apiKey: "test",
+        client: { responses: { parse } } as any,
+      }),
+    ).resolves.toMatchObject({
+      documentType: "plan_summary",
+      benefitTypes: ["eap"],
+      authority: "generic_marketing",
+    });
+  });
+
   it("classifies a renewal workbook before generic carrier rates", () => {
     const input = file(
       "2026 renewal.xlsx",

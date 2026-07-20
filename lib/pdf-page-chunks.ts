@@ -38,6 +38,11 @@ async function chunksWithPdfLib(
     throwOnInvalidObject: false,
     updateMetadata: false,
   });
+  // pdf-lib can load some encrypted documents with ignoreEncryption but then
+  // copy pages whose fonts/resources are unusable. Normalize those sources
+  // through Ghostscript instead of producing visually blank model inputs.
+  if (source.isEncrypted)
+    throw new Error("Encrypted PDFs require normalization before page copying.");
   const totalPages = source.getPageCount();
   if (totalPages <= maxPages)
     return [

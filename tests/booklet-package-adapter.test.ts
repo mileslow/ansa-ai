@@ -114,4 +114,29 @@ describe("benefits package rendering adapter", () => {
       expect(benefit.plans[0]).toMatchObject({ tiers: [] });
     }
   });
+
+  it("uses the confirmed waiting period ahead of a broader eligibility description", () => {
+    const company = benefitsPackageToLegacyCompany(
+      {
+        employer: { name: "Big Tows Inc." },
+        planYear: { start: "2026-03-01", end: "2027-02-28", label: "2026-2027" },
+        eligibility: {
+          waitingPeriod: "Benefits begin after two months of employment.",
+          description: "Eligible dependents include spouses and children.",
+          employeeClasses: [],
+        },
+        offeredBenefits: [],
+        plans: [],
+        rates: [],
+        contributions: [],
+        contacts: [],
+        accounts: [],
+      } as unknown as BenefitsPackage,
+      { sections: [] },
+    );
+
+    expect(company.planDetails.eligibility.initialPeriod).toBe(
+      "Benefits begin after two months of employment.",
+    );
+  });
 });

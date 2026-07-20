@@ -522,11 +522,11 @@ describe("benefits package assembler and question engine", () => {
     const source = extraction({
       selectedPlans: [
         {
-          planName: "UnitedHealthcare Freedom EPO ZD 25/50/100",
+          planName: "Generic Medical",
           benefitType: "medical",
           carrier: "UnitedHealthcare",
           page: 1,
-          quote: "UnitedHealthcare Freedom EPO ZD 25/50/100",
+          quote: "Generic Medical",
           confidence: 0.95,
         },
       ],

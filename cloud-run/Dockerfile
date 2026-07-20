@@ -24,6 +24,7 @@ ENV NODE_ENV=production \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     fonts-liberation \
+    ghostscript \
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \

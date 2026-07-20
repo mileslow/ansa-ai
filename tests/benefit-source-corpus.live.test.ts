@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import fs from "node:fs/promises";
 import path from "node:path";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
@@ -21,6 +22,7 @@ import { classifyDocumentWithFallback } from "../lib/document-classifier";
 import {
   dailyBenefitSourceSeed,
   discoverBenefitSourceDocuments,
+  loadFullBenefitSourcePdf,
   parseBenefitSourceCategories,
   sampleBenefitSourceDocuments,
   samplePdfPages,
@@ -77,6 +79,10 @@ type AuditReport = {
   classification?: ClassifiedDocument;
   extractionOutline?: {
     employer: BookletDocumentExtraction["employer"];
+    documentPlanOptions: NonNullable<
+      BookletDocumentExtraction["documentPlanOptions"]
+    >;
+    warnings: string[];
     candidates: Array<ReturnType<typeof compactCandidate>>;
   };
   findings: AuditFinding[];
@@ -160,7 +166,6 @@ function extractionSummary(
     warnings: extraction.warnings,
     documentPlanOptions: extraction.documentPlanOptions || [],
     requirementCandidates: (extraction.requirementCandidates || [])
-      .slice(0, 160)
       .map((candidate) => compactCandidate(candidate, sample)),
   };
 }
@@ -290,7 +295,9 @@ function contractFindings(
       );
     for (const candidate of candidates.filter((item) =>
       item.state !== "not_found" &&
-      /offering|selectedByEmployer/i.test(item.path),
+      /(?:\.offering\.confirmed|\.offeringStatus|\.selectedByEmployer)$/i.test(
+        item.path,
+      ),
     ))
       addFinding(
         findings,
@@ -378,6 +385,16 @@ plan identities, variants, design terms, and explicitly stated costs in requirem
 Enrollment tiers such as Self Only, Self Plus One, and Family are not separate plan options.
 documentType is intentionally a coarse enum: plan_summary is an acceptable container for an
 insurance certificate when documentSubtype accurately says certificate. Do not flag that mapping.
+plan_summary is also an acceptable coarse container for regulatory publications when scope is
+regulatory, authority is regulatory_source, and documentSubtype identifies the publication.
+
+documentPlanOptions is only an entity index of named plans, programs, accounts, and product options
+visible in the source. An entry there never claims that an employer offers or selected the entity;
+only offeredBenefits, selectedPlans, or a registry offering/selectedByEmployer field can make that
+claim. Regulatory guidance should not create documentPlanOptions for hypothetical or generic plan
+examples. A named service-line label used only as an eligibility or scheduling path (for example,
+a teen-specific scheduling selection) does not require its own documentPlanOptions entry when the
+label and population qualifier are fully preserved in an eligibility or service-line candidate.
 
 Report a critical issue for any unsupported material fact, wrong benefit family or document role,
 employer-offering inference, contradicted none/not-applicable state, collapsed visibly distinct
@@ -752,12 +769,25 @@ describe.skipIf(!live)("paid randomized benefit source extraction audit", () => 
         process.env.BENEFIT_SOURCE_SAMPLE_PAGES,
         3,
       );
+      const fullAudit = process.env.BENEFIT_SOURCE_AUDIT_MODE === "full";
+      const pathPattern = process.env.BENEFIT_SOURCE_PATH_PATTERN;
       const documents = await discoverBenefitSourceDocuments();
-      const selected = sampleBenefitSourceDocuments(documents, {
-        seed,
-        categories,
-        size,
-      });
+      const eligibleDocuments = documents.filter(
+        (document) =>
+          (!categories || categories.includes(document.category)) &&
+          (!pathPattern || document.relativePath.includes(pathPattern)),
+      );
+      const selected = fullAudit
+        ? eligibleDocuments
+        : sampleBenefitSourceDocuments(eligibleDocuments, {
+            seed,
+            categories,
+            size,
+          });
+      if (!selected.length)
+        throw new Error(
+          `No benefit-source documents matched categories=${categories?.join(",") || "all"} pathPattern=${pathPattern || "none"}.`,
+        );
       const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       const model =
         process.env.OPENAI_BOOKLET_JUDGE_MODEL ||
@@ -766,7 +796,7 @@ describe.skipIf(!live)("paid randomized benefit source extraction audit", () => 
       const reports: AuditReport[] = [];
 
       console.info(
-        `[benefit-source-audit] seed=${seed} documents=${selected.length} maxPages=${maxPages}`,
+        `[benefit-source-audit] mode=${fullAudit ? "full" : "sample"} seed=${seed} documents=${selected.length}${fullAudit ? " allPages=true" : ` maxPages=${maxPages}`}`,
       );
       for (const document of selected) {
         const report: AuditReport = {
@@ -775,7 +805,9 @@ describe.skipIf(!live)("paid randomized benefit source extraction audit", () => 
           findings: [],
         };
         try {
-          const sample = await samplePdfPages(document, { seed, maxPages });
+          const sample = fullAudit
+            ? await loadFullBenefitSourcePdf(document)
+            : await samplePdfPages(document, { seed, maxPages });
           report.sampledOriginalPages = sample.originalPageNumbers;
           const file = loadedFile(document, sample, seed);
           console.info(
@@ -795,8 +827,9 @@ describe.skipIf(!live)("paid randomized benefit source extraction audit", () => 
           });
           report.extractionOutline = {
             employer: extraction.employer,
+            documentPlanOptions: extraction.documentPlanOptions || [],
+            warnings: extraction.warnings,
             candidates: (extraction.requirementCandidates || [])
-              .slice(0, 160)
               .map((candidate) => compactCandidate(candidate, sample)),
           };
           report.findings.push(
@@ -881,6 +914,30 @@ describe.skipIf(!live)("paid randomized benefit source extraction audit", () => 
       );
       const warnings = findings.filter((finding) => finding.severity === "warning");
       const critical = findings.filter((finding) => finding.severity === "critical");
+      const reportDirectory = path.resolve("output/extraction-audits");
+      await fs.mkdir(reportDirectory, { recursive: true });
+      const reportPath = path.join(
+        reportDirectory,
+        `${fullAudit ? "full" : "sample"}-${seed.replace(/[^a-z0-9_-]+/gi, "-")}.json`,
+      );
+      await fs.writeFile(
+        reportPath,
+        `${JSON.stringify(
+          {
+            generatedAt: new Date().toISOString(),
+            mode: fullAudit ? "full" : "sample",
+            seed,
+            model,
+            documentCount: reports.length,
+            criticalCount: critical.length,
+            warningCount: warnings.length,
+            reports,
+          },
+          null,
+          2,
+        )}\n`,
+      );
+      console.info(`[benefit-source-audit] report=${reportPath}`);
       if (warnings.length)
         console.warn(
           `[benefit-source-audit] warnings\n${JSON.stringify(warnings, null, 2)}`,

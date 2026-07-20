@@ -155,6 +155,16 @@ describe("all-benefit extraction contracts", () => {
     expect(canonicalizeRequirementCandidatePath(semanticAlias).path).toBe(
       "hra.integration.linkedGroupHealthPlanIds",
     );
+    expect(
+      canonicalizeRequirementCandidatePath(
+        rawCandidate("std", "std.limitation-preexistingCondition.terms"),
+      ).path,
+    ).toBe("std.limitations.preexistingCondition.terms");
+    expect(
+      canonicalizeRequirementCandidatePath(
+        rawCandidate("ltd", "ltd.formalClaimsReference"),
+      ).path,
+    ).toBe("ltd.formalDisclosure.claimsAndAppealsReference");
   });
 
   it("defines a path-constrained schema for every one of the 12 benefit types", () => {

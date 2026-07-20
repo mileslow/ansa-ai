@@ -220,6 +220,27 @@ export type SampledPdf = {
   totalOriginalPages: number;
 };
 
+export async function loadFullBenefitSourcePdf(
+  document: BenefitSourceDocument,
+): Promise<SampledPdf> {
+  const { stdout: pdfInfo } = await execFileAsync("pdfinfo", [
+    document.absolutePath,
+  ]);
+  const totalOriginalPages = Number(
+    pdfInfo.match(/^Pages:\s+(\d+)$/m)?.[1] || 0,
+  );
+  if (totalOriginalPages === 0)
+    throw new Error(`Could not determine PDF pages: ${document.relativePath}`);
+  return {
+    data: await fs.readFile(document.absolutePath),
+    originalPageNumbers: Array.from(
+      { length: totalOriginalPages },
+      (_, index) => index + 1,
+    ),
+    totalOriginalPages,
+  };
+}
+
 export async function samplePdfPages(
   document: BenefitSourceDocument,
   options: { seed: string; maxPages?: number },
