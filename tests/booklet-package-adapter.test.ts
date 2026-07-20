@@ -105,7 +105,7 @@ describe("benefits package rendering adapter", () => {
 
     const company = benefitsPackageToLegacyCompany(benefitsPackage, {
       sections: [],
-    });
+    }, undefined, { allowUnpricedPlans: true });
 
     expect(company.benefits.health.plans).toHaveLength(1);
     expect(company.benefits.dental.plans).toHaveLength(1);

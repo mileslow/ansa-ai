@@ -6,11 +6,17 @@ export function benefitsPackageToLegacyCompany(
   benefitsPackage: BenefitsPackage,
   outline: BookletOutline,
   content?: BookletContentResult,
+  options: { allowUnpricedPlans?: boolean } = {},
 ) {
   const benefits: Record<string, { uploadedPlanCount: number; plans: unknown[] }> = {};
   for (const benefitType of ["medical", "dental", "vision"] as const) {
     const plans = benefitsPackage.plans
       .filter((plan) => plan.benefitType === benefitType)
+      .filter(
+        (plan) =>
+          options.allowUnpricedPlans ||
+          benefitsPackage.rates.some((item) => item.id === plan.ratePlanId),
+      )
       .map((plan) => {
         const rate = benefitsPackage.rates.find((item) => item.id === plan.ratePlanId);
         return {
@@ -18,9 +24,9 @@ export function benefitsPackageToLegacyCompany(
           year: plan.year || benefitsPackage.planYear.label,
           carrier: plan.carrier,
           attributes: plan.attributes,
-          // A selected plan remains publishable when premiums are supplied
-          // separately. An absent rate match means "no cost table", not
-          // "drop the plan from the booklet".
+          // Email employee-booklet mode keeps a selected plan when premiums
+          // are supplied separately. Strict studio mode filters it above so
+          // its existing missing-rate guard remains intact.
           tiers: rate
             ? rate.tiers.map((tier) => {
               const rule = findContributionRule(

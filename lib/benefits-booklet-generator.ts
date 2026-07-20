@@ -15,8 +15,14 @@ export function renderBenefitsPackageHtml(
   benefitsPackage: BenefitsPackage,
   outline: BookletOutline,
   content?: BookletContentResult,
+  options: { allowUnpricedPlans?: boolean } = {},
 ) {
-  const company = benefitsPackageToLegacyCompany(benefitsPackage, outline, content);
+  const company = benefitsPackageToLegacyCompany(
+    benefitsPackage,
+    outline,
+    content,
+    options,
+  );
   return renderBookletHtml(company, packagePayPeriods(benefitsPackage));
 }
 
@@ -24,8 +30,14 @@ export function renderBenefitsPackagePreviewPages(
   benefitsPackage: BenefitsPackage,
   outline: BookletOutline,
   content?: BookletContentResult,
+  options: { allowUnpricedPlans?: boolean } = {},
 ) {
-  const company = benefitsPackageToLegacyCompany(benefitsPackage, outline, content);
+  const company = benefitsPackageToLegacyCompany(
+    benefitsPackage,
+    outline,
+    content,
+    options,
+  );
   return renderBookletPreviewPages(company, packagePayPeriods(benefitsPackage));
 }
 
@@ -33,8 +45,14 @@ export async function generateBenefitsPackagePdf(
   benefitsPackage: BenefitsPackage,
   outline: BookletOutline,
   content?: BookletContentResult,
+  options: { allowUnpricedPlans?: boolean } = {},
 ) {
-  const company = benefitsPackageToLegacyCompany(benefitsPackage, outline, content);
+  const company = benefitsPackageToLegacyCompany(
+    benefitsPackage,
+    outline,
+    content,
+    options,
+  );
   return generateBookletPdf(company, packagePayPeriods(benefitsPackage));
 }
 

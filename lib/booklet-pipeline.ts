@@ -246,6 +246,7 @@ export async function runBookletPipeline({
   onArtifact?: (artifact: BookletSectionArtifact) => Promise<void> | void;
   dependencies?: PipelineDependencies;
 }): Promise<PipelineResult> {
+  const renderOptions = { allowUnpricedPlans: !enforceRegistry };
   let eventSequence = 0;
   const emit = async (
     stage: PipelineStage,
@@ -335,6 +336,7 @@ export async function runBookletPipeline({
           snapshotPackage,
           snapshotOutline,
           snapshotContent,
+          renderOptions,
         ),
         outline: snapshotOutline,
         content: snapshotContent,
@@ -689,6 +691,7 @@ export async function runBookletPipeline({
         benefitsPackage,
         partialOutline,
         partialContent,
+        renderOptions,
       ),
       outline: partialOutline,
       content: partialContent,
@@ -796,7 +799,12 @@ export async function runBookletPipeline({
   const streamedSections = new Map<string, BookletSectionContent>();
   for (const artifact of artifactsFromPreviewPages({
     runId,
-    pages: renderBenefitsPackagePreviewPages(benefitsPackage, outline),
+    pages: renderBenefitsPackagePreviewPages(
+      benefitsPackage,
+      outline,
+      undefined,
+      renderOptions,
+    ),
     outline,
   })) {
     const previous = streamedArtifacts.get(artifact.id);
@@ -831,6 +839,7 @@ export async function runBookletPipeline({
       benefitsPackage,
       outline,
       partialContent,
+      renderOptions,
     ).filter((page) => {
       const pageId = page.html.match(/data-page-id=["']([^"']+)["']/)?.[1] || "";
       return sectionIdFromPageId(pageId) === section.id;
@@ -979,7 +988,12 @@ export async function runBookletPipeline({
   }
   const finalArtifacts = artifactsFromPreviewPages({
     runId,
-    pages: renderBenefitsPackagePreviewPages(benefitsPackage, outline, content),
+    pages: renderBenefitsPackagePreviewPages(
+      benefitsPackage,
+      outline,
+      content,
+      renderOptions,
+    ),
     outline,
     content,
   });
