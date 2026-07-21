@@ -34,7 +34,10 @@ import type {
   PipelineEvent,
   PipelineStage,
 } from "./booklet-types";
-import { classifyDocumentWithFallback } from "./document-classifier";
+import {
+  classifyDocument,
+  classifyDocumentWithFallback,
+} from "./document-classifier";
 import {
   factsFromDocumentExtraction,
   factsFromManualAnswers,
@@ -61,7 +64,7 @@ import { BENEFIT_REQUIREMENTS_REGISTRY_VERSION } from "./benefit-requirements";
 import type { BookletRenderManifest } from "./booklet-types";
 
 export type PipelineResult = {
-  status: "blocked" | "complete";
+  status: "preview" | "blocked" | "complete";
   classifications: ClassifiedDocument[];
   questions: BlockerQuestion[];
   benefitsPackage: BenefitsPackage;
@@ -74,6 +77,28 @@ export type PipelineResult = {
   facts: ExtractedFact[];
   artifacts: BookletSectionArtifact[];
 };
+
+export function unresolvedBookletQuestions(
+  questions: BlockerQuestion[],
+  answers: Record<string, unknown>,
+) {
+  return questions.filter((question) => {
+    if (!Object.prototype.hasOwnProperty.call(answers, question.fieldPath))
+      return true;
+    const normalizedOptions = (question.options || []).map((option) =>
+      option.trim().toLowerCase(),
+    );
+    const isBooleanQuestion =
+      question.expectedAnswerKind === "boolean" ||
+      (normalizedOptions.includes("yes") && normalizedOptions.includes("no"));
+    if (!isBooleanQuestion) return true;
+    const answer = answers[question.fieldPath];
+    if (typeof answer === "boolean") return false;
+    return !["yes", "no", "true", "false"].includes(
+      String(answer).trim().toLowerCase(),
+    );
+  });
+}
 
 export type PipelineDependencies = {
   classify?: (file: LoadedUploadedFile) => Promise<ClassifiedDocument>;
@@ -226,6 +251,7 @@ export async function runBookletPipeline({
   files,
   answers = {},
   enforceRegistry = true,
+  generatePdf = true,
   onEvent = async () => {},
   onArtifact,
   dependencies = {},
@@ -242,6 +268,12 @@ export async function runBookletPipeline({
    * exhaustive questions. Strict callers can opt into the formal registry gate.
    */
   enforceRegistry?: boolean;
+  /**
+   * Interactive Booklet Studio runs use false while setup is incomplete so
+   * section HTML can stream without invoking the PDF renderer. Other callers
+   * default to the existing final-PDF behavior.
+   */
+  generatePdf?: boolean;
   onEvent?: (event: PipelineEvent) => Promise<void> | void;
   onArtifact?: (artifact: BookletSectionArtifact) => Promise<void> | void;
   dependencies?: PipelineDependencies;
@@ -274,13 +306,34 @@ export async function runBookletPipeline({
 
   await emit("Classifying documents", "started", "Classifying every uploaded file.");
   const classify = dependencies.classify || ((file) => classifyDocumentWithFallback({ file }));
-  const classifications = await Promise.all(files.map((file) => classify(file)));
+  await emit(
+    "Classifying documents",
+    "progress",
+    "Quick document identification is ready; deeper classification is continuing in the background.",
+    {
+      provisional: true,
+      documents: files.map((file) => ({
+        ...classifyDocument(file),
+        provisional: true,
+      })),
+    },
+  );
+  const classifications = await Promise.all(files.map(async (file) => {
+    const classification = await classify(file);
+    await emit(
+      "Classifying documents",
+      "progress",
+      `Classified ${file.fileName}.`,
+      {
+        provisional: false,
+        documents: [{ ...classification, provisional: false }],
+      },
+    );
+    return classification;
+  }));
   await emit("Classifying documents", "complete", "Document classification is complete.", {
-    documents: classifications.map((item) => ({
-      fileId: item.fileId,
-      documentType: item.documentType,
-      confidence: item.confidence,
-    })),
+    provisional: false,
+    documents: classifications.map((item) => ({ ...item, provisional: false })),
   });
 
   const employerExtractions: BookletDocumentExtraction[] = [];
@@ -460,6 +513,12 @@ export async function runBookletPipeline({
         .filter((item) => planTypes.has(item.documentType))
         .map(async (classification) => {
           const file = files.find((candidate) => candidate.id === classification.fileId)!;
+          await emit("Parsing plan documents", "progress", `Parsing ${file.fileName}.`, {
+            fileId: file.id,
+            parseStatus: "started",
+            benefitTypes: classification.detectedBenefitTypes || classification.benefitTypes || [],
+            planOrProgramIds: classification.planOrProgramIds || [],
+          });
           const genericExtraction = (async () => {
             try {
               const extraction = await (dependencies.extractDocument || ((args) => extractBookletDocument(args)))({
@@ -468,6 +527,8 @@ export async function runBookletPipeline({
               });
               planExtractions.push(extraction);
               await emit("Parsing plan documents", "progress", `Identified benefit coverage in ${file.fileName}.`, {
+                fileId: file.id,
+                parseStatus: "extracting",
                 benefitTypes: classification.detectedBenefitTypes || [],
               });
               await queuePreview(`plan inventory: ${file.fileName}`);
@@ -501,6 +562,10 @@ export async function runBookletPipeline({
                 }
               })();
           await Promise.all([genericExtraction, medicalExtraction]);
+          await emit("Parsing plan documents", "progress", `Finished parsing ${file.fileName}.`, {
+            fileId: file.id,
+            parseStatus: "complete",
+          });
         }),
     );
     await emit(
@@ -622,14 +687,14 @@ export async function runBookletPipeline({
         reports: extractionReports,
       })
     : [];
-  const questions = [
+  const questions = unresolvedBookletQuestions([
     ...new Map(
       [...registryQuestions, ...legacyQuestions].map((item) => [
         item.fieldPath,
         item,
       ]),
     ).values(),
-  ];
+  ], answers);
   await emit(
     "Resolving conflicts",
     questions.length ? "warning" : "complete",
@@ -768,10 +833,13 @@ export async function runBookletPipeline({
   benefitsPackage.requirements.renderedPathsBySubject = intendedRenderedPaths;
   benefitsPackage.requirements.renderManifest = renderManifest;
   if (registryEnforcementActive) {
-    const safeQuestions = buildRequirementQuestions({
-      subjects: requirementSubjects,
-      reports: safeBookletReports,
-    });
+    const safeQuestions = unresolvedBookletQuestions(
+      buildRequirementQuestions({
+        subjects: requirementSubjects,
+        reports: safeBookletReports,
+      }),
+      answers,
+    );
     if (safeQuestions.length)
       return {
         status: "blocked",
@@ -1023,6 +1091,20 @@ export async function runBookletPipeline({
       : "Booklet HTML is ready.",
   );
 
+  if (!generatePdf)
+    return {
+      status: "preview",
+      classifications,
+      questions: [],
+      benefitsPackage,
+      outline,
+      html,
+      content,
+      renderManifest,
+      facts,
+      artifacts,
+    };
+
   await emit("Running quality checks", "started", "Checking sources, sections, costs, and placeholders before rendering.");
   const preflight = await checkBookletQuality({
     benefitsPackage,
@@ -1086,6 +1168,7 @@ export function createGenerationRun({
   ownerId,
   uploadedFileIds,
   generationMode = "registry_strict",
+  outputMode = "final_pdf",
 }: {
   id?: string;
   threadId: string;
@@ -1093,6 +1176,7 @@ export function createGenerationRun({
   ownerId: string;
   uploadedFileIds: string[];
   generationMode?: "registry_strict" | "employee_booklet";
+  outputMode?: "html_preview" | "final_pdf";
 }): BookletGenerationRun {
   return {
     id,
@@ -1101,6 +1185,7 @@ export function createGenerationRun({
     ownerId,
     status: "queued",
     generationMode,
+    outputMode,
     uploadedFileIds,
     stages: [],
     questions: [],

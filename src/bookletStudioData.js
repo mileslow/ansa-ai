@@ -82,7 +82,7 @@ export const phaseDefinitions = [
     number: "04",
     icon: "message",
     title: "Extra instructions",
-    description: "Final decisions, corrections, and client-specific language.",
+    description: "Resolve everything still missing, then add any optional corrections or client-specific language.",
     accepted: "Typed note, copied email, or broker instruction",
     fileName: "Broker final decisions.txt",
     fileMeta: "Client note · 3 KB",

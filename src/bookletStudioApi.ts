@@ -113,6 +113,19 @@ async function apiRequest<T>(body: JsonRecord): Promise<T> {
   return payload;
 }
 
+async function fileRequest(body: JsonRecord) {
+  const response = await fetch("/api/booklet-pipeline", {
+    method: "POST",
+    headers: await headers(),
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(payload.error || `Could not load source document (${response.status})`);
+  }
+  return response.blob();
+}
+
 async function streamRequest(
   body: JsonRecord,
   onMessage?: (message: StreamMessage) => void,
@@ -169,11 +182,14 @@ export const bookletStudioApi = {
       files: UploadedFile[];
       deletedFileId: string;
     }>({ action: "delete_file", ...input }),
+  downloadSource: (input: { threadId: string; fileId: string }) =>
+    fileRequest({ action: "source_download", ...input }),
   start: (
     input: {
       threadId: string;
       fileIds?: string[];
       generationMode: "registry_strict" | "employee_booklet";
+      outputMode?: "html_preview" | "final_pdf";
       initialAnswers?: Record<string, unknown>;
     },
     onMessage?: (message: StreamMessage) => void,

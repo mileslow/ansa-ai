@@ -1,0 +1,160 @@
+# Booklet Studio frontend and pipeline changes
+
+This document records the Booklet Studio changes included in the accompanying
+commit. The work covers the interactive company setup flow, persisted source
+recovery, plan-document readiness, live HTML preview behavior, and the final
+PDF boundary.
+
+## Intended workflow
+
+Booklet Studio now treats setup as four ordered phases:
+
+1. Employer
+2. Plans
+3. Rates
+4. Notes
+
+A later phase unlocks only when the source-backed requirements for the prior
+phase are complete. Uploading a file alone does not mark a phase complete.
+Completion is derived from persisted files, classifications, extracted facts,
+and the required-plan checklist.
+
+The Notes phase is the final catch-all. It shows every unresolved backend
+question regardless of which source first surfaced it, followed by an optional
+instructions field for corrections, exclusions, decisions, and preferred
+client language.
+
+## Employer source experience
+
+- Uploading the employer application initially shows Document and Extracted
+  tabs rather than immediately rendering company-profile forms.
+- Extracted stays in a loading state until source-backed facts arrive.
+- Document lists stored source files but does not mount an inline preview until
+  the user explicitly clicks a file.
+- The original source is fetched through an ownership-checked
+  `source_download` backend action.
+- Users can close a preview, add another source, or delete a source.
+
+## Required plan checklist
+
+- Employer-application facts create the requested-plan checklist.
+- The plan uploader is a persistent multi-file drag area above the checklist.
+- Uploads are unrestricted by exact document type; supported files can be
+  selected or dragged in together.
+- Plan identity is reconciled from extracted plan names, classification
+  metadata, benefit type, and safe exact filename matching.
+- Similar plan names do not satisfy one another, and a generic type-only source
+  cannot satisfy several named options.
+- Filename matches can show a provisional received/parsing state immediately,
+  but they do not complete the phase until backend verification arrives.
+- The backend now emits an immediate heuristic classification, a confirmed
+  classification per file, and per-file plan parse start/extract/complete
+  events.
+- Only the checklist row associated with the file being parsed shows a spinner.
+  It changes to a checkmark after that file is verified.
+- Already-verified classifications are never overwritten by a lower-fidelity
+  provisional rerun. Uploading a rate file or an additional source therefore
+  cannot temporarily reset green plan checks or force navigation back to Plans.
+
+## Persistence and navigation
+
+- Thread and run IDs remain in the recovery URL.
+- The selected phase is persisted in the `phase` query parameter.
+- Reload waits for backend thread restoration before enforcing phase locks.
+- A saved unlocked phase remains selected after reload; a genuinely locked
+  phase safely falls back to the latest available step.
+- Existing files are merged with later upload responses instead of being
+  replaced by only the newest upload batch.
+- Final follow-up questions do not retroactively erase completion of Employer,
+  Plans, or Rates. They remain visible in Notes.
+
+## HTML preview and PDF lifecycle
+
+Interactive frontend runs explicitly request `html_preview` output. In that
+mode the backend:
+
+- performs classification, extraction, plan/rate matching, outline creation,
+  and source-backed HTML rendering;
+- publishes each available section artifact as soon as its dependencies are
+  ready; and
+- returns a preview result without invoking the PDF renderer.
+
+The final PDF run starts only when Employer, Plans, Rates, and all required
+follow-up details are complete. PDF preview and download controls remain
+disabled until that final run has a real PDF URL and no remaining blockers.
+
+## Live text streaming
+
+- New section artifacts automatically select and scroll to the affected HTML
+  page.
+- Text appears progressively inside the HTML preview rather than mounting in a
+  single paint.
+- Each section keeps its own prior HTML baseline.
+- Subsequent revisions use a word-level diff and animate only inserted or
+  changed words. Stable headings, tables, footers, and earlier copy remain
+  visible and do not restart.
+- Punctuation-only movement does not cause an unchanged word to replay.
+- Concurrent backend extraction is allowed, but frontend text animations are
+  serialized through a queue. Exactly one section streams at a time, then the
+  preview advances to the next queued section.
+- Section-specific baselines and revisions prevent simultaneous extraction
+  results from overwriting or diffing against one another.
+- Reduced-motion browser preferences disable the word animation.
+- Small updates apply immediately: an existing section must change by at least
+  four words, and a new section needs at least eight words, before streaming is
+  triggered.
+
+## Backend and API contract
+
+- Generation runs have an `outputMode` of `html_preview` or `final_pdf`.
+- Run status includes the persisted `preview` state.
+- Preview runs skip quality/PDF rendering while retaining HTML section
+  artifacts and extraction state.
+- Once setup is complete, the frontend promotes the saved preview thread to a
+  final PDF run.
+- Source downloads verify thread ownership, file attachment, company scope,
+  and file ownership before returning stored bytes.
+- Fast and confirmed classification events include enough per-file metadata for
+  the frontend checklist to update before the overall run completes.
+
+## Primary files
+
+- `src/BookletStudio.jsx`: phase UX, checklist, source tabs, gated navigation,
+  Notes catch-all, preview behavior, and PDF controls.
+- `src/useBookletStudioBackend.js`: recovery, upload merging, generation mode,
+  per-file processing, serialized section stream queue, and finalization.
+- `src/bookletStudioReadiness.js`: phase readiness, plan requirements, matching,
+  stable classification merging, and setup completion.
+- `src/bookletTextStream.js`: visible-text parsing, section-local word diffing,
+  animation duration, and streamed HTML generation.
+- `src/bookletStudioApi.ts`: source download and output-mode API support.
+- `src/bookletStudio.css`: source review, checklist, parsing, missing-item, and
+  preview states.
+- `api/booklet-pipeline.ts`: secure source download and output-mode validation.
+- `lib/booklet-pipeline.ts`: fast classification events, per-file parse events,
+  HTML-only pipeline results, and final-PDF control.
+- `lib/booklet-run-service.ts`, `lib/booklet-thread-store.ts`, and
+  `lib/booklet-types.ts`: preview execution and persisted run contract.
+
+## Verification
+
+The focused test coverage includes:
+
+- HTML preview runs never invoking the PDF renderer;
+- output mode persistence;
+- source file merging;
+- phase restoration and source-backed readiness;
+- exact and type-aware plan reconciliation;
+- protection against similar-plan cross-matches;
+- provisional filename receipt and per-file parsing states;
+- preservation of verified plan classifications during later provisional runs;
+- whole-page initial text streaming;
+- changed-word-only section updates; and
+- independent concurrent section diffs.
+
+Final yes/no blockers are removed as soon as either answer is saved. The
+answer is persisted before regeneration, resolved boolean blockers cannot
+reappear during the next pipeline pass, and answering the last blocker allows
+the automatic final-PDF run to expose the download action.
+
+The production Vite build and `git diff --check` are run before deployment.

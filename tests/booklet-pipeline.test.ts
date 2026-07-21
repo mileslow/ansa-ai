@@ -2,7 +2,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it, vi } from "vitest";
-import { createGenerationRun, runBookletPipeline } from "../lib/booklet-pipeline";
+import {
+  createGenerationRun,
+  runBookletPipeline,
+  unresolvedBookletQuestions,
+} from "../lib/booklet-pipeline";
 import type {
   ClassifiedDocument,
   LoadedUploadedFile,
@@ -154,6 +158,23 @@ async function sixPagePdf() {
 }
 
 describe("booklet agent pipeline", () => {
+  it("dismisses an answered yes/no blocker even when the answer is no", () => {
+    const question = {
+      id: "question-offered-vision",
+      fieldPath: "offeredBenefits.vision",
+      question: "Should vision be included?",
+      reason: "The source does not prove employer selection.",
+      options: ["yes", "no"],
+      sourceRefs: [],
+      blocking: true,
+    };
+
+    expect(unresolvedBookletQuestions([question], {
+      "offeredBenefits.vision": "no",
+    })).toEqual([]);
+    expect(unresolvedBookletQuestions([question], {})).toEqual([question]);
+  });
+
   it("persists the selected backend generation mode on a run", () => {
     const strict = createGenerationRun({
       id: "strict-run",
@@ -169,10 +190,41 @@ describe("booklet agent pipeline", () => {
       ownerId: "owner",
       uploadedFileIds: ["file"],
       generationMode: "employee_booklet",
+      outputMode: "html_preview",
     });
 
     expect(strict.generationMode).toBe("registry_strict");
+    expect(strict.outputMode).toBe("final_pdf");
     expect(employeeBooklet.generationMode).toBe("employee_booklet");
+    expect(employeeBooklet.outputMode).toBe("html_preview");
+  });
+
+  it("streams HTML without invoking the PDF renderer for a frontend preview run", async () => {
+    const file = await rateFile();
+    const renderPdf = vi.fn(async () => sixPagePdf());
+    const events: PipelineEvent[] = [];
+
+    const preview = await runBookletPipeline({
+      runId: "run-html-preview",
+      companyId: "big-tows",
+      files: [employerFile, file],
+      answers: { "eligibility.waitingPeriod": "First of the month after 60 days" },
+      enforceRegistry: false,
+      generatePdf: false,
+      dependencies: {
+        classify: async (input: LoadedUploadedFile) => classification(input),
+        extractDocument: async () => employerExtraction(null),
+        renderPdf,
+      },
+      onEvent: (event) => void events.push(event),
+    });
+
+    expect(preview.status).toBe("preview");
+    expect(preview.html).toContain('data-page-id="cover"');
+    expect(preview.artifacts.length).toBeGreaterThan(0);
+    expect(preview.pdf).toBeUndefined();
+    expect(renderPdf).not.toHaveBeenCalled();
+    expect(events.some((event) => event.stage === "Rendering PDF")).toBe(false);
   });
 
   it("publishes a provisional employer cover from website evidence alone", async () => {
@@ -653,6 +705,16 @@ describe("booklet agent pipeline", () => {
         (event) => event.stage === "Classifying documents" && event.status === "started",
       ),
     ).not.toHaveProperty("details");
+    expect(resumedEvents).toContainEqual(expect.objectContaining({
+      stage: "Classifying documents",
+      status: "progress",
+      details: expect.objectContaining({
+        provisional: true,
+        documents: expect.arrayContaining([
+          expect.objectContaining({ fileId: file.id, provisional: true }),
+        ]),
+      }),
+    }));
     expect(
       resumedEvents.find(
         (event) => event.stage === "Uploading files" && event.status === "complete",

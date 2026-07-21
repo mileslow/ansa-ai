@@ -40,6 +40,7 @@ describe("compactGenerationRun", () => {
       companyId: "company-1",
       ownerId: "owner-1",
       status: "blocked",
+      outputMode: "html_preview",
       uploadedFileIds: ["file-1"],
       stages: [],
       questions: [
@@ -62,6 +63,7 @@ describe("compactGenerationRun", () => {
     expect(compact.snapshotStoragePath).toBe("runs/run-1.json");
     expect(compact.questions).toEqual(run.questions);
     expect(compact.answers).toEqual(run.answers);
+    expect(compact.outputMode).toBe("html_preview");
     expect(compact).not.toHaveProperty("benefitsPackageSnapshot");
     expect(Buffer.byteLength(JSON.stringify(compact), "utf8")).toBeLessThan(
       750_000,

@@ -68,6 +68,7 @@ export async function executeBookletRun(
       files,
       answers: run.answers,
       enforceRegistry,
+      generatePdf: run.outputMode !== "html_preview",
       onEvent: async (event) => {
         await savePipelineEvent(event);
         await onEvent?.(event);
@@ -108,6 +109,11 @@ export async function executeBookletRun(
           }),
         ),
       );
+      return run;
+    }
+    if (result.status === "preview") {
+      run.status = "preview";
+      await saveGenerationRun(run);
       return run;
     }
     // Employee-booklet mode produces the concise, source-backed summary itself.

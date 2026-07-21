@@ -1,29 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { bookletStudioApi, encodeFile } from "./bookletStudioApi";
 import { phaseDefinitions } from "./bookletStudioData";
+import {
+  bookletFilePhase,
+  mergeBookletClassifications,
+  bookletStudioSetupComplete,
+  mergeBookletFiles,
+} from "./bookletStudioReadiness";
+import {
+  bookletTextStreamChangedWordCount,
+  bookletTextStreamDuration,
+  bookletTextStreamShouldAnimate,
+} from "./bookletTextStream";
 
 const pipelineStageCount = 14;
-
-const phaseForDocumentType = {
-  company_website: "employer",
-  employer_application: "employer",
-  email_export: "instructions",
-  carrier_rate_sheet: "rates",
-  renewal_spreadsheet: "rates",
-  sbc: "documents",
-  spd: "documents",
-  plan_summary: "documents",
-  benefit_guide: "instructions",
-  prior_booklet: "instructions",
-  census: "census",
-};
-
-function filePhase(file, classifications) {
-  if (file.intakeCategory)
-    return file.intakeCategory === "template" ? "instructions" : file.intakeCategory;
-  const classification = classifications.find((item) => item.fileId === file.id);
-  return phaseForDocumentType[classification?.documentType] || "instructions";
-}
 
 function updateRecoveryUrl(threadId, runId) {
   const url = new URL(window.location.href);
@@ -60,14 +50,21 @@ export function useBookletStudioBackend(companyId) {
   const [busyPhase, setBusyPhase] = useState("");
   const [generating, setGenerating] = useState(false);
   const [textStreaming, setTextStreaming] = useState(false);
+  const [latestStreamedSectionId, setLatestStreamedSectionId] = useState("");
+  const [processingFileIds, setProcessingFileIds] = useState(() => new Set());
   const [restoring, setRestoring] = useState(Boolean(threadId));
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const noticeTimer = useRef(null);
   const textStreamingTimer = useRef(null);
+  const textStreamQueue = useRef([]);
+  const activeTextStream = useRef(null);
+  const sectionHtmlById = useRef(new Map());
+  const sectionRevisionById = useRef(new Map());
   const activeRunId = useRef(query.get("runId") || "");
   const generationInFlight = useRef(false);
-  const queuedGenerationThreadId = useRef("");
+  const queuedGenerationRequest = useRef(null);
+  const autoFinalizedPreviewRun = useRef("");
 
   const classifications = run?.classifications?.length
     ? run.classifications
@@ -76,7 +73,7 @@ export function useBookletStudioBackend(companyId) {
     () => Object.fromEntries(
       phaseDefinitions.map((phase) => [
         phase.id,
-        files.filter((file) => filePhase(file, classifications) === phase.id),
+        files.filter((file) => bookletFilePhase(file, classifications) === phase.id),
       ]),
     ),
     [files, classifications],
@@ -89,6 +86,18 @@ export function useBookletStudioBackend(companyId) {
     ? 100
     : Math.min(96, Math.round((completedStages.size / pipelineStageCount) * 100));
   const processing = generating || ["queued", "processing"].includes(run?.status);
+  const setupComplete = bookletStudioSetupComplete(
+    files,
+    classifications,
+    facts,
+    run?.questions || [],
+  );
+  const pdfReady =
+    setupComplete &&
+    !processing &&
+    run?.status === "complete" &&
+    !run.questions?.length &&
+    Boolean(run.pdfUrl);
   const pages = useMemo(() => {
     if (sections.length)
       return [...sections]
@@ -107,6 +116,36 @@ export function useBookletStudioBackend(companyId) {
     noticeTimer.current = window.setTimeout(() => setNotice(""), 2600);
   };
 
+  const stopTextStream = () => {
+    window.clearTimeout(textStreamingTimer.current);
+    textStreamQueue.current = [];
+    activeTextStream.current = null;
+    setTextStreaming(false);
+  };
+
+  const showNextTextStream = () => {
+    window.clearTimeout(textStreamingTimer.current);
+    while (textStreamQueue.current.length) {
+      const next = textStreamQueue.current.shift();
+      setSections((current) => [
+        ...current.filter((section) => section.id !== next.section.id),
+        next.section,
+      ].sort((left, right) => left.pageIndex - right.pageIndex));
+      if (!next.changedWordCount) continue;
+      activeTextStream.current = next;
+      setLatestStreamedSectionId(next.section.id);
+      setTextStreaming(true);
+      const streamDuration = bookletTextStreamDuration(next.changedWordCount);
+      textStreamingTimer.current = window.setTimeout(() => {
+        activeTextStream.current = null;
+        showNextTextStream();
+      }, streamDuration);
+      return;
+    }
+    activeTextStream.current = null;
+    setTextStreaming(false);
+  };
+
   const applyStatus = (payload) => {
     if (payload.thread?.id) setThreadId(payload.thread.id);
     if (payload.files) setFiles(payload.files);
@@ -119,7 +158,16 @@ export function useBookletStudioBackend(companyId) {
     }
     if (payload.events) setEvents(payload.events);
     if (payload.facts) setFacts(payload.facts);
-    if (payload.sections) setSections(payload.sections);
+    if (
+      payload.sections &&
+      !activeTextStream.current &&
+      !textStreamQueue.current.length
+    ) {
+      sectionHtmlById.current = new Map(
+        payload.sections.map((section) => [section.id, section.html]),
+      );
+      setSections(payload.sections);
+    }
   };
 
   useEffect(() => {
@@ -164,27 +212,49 @@ export function useBookletStudioBackend(companyId) {
       setEvents((current) => mergeEvent(current, message.event));
       if (
         message.event.stage === "Classifying documents" &&
-        message.event.status === "complete" &&
         Array.isArray(message.event.details?.documents)
       )
-        setLiveClassifications((current) => {
-          const next = new Map(current.map((item) => [item.fileId, item]));
-          message.event.details.documents.forEach((item) => next.set(item.fileId, { ...next.get(item.fileId), ...item }));
-          return [...next.values()];
-        });
+        setLiveClassifications((current) =>
+          mergeBookletClassifications(
+            current,
+            message.event.details.documents,
+          ),
+        );
+      if (
+        message.event.stage === "Parsing plan documents" &&
+        message.event.details?.fileId &&
+        message.event.details?.parseStatus === "complete"
+      ) setProcessingFileIds((current) => {
+        const next = new Set(current);
+        next.delete(message.event.details.fileId);
+        return next;
+      });
     }
     if (message.type === "section") {
-      setSections((current) => [
-        ...current.filter((section) => section.id !== message.section.id),
-        message.section,
-      ].sort((left, right) => left.pageIndex - right.pageIndex));
-      setTextStreaming(true);
-      window.clearTimeout(textStreamingTimer.current);
-      textStreamingTimer.current = window.setTimeout(() => setTextStreaming(false), 1600);
+      const previousHtml = sectionHtmlById.current.get(message.section.id) || "";
+      const streamRevision = (sectionRevisionById.current.get(message.section.id) || 0) + 1;
+      sectionHtmlById.current.set(message.section.id, message.section.html);
+      sectionRevisionById.current.set(message.section.id, streamRevision);
+      const nextSection = {
+        ...message.section,
+        previousHtml,
+        streamRevision,
+      };
+      const changedWordCount = bookletTextStreamChangedWordCount(
+        message.section.html,
+        previousHtml,
+      );
+      textStreamQueue.current.push({
+        section: nextSection,
+        changedWordCount: bookletTextStreamShouldAnimate(
+          changedWordCount,
+          Boolean(previousHtml),
+        ) ? changedWordCount : 0,
+      });
+      if (!activeTextStream.current) showNextTextStream();
     }
     if (message.type === "result") {
-      window.clearTimeout(textStreamingTimer.current);
-      setTextStreaming(false);
+      setProcessingFileIds(new Set());
       setRun(message.run);
     }
   };
@@ -195,26 +265,35 @@ export function useBookletStudioBackend(companyId) {
     return payload.run;
   };
 
-  const generate = async (targetThreadId = threadId) => {
+  const generate = async (targetThreadId = threadId, targetFiles = files, outputMode = "html_preview") => {
     if (!targetThreadId) return;
-    queuedGenerationThreadId.current = targetThreadId;
+    queuedGenerationRequest.current = {
+      threadId: targetThreadId,
+      outputMode,
+    };
     if (generationInFlight.current) return;
     generationInFlight.current = true;
     setGenerating(true);
-    setTextStreaming(false);
+    if (!activeTextStream.current) setTextStreaming(false);
     try {
-      while (queuedGenerationThreadId.current) {
-        const nextThreadId = queuedGenerationThreadId.current;
-        queuedGenerationThreadId.current = "";
+      while (queuedGenerationRequest.current) {
+        const nextRequest = queuedGenerationRequest.current;
+        queuedGenerationRequest.current = null;
         setEvents([]);
+        setLatestStreamedSectionId("");
         setError("");
         try {
           const result = await bookletStudioApi.start({
-            threadId: nextThreadId,
+            threadId: nextRequest.threadId,
             generationMode: "employee_booklet",
+            outputMode: nextRequest.outputMode,
           }, onStreamMessage);
           const current = await refreshStatus(result.id);
-          showNotice(current.status === "blocked" ? "Draft updated · finish remaining setup details when available" : "Booklet generation complete");
+          showNotice(
+            current.status === "complete"
+              ? "Booklet generation complete"
+              : "HTML preview updated · finish the remaining setup details",
+          );
         } catch (generationError) {
           setError(generationError.message);
           if (activeRunId.current) await refreshStatus(activeRunId.current).catch(() => {});
@@ -226,6 +305,19 @@ export function useBookletStudioBackend(companyId) {
     }
   };
 
+  useEffect(() => {
+    if (
+      !setupComplete ||
+      processing ||
+      !threadId ||
+      run?.status !== "preview" ||
+      run.outputMode === "final_pdf" ||
+      autoFinalizedPreviewRun.current === run.id
+    ) return;
+    autoFinalizedPreviewRun.current = run.id;
+    void generate(threadId, files, "final_pdf");
+  }, [setupComplete, processing, threadId, run?.id, run?.status, run?.outputMode, files]);
+
   const uploadSources = async (phaseId, selectedFiles) => {
     const sourceFiles = [...selectedFiles];
     if (!sourceFiles.length) return;
@@ -236,17 +328,25 @@ export function useBookletStudioBackend(companyId) {
         ...(await encodeFile(file)),
         intakeCategory: phaseId,
       })));
+      const creatingThread = !threadId;
       const payload = threadId
         ? await bookletStudioApi.addMessage({ threadId, message: `Added ${sourceFiles.length} source file(s) for ${phaseId}.`, files: encoded })
         : await bookletStudioApi.createThread({ companyId, message: "Started a Booklet Studio source collection.", files: encoded });
       const nextThreadId = payload.thread?.id || threadId;
+      const nextFiles = mergeBookletFiles(files, payload.files || [], creatingThread);
+      const existingFileIds = new Set(files.map((file) => file.id));
+      const addedFileIds = (payload.files || [])
+        .filter((file) => !existingFileIds.has(file.id))
+        .map((file) => file.id);
       if (nextThreadId) {
         setThreadId(nextThreadId);
         updateRecoveryUrl(nextThreadId, run?.id);
       }
-      setFiles(payload.files || []);
+      setFiles(nextFiles);
+      if (addedFileIds.length)
+        setProcessingFileIds((current) => new Set([...current, ...addedFileIds]));
       showNotice(`${sourceFiles.length} ${sourceFiles.length === 1 ? "source" : "sources"} persisted`);
-      void generate(nextThreadId);
+      void generate(nextThreadId, nextFiles);
     } catch (uploadError) {
       setError(uploadError.message);
     } finally {
@@ -259,14 +359,16 @@ export function useBookletStudioBackend(companyId) {
     setBusyPhase("instructions");
     setError("");
     try {
+      const creatingThread = !threadId;
       const payload = threadId
         ? await bookletStudioApi.addMessage({ threadId, message: note.trim(), messageAsEvidence: true })
         : await bookletStudioApi.createThread({ companyId, message: note.trim(), messageAsEvidence: true });
       const nextThreadId = payload.thread?.id || threadId;
+      const nextFiles = mergeBookletFiles(files, payload.files || [], creatingThread);
       if (nextThreadId) setThreadId(nextThreadId);
-      setFiles(payload.files || []);
+      setFiles(nextFiles);
       showNotice("Instructions saved to the booklet thread");
-      void generate(nextThreadId);
+      void generate(nextThreadId, nextFiles);
     } catch (noteError) {
       setError(noteError.message);
     } finally {
@@ -287,10 +389,18 @@ export function useBookletStudioBackend(companyId) {
       setLiveClassifications([]);
       setFacts([]);
       setSections([]);
+      stopTextStream();
+      sectionHtmlById.current.clear();
+      sectionRevisionById.current.clear();
+      setProcessingFileIds((current) => {
+        const next = new Set(current);
+        next.delete(file.id);
+        return next;
+      });
       activeRunId.current = "";
       updateRecoveryUrl(threadId, null);
       showNotice(`${file.fileName} deleted`);
-      if (payload.files.length) void generate(threadId);
+      if (payload.files.length) void generate(threadId, payload.files);
     } catch (deleteError) {
       setError(deleteError.message);
     } finally {
@@ -302,6 +412,10 @@ export function useBookletStudioBackend(companyId) {
     setGenerating(true);
     setEvents([]);
     setError("");
+    setRun((current) => current ? {
+      ...current,
+      questions: (current.questions || []).filter((item) => item.id !== question.id),
+    } : current);
     try {
       const result = await bookletStudioApi.answer({ runId: run.id, questionId: question.id, answer }, onStreamMessage);
       const current = await refreshStatus(result.id);
@@ -315,7 +429,7 @@ export function useBookletStudioBackend(companyId) {
   };
 
   const downloadPdf = () => {
-    if (!run?.pdfUrl) return;
+    if (!pdfReady) return;
     const anchor = document.createElement("a");
     anchor.href = run.pdfUrl;
     anchor.target = "_blank";
@@ -325,8 +439,8 @@ export function useBookletStudioBackend(companyId) {
 
   return {
     threadId, run, events, facts, files, filesByPhase, classifications, pages,
-    busyPhase, processing, textStreaming, restoring, error, setError, notice,
-    completion, questions: run?.questions || [], uploadSources,
+    busyPhase, processing, processingFileIds, textStreaming, latestStreamedSectionId, restoring, error, setError, notice,
+    completion, pdfReady, questions: run?.questions || [], uploadSources,
     addNote, deleteSource, answerQuestion, downloadPdf,
   };
 }

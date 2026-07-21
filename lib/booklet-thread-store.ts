@@ -61,6 +61,7 @@ export function compactGenerationRun(
     ownerId: run.ownerId,
     status: run.status,
     generationMode: run.generationMode,
+    outputMode: run.outputMode,
     uploadedFileIds: run.uploadedFileIds,
     stages: [],
     questions: run.questions,
@@ -279,7 +280,12 @@ export async function saveGenerationRun(run: BookletGenerationRun) {
   await db.collection("bookletThreads").doc(run.threadId).set(
     {
       latestRunId: run.id,
-      status: run.status === "queued" ? "processing" : run.status,
+      status:
+        run.status === "queued"
+          ? "processing"
+          : run.status === "preview"
+            ? "open"
+            : run.status,
       updatedAt: new Date().toISOString(),
     },
     { merge: true },

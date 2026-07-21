@@ -190,6 +190,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
+    if (action === "source_download") {
+      if (!validId(input.threadId) || !validId(input.fileId))
+        return res.status(400).json({ error: "A valid threadId and fileId are required" });
+      const thread = await getBookletThread(String(input.threadId));
+      if (!thread) return res.status(404).json({ error: "Thread not found" });
+      assertOwner(thread.ownerId, user.uid);
+      if (!thread.uploadedFileIds.includes(String(input.fileId)))
+        return res.status(404).json({ error: "Source file is not attached to this thread" });
+      const [file] = await assertOwnedFiles(
+        [String(input.fileId)],
+        user.uid,
+        thread.companyId,
+      );
+      const [data] = await getAdminServices().bucket.file(file.storagePath).download();
+      res.statusCode = 200;
+      res.setHeader("Content-Type", file.mimeType || "application/octet-stream");
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename="${file.fileName.replace(/["\\\r\n]/g, "-")}"`,
+      );
+      res.setHeader("Content-Length", String(data.length));
+      res.end(data);
+      return;
+    }
+
     if (action === "create_thread") {
       if (!validId(input.companyId))
         return res.status(400).json({ error: "A valid companyId is required" });
@@ -316,6 +341,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({
           error: "generationMode must be registry_strict or employee_booklet",
         });
+      if (
+        input.outputMode !== undefined &&
+        !["html_preview", "final_pdf"].includes(String(input.outputMode))
+      )
+        return res.status(400).json({
+          error: "outputMode must be html_preview or final_pdf",
+        });
       await assertOwnedFiles(requestedFileIds, user.uid, thread.companyId);
       const run = createGenerationRun({
         threadId: thread.id,
@@ -326,6 +358,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           input.generationMode === "employee_booklet"
             ? "employee_booklet"
             : "registry_strict",
+        outputMode:
+          input.outputMode === "html_preview" ? "html_preview" : "final_pdf",
       });
       run.answers = decodeInitialAnswers(input.initialAnswers);
       await saveGenerationRun(run);
@@ -362,6 +396,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!Object.keys(acceptedAnswers).length)
           return res.status(404).json({ error: "No supplied answers match a blocking question" });
         run.answers = { ...run.answers, ...acceptedAnswers };
+        run.questions = run.questions.filter(
+          (question) => !Object.prototype.hasOwnProperty.call(acceptedAnswers, question.fieldPath),
+        );
         await Promise.all(
           Object.entries(acceptedAnswers).map(([fieldPath, answer]) =>
             addBookletMessage({
@@ -379,6 +416,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         );
         if (!question) return res.status(404).json({ error: "Blocking question not found" });
         run.answers = { ...run.answers, [question.fieldPath]: input.answer };
+        run.questions = run.questions.filter((item) => item.id !== question.id);
         await addBookletMessage({
           threadId: run.threadId,
           role: "user",
@@ -387,6 +425,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           kind: "answer",
         });
       }
+      await saveGenerationRun(run);
       if (wantsStream(input.stream)) return streamExecution(res, run);
       const completed = await executeBookletRun(run);
       return res.status(completed.status === "blocked" ? 202 : 200).json({
