@@ -170,7 +170,12 @@ export const bookletStudioApi = {
       deletedFileId: string;
     }>({ action: "delete_file", ...input }),
   start: (
-    input: { threadId: string; fileIds?: string[] },
+    input: {
+      threadId: string;
+      fileIds?: string[];
+      generationMode: "registry_strict" | "employee_booklet";
+      initialAnswers?: Record<string, unknown>;
+    },
     onMessage?: (message: StreamMessage) => void,
   ) => streamRequest({ action: "start", ...input }, onMessage),
   answer: (

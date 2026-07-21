@@ -28,6 +28,21 @@ const requiredSections = [
   "legal",
 ];
 
+function decodedHtmlText(value: string) {
+  return value
+    .replace(/&#x([0-9a-f]+);/gi, (_match, hex) =>
+      String.fromCodePoint(Number.parseInt(hex, 16)),
+    )
+    .replace(/&#(\d+);/g, (_match, decimal) =>
+      String.fromCodePoint(Number.parseInt(decimal, 10)),
+    )
+    .replace(/&(?:amp|#38);/gi, "&")
+    .replace(/&(?:quot|#34);/gi, '"')
+    .replace(/&(?:apos|#39);/gi, "'")
+    .replace(/&(?:lt|#60);/gi, "<")
+    .replace(/&(?:gt|#62);/gi, ">");
+}
+
 export async function checkBookletQuality({
   benefitsPackage,
   outline,
@@ -156,6 +171,7 @@ export async function checkBookletQuality({
       });
   }
   if (html) {
+    const searchableHtml = decodedHtmlText(html);
     const placeholder = html.match(
       /\b(?:placeholder|example\.com|pending confirmation|to be confirmed|not set|not specified|not provided|invalid date|lorem ipsum)\b/i,
     );
@@ -165,14 +181,14 @@ export async function checkBookletQuality({
         message: `Generated content still contains placeholder text: ${placeholder[0]}.`,
         blocking: true,
       });
-    if (!html.includes(benefitsPackage.employer.name))
+    if (!searchableHtml.includes(benefitsPackage.employer.name))
       issues.push({
         code: "missing_employer",
         message: "Generated content does not contain the employer name.",
         blocking: true,
       });
     for (const plan of benefitsPackage.plans) {
-      if (!html.includes(plan.name))
+      if (!searchableHtml.includes(plan.name))
         issues.push({
           code: "missing_plan",
           message: `Generated content does not contain ${plan.name}.`,

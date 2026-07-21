@@ -582,6 +582,7 @@ async function processBookletMessage({
     companyId: refreshedThread.companyId,
     ownerId: refreshedThread.ownerId,
     uploadedFileIds: refreshedThread.uploadedFileIds,
+    generationMode: "employee_booklet",
   });
   run.answers = { ...(previousRun?.answers || {}), ...answers };
   await saveGenerationRun(run);

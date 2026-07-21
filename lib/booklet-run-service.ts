@@ -5,7 +5,6 @@ import type {
 } from "./booklet-types";
 import { PDFDocument } from "pdf-lib";
 import { runBookletPipeline } from "./booklet-pipeline";
-import { appendAuthoritativeSourceBooklet } from "./booklet-source-appendix";
 import {
   addBookletMessage,
   getExtractedFacts,
@@ -47,6 +46,8 @@ export async function executeBookletRun(
   onArtifact?: (artifact: BookletSectionArtifact) => void | Promise<void>,
   options: { enforceRegistry?: boolean } = {},
 ) {
+  const enforceRegistry =
+    options.enforceRegistry ?? run.generationMode !== "employee_booklet";
   await resetPipelineEvents(run.id);
   const files = await loadUploadedFiles(run.uploadedFileIds);
   run.status = "processing";
@@ -66,7 +67,7 @@ export async function executeBookletRun(
       companyId: run.companyId,
       files,
       answers: run.answers,
-      enforceRegistry: options.enforceRegistry,
+      enforceRegistry,
       onEvent: async (event) => {
         await savePipelineEvent(event);
         await onEvent?.(event);
@@ -109,12 +110,10 @@ export async function executeBookletRun(
       );
       return run;
     }
-    const finalPdf = await appendAuthoritativeSourceBooklet({
-      generatedPdf: result.pdf!,
-      files,
-      classifications: result.classifications,
-      enabled: options.enforceRegistry === false,
-    });
+    // Employee-booklet mode produces the concise, source-backed summary itself.
+    // Uploaded guides and governing documents remain evidence; do not copy
+    // their complete pages into the employee-facing output.
+    const finalPdf = result.pdf!;
     const stored = await saveGeneratedPdf({
       run,
       pdf: finalPdf,

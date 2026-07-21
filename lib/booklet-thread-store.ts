@@ -60,6 +60,7 @@ export function compactGenerationRun(
     companyId: run.companyId,
     ownerId: run.ownerId,
     status: run.status,
+    generationMode: run.generationMode,
     uploadedFileIds: run.uploadedFileIds,
     stages: [],
     questions: run.questions,
@@ -346,16 +347,31 @@ export async function saveGeneratedPdf({
     contentType: "application/pdf",
     metadata: { metadata: { runId: run.id, threadId: run.threadId } },
   });
-  const [url] = await file.getSignedUrl({ action: "read", expires: Date.now() + 60 * 60 * 1000 });
+  let url: string | null = null;
+  try {
+    [url] = await file.getSignedUrl({
+      action: "read",
+      expires: Date.now() + 60 * 60 * 1000,
+    });
+  } catch (error) {
+    if (!/client_email|sign(?:Blob| data)/i.test(error instanceof Error ? error.message : String(error)))
+      throw error;
+  }
   return { storagePath, url };
 }
 
 export async function refreshGeneratedPdfUrl(storagePath: string) {
   const { bucket } = getAdminServices();
-  const [url] = await bucket
-    .file(storagePath)
-    .getSignedUrl({ action: "read", expires: Date.now() + 60 * 60 * 1000 });
-  return url;
+  try {
+    const [url] = await bucket
+      .file(storagePath)
+      .getSignedUrl({ action: "read", expires: Date.now() + 60 * 60 * 1000 });
+    return url;
+  } catch (error) {
+    if (/client_email|sign(?:Blob| data)/i.test(error instanceof Error ? error.message : String(error)))
+      return null;
+    throw error;
+  }
 }
 
 export async function getPipelineEvents(runId: string) {

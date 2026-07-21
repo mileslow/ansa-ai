@@ -12,7 +12,6 @@ import {
   Circle,
   Download,
   Eye,
-  ExternalLink,
   FileCheck2,
   FileText,
   Files,
@@ -174,9 +173,10 @@ export default function BookletStudio({
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("color") === "true";
   const [accentColor, setAccentColor] = useState(() => {
-    if (typeof window === "undefined") return "#1414d2";
+    if (typeof window === "undefined") return "#1d4ed8";
     const savedColor = window.localStorage.getItem("ansa-studio-accent-color");
-    return /^#[0-9a-f]{6}$/i.test(savedColor || "") ? savedColor : "#1414d2";
+    if (savedColor?.toLowerCase() === "#1414d2") return "#1d4ed8";
+    return /^#[0-9a-f]{6}$/i.test(savedColor || "") ? savedColor : "#1d4ed8";
   });
   const [companyProfileDirty, setCompanyProfileDirty] = useState(false);
   const [savingCompanyProfile, setSavingCompanyProfile] = useState(false);
@@ -389,6 +389,7 @@ export default function BookletStudio({
                 processing={backend.processing}
                 phaseBusy={backend.busyPhase === currentPhase.id}
                 onFiles={(selectedFiles) => backend.uploadSources(currentPhase.id, selectedFiles)}
+                onAddNote={backend.addNote}
                 onDeleteFile={backend.deleteSource}
                 onAnswer={backend.answerQuestion}
                 onBack={() => setActivePhase(phaseDefinitions[activePhaseIndex - 1]?.id)}
@@ -689,13 +690,11 @@ function NewCompanyFlow({ companies, onClose, onCreate }) {
   );
 }
 
-const phaseTabLabels = ["Employer", "Rates", "Plans", "Template", "Census", "Notes"];
+const phaseTabLabels = ["Employer", "Plans", "Rates", "Notes"];
 const phasePrompts = {
   employer: "Start with the employer setup.",
   rates: "Add the plans and rates.",
   documents: "Add the official plan documents.",
-  template: "Bring in the booklet template.",
-  census: "Add the employee census.",
   instructions: "Anything else the guide should know?",
 };
 
@@ -703,7 +702,7 @@ function PhaseTabs({ activeIndex, phaseState, completed, isUnlocked, onSelect })
   const activeTabRef = useRef(null);
 
   useEffect(() => {
-    activeTabRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    activeTabRef.current?.scrollIntoView({ block: "nearest", behavior: "auto" });
   }, [activeIndex]);
 
   return (
@@ -730,12 +729,13 @@ function PhaseTabs({ activeIndex, phaseState, completed, isUnlocked, onSelect })
   );
 }
 
-function FocusedPhase({ phase, state, busy, companyProfile, onCompanyProfileChange, onSaveCompanyProfile, companyProfileDirty, savingCompanyProfile, connectedCompany, files, classifications, facts, questions, processing, phaseBusy, onFiles, onDeleteFile, onAnswer, onBack, onNext, canBack, canNext }) {
+function FocusedPhase({ phase, state, busy, companyProfile, onCompanyProfileChange, onSaveCompanyProfile, companyProfileDirty, savingCompanyProfile, connectedCompany, files, classifications, facts, questions, processing, phaseBusy, onFiles, onAddNote, onDeleteFile, onAnswer, onBack, onNext, canBack, canNext }) {
   const inputRef = useRef(null);
   const contentRef = useRef(null);
   const dragDepth = useRef(0);
   const [panel, setPanel] = useState("sources");
   const [dragging, setDragging] = useState(false);
+  const [instructionText, setInstructionText] = useState("");
   const phaseFileIds = new Set(files.map((file) => file.id));
   const phaseFacts = facts.filter((fact) => phaseFileIds.has(fact.fileId));
   useEffect(() => { setPanel("sources"); }, [phase.id]);
@@ -757,7 +757,19 @@ function FocusedPhase({ phase, state, busy, companyProfile, onCompanyProfileChan
         <div className={`bs-focused-phase__answer is-${panel}`}>
           {(questions.length > 0 || phaseFacts.length > 0) && <nav className="bs-phase-subtabs" aria-label={`${phase.title} views`}><button className={panel === "sources" ? "active" : ""} onClick={() => setPanel("sources")}>Sources</button>{phaseFacts.length > 0 && <button className={panel === "extracted" ? "active" : ""} onClick={() => setPanel("extracted")}>Extracted <span>{phaseFacts.length}</span></button>}{questions.length > 0 && <button className={panel === "details" ? "active" : ""} onClick={() => setPanel("details")}>Details <span>{questions.length}</span></button>}</nav>}
           {phase.id === "employer" && files.length > 0 && <CompanyProfileFields profile={companyProfile} onChange={onCompanyProfileChange} onSave={onSaveCompanyProfile} dirty={companyProfileDirty} saving={savingCompanyProfile} disabled={processing} />}
-          {(phase.id !== "employer" || !files.length) && <button className={`bs-dropzone bs-dropzone--focused tw:rounded-ansa ${dragging ? "is-dragging" : ""}`} onClick={() => inputRef.current?.click()} {...dropHandlers} disabled={busy}><b>{phaseBusy ? <LoaderCircle className="bs-spin" /> : <Upload />} {phaseBusy ? "Saving sources…" : dragging ? "Drop files" : "Choose files"}</b><span>{dragging ? "Release to add them" : "or drop them here"}</span><small>{phase.accepted}</small></button>}
+          {phase.id === "instructions" ? (
+            <InstructionTextBox
+              value={instructionText}
+              onChange={setInstructionText}
+              busy={busy || phaseBusy}
+              onSave={async () => {
+                const note = instructionText.trim();
+                if (!note) return;
+                await onAddNote(note);
+                setInstructionText("");
+              }}
+            />
+          ) : (phase.id !== "employer" || !files.length) && <button className={`bs-dropzone bs-dropzone--focused tw:rounded-ansa ${dragging ? "is-dragging" : ""}`} onClick={() => inputRef.current?.click()} {...dropHandlers} disabled={busy}><b>{phaseBusy ? <LoaderCircle className="bs-spin" /> : <Upload />} {phaseBusy ? "Saving sources…" : dragging ? "Drop files" : "Choose files"}</b><span>{dragging ? "Release to add them" : "or drop them here"}</span><small>{phase.accepted}</small></button>}
           {phase.id === "employer" && files.length > 0 && <button className={`bs-add-source-row ${dragging ? "is-dragging" : ""}`} onClick={() => inputRef.current?.click()} {...dropHandlers} disabled={busy}><Upload />{dragging ? "Drop employer files" : "Add another employer source"}</button>}
           <input ref={inputRef} className="bs-hidden-input" type="file" multiple accept=".pdf,.xlsx,.xls,.csv,.eml,.txt" onChange={(event) => { onFiles(event.target.files); event.target.value = ""; }} />
           {files.map((file) => {
@@ -770,6 +782,29 @@ function FocusedPhase({ phase, state, busy, companyProfile, onCompanyProfileChan
       </div>
       <footer className="bs-focused-phase__nav"><span>{panel === "details" ? `${questions.length} setup ${questions.length === 1 ? "detail" : "details"} remaining.` : panel === "extracted" ? `${phaseFacts.length} source-backed fields.` : phaseBusy ? "Ansa is processing this source." : files.length ? "This source is ready." : "Add a source to unlock the next step."}</span><div className="bs-step-arrows"><button onClick={onBack} disabled={!canBack} aria-label="Previous step"><ArrowUp /></button><button className="next" onClick={onNext} disabled={!canNext} aria-label="Next step"><ArrowDown /></button></div></footer>
     </article>
+  );
+}
+
+function InstructionTextBox({ value, onChange, busy, onSave }) {
+  return (
+    <section className="bs-instruction-box">
+      <label>
+        <span>Instructions</span>
+        <textarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={busy}
+          rows="8"
+          placeholder="Add final decisions, corrections, preferred wording, exclusions, or anything the booklet should account for."
+        />
+      </label>
+      <div>
+        <small>Saved instructions are treated as broker-provided evidence and applied to the booklet.</small>
+        <button onClick={onSave} disabled={busy || !value.trim()}>
+          {busy ? <LoaderCircle className="bs-spin" /> : <Check />} Save instructions
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -977,11 +1012,11 @@ function BookletPreview({ pages, selectedPage, setSelectedPage, completion, mode
   const checkCount = warnings.length + conflicts.length + (run?.qualityReport?.issues?.length || 0);
   const thumbnailsRef = useRef(null);
   useEffect(() => {
-    thumbnailsRef.current?.querySelector("button.active")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    thumbnailsRef.current?.querySelector("button.active")?.scrollIntoView({ block: "nearest", behavior: "auto" });
   }, [page?.id]);
   return (
     <aside className={`bs-preview-panel ${textStreaming ? "is-streaming" : ""}`}>
-      <div className="bs-preview-top tw:flex tw:items-center tw:justify-between"><button className="bs-preview-back" onClick={onBack}><ArrowLeft /> Sources</button><div className="bs-panel-heading"><span className="bs-guide-title">{companyProfile.planYear?.match(/\b20\d{2}\b/)?.[0] ? `${companyProfile.planYear.match(/\b20\d{2}\b/)[0]} ` : ""}Employee Benefits Guide</span><b>{processing ? pages.length ? `${pages.length} HTML page(s) ready · ${events.at(-1)?.stage || "Processing"}` : events.at(-1)?.stage || "Processing" : run?.status === "complete" ? `${pages.length} compiled pages · PDF ready` : run?.status === "blocked" ? `${pages.length} draft page(s) ready · continue setup on the left` : "Waiting for a source"}</b></div><div className="bs-preview-actions tw:flex tw:items-center"><button className="bs-icon-button bs-icon-button--light" onClick={() => run?.pdfUrl && window.open(run.pdfUrl, "_blank", "noopener")} disabled={!run?.pdfUrl} aria-label="Open generated PDF"><ExternalLink /></button><button className="bs-button bs-button--light" onClick={onDownload} disabled={!run?.pdfUrl}><Download /> PDF</button></div></div>
+      <div className="bs-preview-top tw:flex tw:items-center tw:justify-between"><button className="bs-preview-back" onClick={onBack}><ArrowLeft /> Sources</button><div className="bs-panel-heading"><span className="bs-guide-title">{companyProfile.planYear?.match(/\b20\d{2}\b/)?.[0] ? `${companyProfile.planYear.match(/\b20\d{2}\b/)[0]} ` : ""}Employee Benefits Guide</span><b>{processing ? pages.length ? `${pages.length} HTML page(s) ready · ${events.at(-1)?.stage || "Processing"}` : events.at(-1)?.stage || "Processing" : run?.status === "complete" ? `${pages.length} compiled pages · PDF ready` : run?.status === "blocked" ? `${pages.length} draft page(s) ready · continue setup on the left` : "Waiting for a source"}</b></div><div className="bs-preview-actions tw:flex tw:items-center"><button className="bs-button bs-button--light" onClick={onDownload} disabled={!run?.pdfUrl}><Download /> PDF</button></div></div>
       <nav className="bs-preview-tabs tw:flex" aria-label="Preview sections">{[["pages", "Pages", pages.length], ["checks", "Checks", checkCount], ["sources", "Sources", files.length]].map(([key, label, count]) => <button key={key} className={mode === key ? "active" : ""} onClick={() => setMode(key)}>{label}<span>{count}</span></button>)}</nav>
       {mode === "pages" && (!pages.length ? <div className="bs-preview-empty"><div className="bs-empty-booklet"><i /><i /><span>{processing ? <LoaderCircle className="bs-spin" /> : <BookOpen />}</span></div><span className="bs-preview-kicker">Backend-owned outline</span><h2>{processing ? "Building from your evidence" : run?.status === "blocked" ? "Keep completing the setup" : "No booklet yet"}</h2><p>{processing ? "Classification, extraction, matching, and page generation are running now." : "Add a source on the left. Pages appear here as soon as their evidence is ready."}</p></div> : <div className="bs-pages-view"><div className="bs-thumbnails" ref={thumbnailsRef} aria-label="Generated booklet pages">{pages.map((item, index) => <button key={item.id} className={item.id === page?.id ? "active" : ""} onClick={() => setSelectedPage(item.id)} style={{ "--page-index": index }}><span><MiniPage page={item} companyProfile={companyProfile} /></span><small>{String(item.number).padStart(2, "0")}</small></button>)}</div><div className="bs-canvas-wrap"><div className="bs-canvas-meta"><div><span>Page {page?.number} · {pages.length} currently ready</span><b>{page?.title}</b></div>{textStreaming && <span className="bs-completion-status"><i><span style={{ width: `${completion}%` }} /></i><b>Writing page</b></span>}</div><div className="bs-canvas-stage bs-pdf-stage">{run?.pdfUrl ? <iframe title={`Generated PDF: ${page?.title}`} src={`${run.pdfUrl}#page=${page?.number}&view=FitH`} /> : page?.html ? <HtmlPagePreview page={page} /> : <div className="bs-outline-sheet"><Logo /><small>Generated outline section</small><h2>{page?.title}</h2></div>}</div>{run?.status === "complete" && <div className="bs-ready-bar"><span><CheckCircle2 /></span><div><b>Booklet ready</b><small>{pages.length} source-backed pages · quality checks passed</small></div><button onClick={onDownload}>Download PDF <ArrowRight /></button></div>}</div></div>)}
       {mode === "checks" && <ConnectedChecksView run={run} warnings={warnings} conflicts={conflicts} processing={processing} questions={questions} />}
@@ -1126,7 +1161,7 @@ function EmptyPreview() {
       <div className="bs-empty-booklet"><i /><i /><span><BookOpen /></span></div>
       <span className="bs-preview-kicker">Your guide will build itself</span>
       <h2>No booklet yet</h2>
-      <p>Add employer setup or a prior template. Pages, checks, and source links will appear here as Ansa works.</p>
+      <p>Add employer setup documents. Pages, checks, and source links will appear here as Ansa works.</p>
     </div>
   );
 }
@@ -1224,7 +1259,6 @@ function PageCanvas({ page, completed, hsaAnswer, companyProfile }) {
         <div><span>02</span><b>Choose with confidence</b><p>Compare coverage, cost, and support before you enroll.</p></div>
       </div>
       <div className="bs-page__body-lines"><i /><i /><i /><i /></div>
-      {completed.has("template") && <div className="bs-page__source-note"><ShieldCheck /> Structured from your approved master template</div>}
       <PageFooter number={page.number} companyName={companyName} />
     </article>
   );
@@ -1258,7 +1292,6 @@ function ChecksView({ completed, blockerOpen }) {
           })}
         </section>
       ))}
-      {completed.has("template") && <div className="bs-warning-note"><ShieldCheck /><span><b>Template facts protected</b><small>Flower City was used for structure only. Employer-specific facts were ignored.</small></span></div>}
     </div>
   );
 }
@@ -1274,9 +1307,7 @@ function SourcesView({ processed, blockerOpen, companyProfile }) {
           const companyName = getCompanyShortName(companyProfile.companyName);
           const label = source.phase === "employer"
             ? `${companyName} company profile`
-            : source.phase === "census"
-              ? `${companyName} census`
-              : source.label;
+            : source.label;
           return (
             <div key={source.phase} className={`${ready ? "ready" : ""} ${missing ? "missing" : ""}`}>
               <span>{missing ? <AlertCircle /> : ready ? <FileCheck2 /> : <FileText />}</span>

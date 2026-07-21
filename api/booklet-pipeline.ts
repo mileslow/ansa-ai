@@ -11,6 +11,7 @@ import type {
   UploadedFile,
 } from "../lib/booklet-types";
 import { generateCompanyProfile } from "../lib/company-profile.js";
+import { getAdminServices } from "../lib/firebase-admin";
 import {
   addBookletMessage,
   attachFileIdsToThread,
@@ -28,6 +29,18 @@ export const config = { maxDuration: 300, includeFiles: "lib/**" };
 const validId = (value: unknown) =>
   typeof value === "string" && /^[a-zA-Z0-9_-]{1,160}$/.test(value);
 const wantsStream = (value: unknown) => value === true || value === "true" || value === "1";
+
+function decodeInitialAnswers(value: unknown) {
+  if (value === undefined) return {};
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new Error("initialAnswers must be an object keyed by booklet field path");
+  const answers = value as Record<string, unknown>;
+  if (Object.keys(answers).length > 250)
+    throw new Error("initialAnswers exceeds 250 fields");
+  if (Buffer.byteLength(JSON.stringify(answers), "utf8") > 256 * 1024)
+    throw new Error("initialAnswers exceeds 256 KiB");
+  return answers;
+}
 
 function decodeUploads(value: unknown) {
   if (!Array.isArray(value)) return [];
@@ -156,6 +169,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const user = await requireBookletUser(req);
 
+    if (action === "download") {
+      if (!validId(input.runId))
+        return res.status(400).json({ error: "A valid runId is required" });
+      const run = await getGenerationRun(String(input.runId));
+      if (!run) return res.status(404).json({ error: "Generation run not found" });
+      assertOwner(run.ownerId, user.uid);
+      if (run.status !== "complete" || !run.pdfStoragePath)
+        return res.status(409).json({ error: "The generated PDF is not ready" });
+      const [pdf] = await getAdminServices().bucket.file(run.pdfStoragePath).download();
+      const fileName = run.pdfStoragePath.split("/").at(-1) || "benefits-guide.pdf";
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${fileName.replace(/["\\\r\n]/g, "-")}"`,
+      );
+      res.setHeader("Content-Length", String(pdf.length));
+      res.end(pdf);
+      return;
+    }
+
     if (action === "create_thread") {
       if (!validId(input.companyId))
         return res.status(400).json({ error: "A valid companyId is required" });
@@ -275,14 +309,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(422).json({ error: "Attach at least one file before starting" });
       if (requestedFileIds.some((fileId) => !thread.uploadedFileIds.includes(fileId)))
         throw new BookletAuthError("A requested file is not attached to this thread", 403);
+      if (
+        input.generationMode !== undefined &&
+        !["registry_strict", "employee_booklet"].includes(String(input.generationMode))
+      )
+        return res.status(400).json({
+          error: "generationMode must be registry_strict or employee_booklet",
+        });
       await assertOwnedFiles(requestedFileIds, user.uid, thread.companyId);
       const run = createGenerationRun({
         threadId: thread.id,
         companyId: thread.companyId,
         ownerId: user.uid,
         uploadedFileIds: requestedFileIds,
+        generationMode:
+          input.generationMode === "employee_booklet"
+            ? "employee_booklet"
+            : "registry_strict",
       });
+      run.answers = decodeInitialAnswers(input.initialAnswers);
       await saveGenerationRun(run);
+      if (Object.keys(run.answers).length)
+        await addBookletMessage({
+          threadId: thread.id,
+          role: "user",
+          text: `Supplied ${Object.keys(run.answers).length} initial booklet answer(s): ${Object.keys(run.answers).join(", ")}`,
+          attachmentFileIds: [],
+          kind: "answer",
+        });
       if (wantsStream(input.stream)) return streamExecution(res, run);
       const completed = await executeBookletRun(run);
       return res.status(completed.status === "blocked" ? 202 : 200).json({
@@ -365,7 +419,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(400).json({
       error:
-        "Unknown action. Use create_thread, add_message, delete_file, start, answer, status, or thread_status.",
+        "Unknown action. Use create_thread, add_message, delete_file, start, answer, status, thread_status, or download.",
     });
   } catch (error) {
     if (!(error instanceof BookletAuthError))

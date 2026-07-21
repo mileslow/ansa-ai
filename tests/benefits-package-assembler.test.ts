@@ -326,6 +326,55 @@ describe("benefits package assembler and question engine", () => {
     );
   });
 
+  it("includes HSA and STD sections only when the employer explicitly offers them", () => {
+    const withoutOptionalBenefits = assemble();
+    const withoutIds = generateBookletOutline(withoutOptionalBenefits).sections.map(
+      (section) => section.id,
+    );
+    expect(withoutIds).not.toContain("hsa");
+    expect(withoutIds).not.toContain("std");
+    expect(
+      buildBlockerQuestions(withoutOptionalBenefits).some((question) =>
+        ["offeredBenefits.hsa", "offeredBenefits.std"].includes(question.fieldPath),
+      ),
+    ).toBe(false);
+
+    const explicitOffer = extraction({
+      offeredBenefits: [
+        { benefitType: "medical", offered: true, page: 1, quote: "Medical", confidence: 0.99 },
+        { benefitType: "hsa", offered: true, page: 2, quote: "HSA is offered", confidence: 0.99 },
+        { benefitType: "std", offered: true, page: 3, quote: "STD is offered", confidence: 0.99 },
+      ],
+      selectedPlans: [
+        {
+          planName: "Acme Gold 2026",
+          benefitType: "medical",
+          carrier: "Excellus",
+          page: 1,
+          quote: "Acme Gold 2026",
+          confidence: 0.99,
+        },
+        {
+          planName: "Acme Short-Term Disability 2026",
+          benefitType: "std",
+          carrier: "Example Disability",
+          page: 3,
+          quote: "Acme Short-Term Disability 2026",
+          confidence: 0.99,
+        },
+      ],
+      accounts: [
+        { type: "hsa", administrator: "Example HSA Bank", page: 2, confidence: 0.99 },
+      ],
+    });
+    const withOptionalBenefits = assemble([explicitOffer]);
+    const withIds = generateBookletOutline(withOptionalBenefits).sections.map(
+      (section) => section.id,
+    );
+    expect(withIds).toContain("hsa");
+    expect(withIds).toContain("std");
+  });
+
   it("applies a manual HSA offering decision without treating qualification as the answer", () => {
     const inputFile: LoadedUploadedFile = {
       id: "sbc-manual-hsa",

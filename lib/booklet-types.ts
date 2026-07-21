@@ -357,6 +357,7 @@ export type BookletGenerationRun = {
   companyId: string;
   ownerId: string;
   status: "queued" | "processing" | "blocked" | "complete" | "failed";
+  generationMode?: "registry_strict" | "employee_booklet";
   uploadedFileIds: string[];
   stages: PipelineEvent[];
   questions: BlockerQuestion[];

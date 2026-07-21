@@ -209,7 +209,10 @@ export function useBookletStudioBackend(companyId) {
         setEvents([]);
         setError("");
         try {
-          const result = await bookletStudioApi.start({ threadId: nextThreadId }, onStreamMessage);
+          const result = await bookletStudioApi.start({
+            threadId: nextThreadId,
+            generationMode: "employee_booklet",
+          }, onStreamMessage);
           const current = await refreshStatus(result.id);
           showNotice(current.status === "blocked" ? "Draft updated · finish remaining setup details when available" : "Booklet generation complete");
         } catch (generationError) {

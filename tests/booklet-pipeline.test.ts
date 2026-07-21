@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it, vi } from "vitest";
-import { runBookletPipeline } from "../lib/booklet-pipeline";
+import { createGenerationRun, runBookletPipeline } from "../lib/booklet-pipeline";
 import type {
   ClassifiedDocument,
   LoadedUploadedFile,
@@ -154,6 +154,27 @@ async function sixPagePdf() {
 }
 
 describe("booklet agent pipeline", () => {
+  it("persists the selected backend generation mode on a run", () => {
+    const strict = createGenerationRun({
+      id: "strict-run",
+      threadId: "thread",
+      companyId: "company",
+      ownerId: "owner",
+      uploadedFileIds: ["file"],
+    });
+    const employeeBooklet = createGenerationRun({
+      id: "employee-run",
+      threadId: "thread",
+      companyId: "company",
+      ownerId: "owner",
+      uploadedFileIds: ["file"],
+      generationMode: "employee_booklet",
+    });
+
+    expect(strict.generationMode).toBe("registry_strict");
+    expect(employeeBooklet.generationMode).toBe("employee_booklet");
+  });
+
   it("publishes a provisional employer cover from website evidence alone", async () => {
     const streamed: Array<{ id: string; contentStatus?: string; html: string }> = [];
     const result = await runBookletPipeline({

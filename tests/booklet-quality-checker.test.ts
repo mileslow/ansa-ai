@@ -112,6 +112,24 @@ describe("booklet quality checker", () => {
     expect(report).toMatchObject({ passed: true, pageCount: 6, issues: [] });
   });
 
+  it("recognizes HTML-escaped employer and plan names", async () => {
+    const changed = benefitsPackage();
+    changed.employer.name = "Acme & Sons";
+    changed.plans[0].name = "Life & AD&D";
+    const html = validHtml()
+      .replace("Acme Manufacturing", "Acme &amp; Sons")
+      .replace("Acme Gold", "Life &amp; AD&amp;D");
+    const report = await checkBookletQuality({
+      benefitsPackage: changed,
+      outline: outline(),
+      html,
+      pdf: await pdf(),
+    });
+
+    expect(report.issues.filter((issue) => issue.code === "missing_employer")).toEqual([]);
+    expect(report.issues.filter((issue) => issue.code === "missing_plan")).toEqual([]);
+  });
+
   it.each(["cover", "toc", "welcome", "eligibility", "enrollment", "contacts", "legal"])(
     "rejects a missing %s section",
     async (sectionId) => {

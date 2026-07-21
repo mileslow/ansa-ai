@@ -2,6 +2,124 @@
 
 Benefit guide generator — one structure file → HTML → PDF.
 
+## Purpose of the benefits booklet generator
+
+The generator is used after a company has received and supplied the information
+required to describe its benefits, including the applicable employer, plan,
+rate, contribution, and enrollment information. It turns those source materials
+into a concise, employee-facing benefits booklet.
+
+The booklet is a summary. It is not intended to reproduce 100% of the
+information contained in the SBCs, SPDs, certificates, Evidence of Coverage
+documents, or other governing plan materials, and it does not replace those
+documents.
+
+Flower City is the reference for the intended breadth of the finished booklet:
+the generator should apply the full relevant set of employer benefits and
+produce a complete collection of useful summary sections at a similar level of
+detail. It must use the current company's source-backed facts and omit benefits
+that the company does not offer.
+
+The generator is not a plan-comparison or plan-shopping tool. Each booklet
+summarizes one finalized benefits package for one defined employee or
+participant population. Competing packages or plans intended for different
+populations must not be placed in one booklet for comparison. For example, a
+company offering UHC coverage to active employees and separate Medicare
+coverage to retirees should receive two separate booklets. Multiple plan
+options may appear together only when they are finalized offerings for the same
+booklet audience.
+
+Source documents are evidence, not a checklist of document titles that must all
+be present. The current generator asks for enough authoritative, source-backed
+facts to write each summary section; it does not separately require redundant
+SBCs, SPDs, Evidence of Coverage documents, carrier guides, formularies, or
+duplicate versions when the necessary facts are already supported. Uploaded
+source PDFs are not appended in full to the generated booklet.
+
+Flower City has no standalone HSA or short-term disability section. HSA and STD
+remain supported for other employers, but each section is included only when
+the employer explicitly offers that benefit. An HSA-qualified medical plan does
+not by itself establish an employer HSA offering, and missing HSA or STD
+materials do not block a booklet when the corresponding benefit is not offered.
+
+## Remaining product work
+
+At the product-definition level, the remaining work is concentrated in two
+areas: comprehensive generation testing and a simpler, benefit-organized source
+upload experience.
+
+### 1. Comprehensive generation testing
+
+The generation pipeline must be exercised with realistic combinations of
+employers, benefits, source documents, rates, and missing information. Testing
+should prove that the system consistently produces a concise, source-backed
+employee booklet with Flower City-level breadth without requiring or reproducing
+every governing source document.
+
+The test matrix should cover:
+
+- medical-only packages and packages containing several benefit types;
+- medical, dental, vision, Life/AD&D, LTD, HRA, FSA, telemedicine, EAP, and
+  voluntary-benefit combinations represented by Flower City;
+- HSA and STD when explicitly offered, and their omission when not offered;
+- different supported source-document types and file formats;
+- complete inputs, partially complete inputs, missing required facts, and
+  conflicting sources;
+- rates with different coverage tiers, contribution methods, and payroll
+  schedules;
+- plan documents with and without separate rate files;
+- separate booklets for different participant populations or finalized benefit
+  packages;
+- blocker questions, user-supplied answers, resumed runs, and corrected source
+  uploads;
+- final section selection, employee costs, source provenance, placeholder
+  rejection, PDF structure, and readable output.
+
+Testing is complete when the same input package produces a stable booklet,
+missing required facts produce specific actionable questions, unsupported facts
+are never invented, benefits that are not offered are omitted, and every
+included summary section can be traced to a source or confirmed answer.
+
+### 2. Benefit-organized plan and rate uploads
+
+The current Plans and Rates steps behave too much like unorganized document
+drop zones. The frontend should make it immediately clear which benefit a file
+belongs to and whether the user is supplying plan information or cost
+information.
+
+Both steps should use the same benefit organization:
+
+- Medical
+- Dental
+- Vision
+- Life and AD&D
+- Short-term disability
+- Long-term disability
+- HSA
+- HRA
+- FSA
+- Telemedicine
+- Employee assistance program
+- Voluntary benefits
+
+The Plans step should accept the source documents that describe coverage, such
+as SBCs, SPDs, plan summaries, certificates, Evidence of Coverage documents,
+and carrier materials. The Rates step should accept premiums, employer
+contributions, employee deductions, coverage-tier rates, and payroll schedules.
+
+The interface should remain simple:
+
+1. Choose a benefit.
+2. Add one or more plan or rate files for that benefit.
+3. Show the files, processing status, and extracted plan or rate identity in the
+   selected benefit area.
+4. Show only the missing information or conflicts that require a user decision.
+
+Files may still be classified automatically, but the result should be presented
+inside the appropriate benefit area rather than as one undifferentiated upload
+list. A user should be able to see at a glance which benefits have plan
+information, which have rates, and which still need attention.
+
 ## File
 
 `2025-benefit-guide-structure.txt` — single master document containing:
@@ -190,6 +308,21 @@ HRA, and FSA generation remains incomplete; ancillary sections can be present
 without full source-backed policy detail. The grounded content agent covers HSA
 and STD, and HSA-qualified medical plans require separate employer-offering
 evidence or a blocker answer.
+
+The authenticated `start` action accepts a `generationMode`. The default,
+`registry_strict`, enforces the exhaustive formal-plan registry. Use
+`employee_booklet` for a conservative source-backed summary when the supplied
+package is suitable for an employee guide but does not contain every governing
+policy field. This is the mode used by Booklet Studio and the email booklet
+workflow. The selected mode is stored on the run and reused when blocker answers
+resume it.
+The `start` action also accepts a bounded `initialAnswers` object for known
+employer selections or other accountable manual facts that should be applied
+before the first run; these values are persisted on the run and recorded in the
+thread audit trail.
+Completed runs normally return a short-lived signed PDF URL. Environments whose
+application-default credentials cannot sign URLs can retrieve the same owned
+artifact through the authenticated `download` action instead.
 
 The `ansa-booklet-backend` Cloud Run service is deployed in `flux-ebfb0`. A
 live backend run generated and independently verified a corrected 12-page PDF

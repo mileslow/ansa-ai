@@ -10,7 +10,7 @@ async function pdfWithPages(count: number) {
 }
 
 describe("authoritative source booklet appendix", () => {
-  it("preserves every page of a sole authoritative booklet in email mode", async () => {
+  it("keeps the generated summary even when legacy callers request a source appendix", async () => {
     const generatedPdf = await pdfWithPages(2);
     const sourcePdf = await pdfWithPages(3);
     const source = {
@@ -33,10 +33,11 @@ describe("authoritative source booklet appendix", () => {
       enabled: true,
     });
 
-    expect((await PDFDocument.load(merged)).getPageCount()).toBe(6);
+    expect(merged).toEqual(generatedPdf);
+    expect((await PDFDocument.load(merged)).getPageCount()).toBe(2);
   });
 
-  it("does not append a source booklet in strict studio mode", async () => {
+  it("does not append a source booklet when append behavior is disabled", async () => {
     const generatedPdf = await pdfWithPages(2);
     const result = await appendAuthoritativeSourceBooklet({
       generatedPdf,

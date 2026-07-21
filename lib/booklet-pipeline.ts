@@ -235,11 +235,11 @@ export async function runBookletPipeline({
   files: LoadedUploadedFile[];
   answers?: Record<string, unknown>;
   /**
-   * The interactive studio uses the exhaustive registry gate. Email booklet
-   * requests use the same source/evidence pipeline in employee-booklet mode,
-   * where only human-actionable intake blockers stop generation. The registry
-   * sidecar is still produced for auditability, but incomplete formal-plan
-   * fields do not turn into hundreds of email questions.
+   * Booklet Studio and email booklet requests use this pipeline with registry
+   * enforcement disabled in employee-booklet mode, where only human-actionable
+   * intake blockers stop generation. The registry sidecar is still produced
+   * for auditability, but incomplete formal-plan fields do not turn into
+   * exhaustive questions. Strict callers can opt into the formal registry gate.
    */
   enforceRegistry?: boolean;
   onEvent?: (event: PipelineEvent) => Promise<void> | void;
@@ -1085,12 +1085,14 @@ export function createGenerationRun({
   companyId,
   ownerId,
   uploadedFileIds,
+  generationMode = "registry_strict",
 }: {
   id?: string;
   threadId: string;
   companyId: string;
   ownerId: string;
   uploadedFileIds: string[];
+  generationMode?: "registry_strict" | "employee_booklet";
 }): BookletGenerationRun {
   return {
     id,
@@ -1098,6 +1100,7 @@ export function createGenerationRun({
     companyId,
     ownerId,
     status: "queued",
+    generationMode,
     uploadedFileIds,
     stages: [],
     questions: [],

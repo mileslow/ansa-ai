@@ -40,6 +40,18 @@ function getKey(mode) {
     return "";
   }
 }
+function configureLocalBackendEnv(mode) {
+  const env = loadEnv(mode, process.cwd(), "");
+  for (const key of [
+    "FIREBASE_PROJECT_ID",
+    "FIREBASE_STORAGE_BUCKET",
+    "FIREBASE_SERVICE_ACCOUNT_JSON",
+    "VITE_FIREBASE_PROJECT_ID",
+    "VITE_FIREBASE_STORAGE_BUCKET",
+  ]) {
+    if (!process.env[key] && env[key]) process.env[key] = env[key];
+  }
+}
 function getLocalDb(mode) {
   const env = loadEnv(mode, process.cwd(), "");
   const name = "ansa-local-plan-parser";
@@ -60,6 +72,7 @@ function getLocalDb(mode) {
 }
 export default defineConfig(({ mode, command }) => {
   const localOpenAIKey = getKey(mode);
+  if (command === "serve") configureLocalBackendEnv(mode);
   if (command === "serve" && !process.env.OPENAI_API_KEY && localOpenAIKey)
     process.env.OPENAI_API_KEY = localOpenAIKey;
   return {
