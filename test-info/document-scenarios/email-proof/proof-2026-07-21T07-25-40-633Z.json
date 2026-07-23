@@ -1,0 +1,66 @@
+{
+  "startedAt": "2026-07-21T07:25:40.633Z",
+  "completedAt": "2026-07-21T07:28:13.730Z",
+  "agentInbox": "miles-2501@agentmail.to",
+  "senderInbox": "ansa-live-test-2501@agentmail.to",
+  "scenarioCount": 1,
+  "proofs": [
+    {
+      "scenarioId": "01_hsa-selected-no-hsa-form",
+      "title": "HSA selected in application but no HSA form attached",
+      "sent": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f8390ef24-f31fe02a-aedb-4f2e-93e0-ae9bc7897cc2-000000@email.amazonses.com>",
+        "threadId": "3a67f37a-3a50-4569-a18a-8459fa00d3e6",
+        "from": "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>",
+        "to": [
+          "miles-2501@agentmail.to"
+        ],
+        "subject": "Ansa document scenario 01_hsa-selected-no-hsa-form 01_hsa-selected-no-hsa-form-1784618740634",
+        "timestamp": "2026-07-21T07:25:41.432Z",
+        "text": "Authorized Ansa live email test 01_hsa-selected-no-hsa-form-1784618740634.\n\nPlease generate a source-backed employee benefits booklet from the attached materials.\nUse only the attached source documents and explicit facts in this thread.\nIf any required document, selected plan, rate row, or employer confirmation is missing, ask me for exactly that information instead of guessing.\n\nScenario: HSA selected in application but no HSA form attached.\n\n--\nSent via AgentMail",
+        "attachments": [
+          {
+            "filename": "00_completed-employer-application.pdf",
+            "contentType": "application/pdf",
+            "size": 2094
+          },
+          {
+            "filename": "01_rochester-your-hsa-eligible-option-sbc.pdf",
+            "contentType": "application/pdf",
+            "size": 443972
+          },
+          {
+            "filename": "02_rates-and-contributions.xlsx",
+            "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "size": 16883
+          }
+        ]
+      },
+      "localProcessor": {
+        "status": "complete",
+        "intent": "benefits_booklet"
+      },
+      "reply": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f83932a4c-ddc3d01b-150b-49d8-b578-f6eca909ef16-000000@email.amazonses.com>",
+        "threadId": "3a67f37a-3a50-4569-a18a-8459fa00d3e6",
+        "from": "AgentMail <miles-2501@agentmail.to>",
+        "to": [
+          "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>"
+        ],
+        "subject": "Re: Ansa document scenario 01_hsa-selected-no-hsa-form 01_hsa-selected-no-hsa-form-1784618740634",
+        "timestamp": "2026-07-21T07:28:07.000Z",
+        "text": "I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:\n\n1. HSA appears to be selected, but no HSA source document or administrator details were found. Please attach the HSA source materials, or confirm that no standalone HSA benefit should be included.\n   Options: yes, no\n2. Which value should be used for planYear.start?\n   Options: 2026-01-01, 01/01/2026\n3. Which value should be used for planYear.end?\n   Options: 2026-12-31, 12/31/2026\n\nReply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.\n\n--\nSent via AgentMail",
+        "attachments": []
+      },
+      "checks": [
+        {
+          "name": "asks for HSA account/source confirmation",
+          "passed": true,
+          "details": "I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:\n\n1. HSA appears to be selected, but no HSA source document or administrator details were found. Please attach the HSA source materials, or confirm that no standalone HSA benefit should be included.\n   Options: yes, no\n2. Which value should be used for planYear.start?\n   Options: 2026-01-01, 01/01/2026\n3. Which value should be used for planYear.end?\n   Options: 2026-12-31, 12/31/2026"
+        }
+      ]
+    }
+  ]
+}

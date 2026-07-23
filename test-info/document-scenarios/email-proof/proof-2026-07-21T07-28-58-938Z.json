@@ -1,0 +1,66 @@
+{
+  "startedAt": "2026-07-21T07:28:58.938Z",
+  "completedAt": "2026-07-21T07:31:17.876Z",
+  "agentInbox": "miles-2501@agentmail.to",
+  "senderInbox": "ansa-live-test-2501@agentmail.to",
+  "scenarioCount": 1,
+  "proofs": [
+    {
+      "scenarioId": "01_hsa-selected-no-hsa-form",
+      "title": "HSA selected in application but no HSA form attached",
+      "sent": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f8393f63d-e74ea3b9-231c-4b37-b588-f1db082df206-000000@email.amazonses.com>",
+        "threadId": "3d5b90a1-9f5e-4198-ba79-24bd13662e3a",
+        "from": "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>",
+        "to": [
+          "miles-2501@agentmail.to"
+        ],
+        "subject": "Ansa document scenario 01_hsa-selected-no-hsa-form 01_hsa-selected-no-hsa-form-1784618938938",
+        "timestamp": "2026-07-21T07:28:59.709Z",
+        "text": "Authorized Ansa live email test 01_hsa-selected-no-hsa-form-1784618938938.\n\nPlease generate a source-backed employee benefits booklet from the attached materials.\nUse only the attached source documents and explicit facts in this thread.\nIf any required document, selected plan, rate row, or employer confirmation is missing, ask me for exactly that information instead of guessing.\n\nScenario: HSA selected in application but no HSA form attached.\n\n--\nSent via AgentMail",
+        "attachments": [
+          {
+            "filename": "00_completed-employer-application.pdf",
+            "contentType": "application/pdf",
+            "size": 2096
+          },
+          {
+            "filename": "01_rochester-your-hsa-eligible-option-sbc.pdf",
+            "contentType": "application/pdf",
+            "size": 443972
+          },
+          {
+            "filename": "02_rates-and-contributions.xlsx",
+            "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "size": 16883
+          }
+        ]
+      },
+      "localProcessor": {
+        "status": "complete",
+        "intent": "benefits_booklet"
+      },
+      "reply": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f8395f902-2b0a8cde-a671-443a-bc7b-73fdf346d036-000000@email.amazonses.com>",
+        "threadId": "3d5b90a1-9f5e-4198-ba79-24bd13662e3a",
+        "from": "AgentMail <miles-2501@agentmail.to>",
+        "to": [
+          "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>"
+        ],
+        "subject": "Re: Ansa document scenario 01_hsa-selected-no-hsa-form 01_hsa-selected-no-hsa-form-1784618938938",
+        "timestamp": "2026-07-21T07:31:11.000Z",
+        "text": "I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:\n\n1. HSA appears to be selected, but no HSA source document or administrator details were found. Please attach the HSA source materials, or confirm that no standalone HSA benefit should be included.\n   Options: yes, no\n\nReply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.\n\n--\nSent via AgentMail",
+        "attachments": []
+      },
+      "checks": [
+        {
+          "name": "asks for HSA account/source confirmation",
+          "passed": true,
+          "details": "I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:\n\n1. HSA appears to be selected, but no HSA source document or administrator details were found. Please attach the HSA source materials, or confirm that no standalone HSA benefit should be included.\n   Options: yes, no\n\nReply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.\n\n--\nSent vi"
+        }
+      ]
+    }
+  ]
+}

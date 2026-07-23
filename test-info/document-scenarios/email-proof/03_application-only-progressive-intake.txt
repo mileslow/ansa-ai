@@ -1,0 +1,43 @@
+# 03_application-only-progressive-intake: Application only progressive intake
+
+## Initial sent
+Message: <0100019f83b0393e-300566d5-2ce3-4f33-9ce8-ba1c139cdf15-000000@email.amazonses.com>
+Thread: 1ef1303f-019f-4426-b531-62642a3e691c
+Authorized Ansa live email test 03_application-only-progressive-intake-1784620791933.
+
+Please generate a source-backed employee benefits booklet from the attached materials.
+Use only the attached source documents and explicit facts in this thread.
+If any required document, selected plan, rate row, or employer confirmation is missing, ask me for exactly that information instead of guessing.
+
+Scenario: Application only progressive intake.
+
+--
+Sent via AgentMail
+
+## Initial reply
+Message: <0100019f83b09c9b-872ac08b-5ecc-4e22-9582-10059c75344b-000000@email.amazonses.com>
+I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:
+
+1. Which current plans should be included in this booklet?
+
+Reply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.
+
+--
+Sent via AgentMail
+
+## Follow-up sent
+Message: <0100019f83b0b043-23ce0d87-917e-43b9-a9b8-271a57cb0e5a-000000@email.amazonses.com>
+Authorized Ansa live email test follow-up for 03_application-only-progressive-intake-1784620791933.
+
+Reply with the selected current plan: Medical: Healthfirst Essential Plan 2 - Healthfirst.
+Attach the plan document and rates from this folder so the agent can continue the booklet intake.
+
+--
+Sent via AgentMail
+
+## Follow-up reply
+Message: <0100019f83b26143-16be04d1-71ba-49da-a1aa-351f56f00fe8-000000@email.amazonses.com>
+Your source-backed benefits booklet is ready. I’ve attached the finished PDF. If you want a revision, reply in this thread with the change or the supporting source document.
+
+--
+Sent via AgentMail

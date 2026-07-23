@@ -1,0 +1,47 @@
+{
+  "startedAt": "2026-07-21T07:18:34.637Z",
+  "completedAt": "2026-07-21T07:20:38.954Z",
+  "agentInbox": "miles-2501@agentmail.to",
+  "senderInbox": "ansa-live-test-2501@agentmail.to",
+  "scenarioCount": 1,
+  "proofs": [
+    {
+      "scenarioId": "01_hsa-selected-no-hsa-form",
+      "title": "HSA selected in application but no HSA form attached",
+      "sent": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f838a6eb2-470f3a5e-d742-4760-ae65-5e6e1e8fe540-000000@email.amazonses.com>",
+        "threadId": "09b4ad02-780a-4df6-8ed6-ac547bbb06d0",
+        "to": [],
+        "subject": "",
+        "timestamp": "2026-07-21T07:20:38.951Z",
+        "text": "",
+        "attachments": []
+      },
+      "localProcessor": {
+        "status": "complete",
+        "intent": "benefits_booklet"
+      },
+      "reply": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f838c2133-89b477a1-35a0-49eb-acc3-d01848053497-000000@email.amazonses.com>",
+        "threadId": "09b4ad02-780a-4df6-8ed6-ac547bbb06d0",
+        "from": "AgentMail <miles-2501@agentmail.to>",
+        "to": [
+          "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>"
+        ],
+        "subject": "Re: Ansa document scenario 01_hsa-selected-no-hsa-form 01_hsa-selected-no-hsa-form-1784618314638",
+        "timestamp": "2026-07-21T07:20:26.000Z",
+        "text": "I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:\n\n1. Which value should be used for employer.name?\n   Options: Scenario HSA Missing LLC, University of Rochester\n\nReply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.\n\n--\nSent via AgentMail",
+        "attachments": []
+      },
+      "checks": [
+        {
+          "name": "asks for HSA account/source confirmation",
+          "passed": true,
+          "details": "I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:\n\n1. Which value should be used for employer.name?\n   Options: Scenario HSA Missing LLC, University of Rochester\n\nReply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.\n\n--\nSent via AgentMail"
+        }
+      ]
+    }
+  ]
+}

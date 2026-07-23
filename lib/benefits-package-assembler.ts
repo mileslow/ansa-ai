@@ -68,6 +68,22 @@ const sourcePriority = (documentType: ClassifiedDocument["documentType"]) =>
     unknown: 10,
   })[documentType];
 
+const allBenefitTypes: BenefitType[] = [
+  "medical",
+  "dental",
+  "vision",
+  "life",
+  "std",
+  "ltd",
+  "hsa",
+  "hra",
+  "fsa",
+  "telemedicine",
+  "eap",
+  "voluntary",
+];
+const accountBenefitTypes = new Set<BenefitType>(["hsa", "hra", "fsa"]);
+
 function pick<T>(candidates: Candidate<T>[]) {
   return [...candidates].sort(
     (a, b) => b.priority - a.priority || b.confidence - a.confidence,
@@ -95,13 +111,44 @@ function evidenceCandidate(
   };
 }
 
+function employerIdentityCandidate(
+  extraction: BookletDocumentExtraction,
+  field:
+    | {
+        value: string;
+        page?: number | null;
+        quote?: string | null;
+        confidence: number;
+      }
+    | null,
+): Candidate<string> | null {
+  if (
+    [
+      "carrier_rate_sheet",
+      "renewal_spreadsheet",
+      "sbc",
+      "spd",
+      "plan_summary",
+    ].includes(extraction.documentType)
+  )
+    return null;
+  return evidenceCandidate(extraction, field);
+}
+
+function conflictKey(fieldPath: string, value: string) {
+  if (fieldPath === "planYear.start" || fieldPath === "planYear.end")
+    return normalizePlanDate(value) || normalized(value);
+  return normalized(value);
+}
+
 function conflictingValues(fieldPath: string, candidates: Candidate<string>[]): Conflict | null {
   const strong = candidates.filter((candidate) => candidate.confidence >= 0.75);
   const groups = new Map<string, Candidate<string>[]>();
   for (const candidate of strong) {
-    const group = groups.get(normalized(candidate.value)) || [];
+    const key = conflictKey(fieldPath, candidate.value);
+    const group = groups.get(key) || [];
     group.push(candidate);
-    groups.set(normalized(candidate.value), group);
+    groups.set(key, group);
   }
   if (groups.size < 2) return null;
   const values = [...groups.values()].map((group) => ({
@@ -131,9 +178,35 @@ function tokenSimilarity(left: string, right: string) {
   return (2 * intersection) / (a.size + b.size);
 }
 
+function metalTier(value: string) {
+  return value.toLowerCase().match(/\b(bronze|silver|gold|platinum)\b/)?.[1] || null;
+}
+
+function optionNumbers(value: string) {
+  return new Set(
+    [...value.matchAll(/\b(?!20\d{2}\b)(\d+[a-z]?)\b/gi)].map((match) =>
+      match[1].toLowerCase(),
+    ),
+  );
+}
+
+function planRateMatchScore(planName: string, rateName: string) {
+  const selectedMetal = metalTier(planName);
+  const rateMetal = metalTier(rateName);
+  if (selectedMetal && rateMetal && selectedMetal !== rateMetal) return 0;
+  const selectedNumbers = optionNumbers(planName);
+  const rateNumbers = optionNumbers(rateName);
+  const hasConflictingOptionNumbers =
+    selectedNumbers.size > 0 &&
+    rateNumbers.size > 0 &&
+    ![...selectedNumbers].some((value) => rateNumbers.has(value));
+  const score = tokenSimilarity(planName, rateName);
+  return hasConflictingOptionNumbers ? Math.min(score, 0.44) : score;
+}
+
 function bestRateMatch(planName: string, rates: CarrierRatePlan[]) {
   return rates
-    .map((rate) => ({ rate, score: tokenSimilarity(planName, rate.planName) }))
+    .map((rate) => ({ rate, score: planRateMatchScore(planName, rate.planName) }))
     .sort((a, b) => b.score - a.score)[0];
 }
 
@@ -188,6 +261,34 @@ function manualBooleanAnswer(
   return undefined;
 }
 
+function manualAccountAnswer(
+  path: string,
+  type: "hsa" | "hra" | "fsa",
+  answers: Record<string, unknown>,
+) {
+  if (!Object.prototype.hasOwnProperty.call(answers, path)) return null;
+  const value = answers[path];
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const administrator = [
+    record.administrator,
+    record.custodian,
+    record.provider,
+  ].find((item) => typeof item === "string" && item.trim());
+  if (!administrator) return null;
+  return {
+    type,
+    administrator: String(administrator).trim(),
+    sourceRef: {
+      fileId: `manual:${sha(path)}`,
+      fileName: "User answer",
+      documentType: "manual_answer" as const,
+      extractionMethod: "manual" as const,
+    },
+    confidence: 1,
+  };
+}
+
 export function assembleBenefitsPackage({
   companyId,
   documentExtractions,
@@ -204,16 +305,16 @@ export function assembleBenefitsPackage({
   manualAnswers?: Record<string, unknown>;
 }): BenefitsPackage {
   const employerCandidates = documentExtractions
-    .map((item) => evidenceCandidate(item, item.employer.name))
+    .map((item) => employerIdentityCandidate(item, item.employer.name))
     .filter((item): item is Candidate<string> => Boolean(item));
   const legalNameCandidates = documentExtractions
-    .map((item) => evidenceCandidate(item, item.employer.legalName))
+    .map((item) => employerIdentityCandidate(item, item.employer.legalName))
     .filter((item): item is Candidate<string> => Boolean(item));
   const addressCandidates = documentExtractions
-    .map((item) => evidenceCandidate(item, item.employer.address))
+    .map((item) => employerIdentityCandidate(item, item.employer.address))
     .filter((item): item is Candidate<string> => Boolean(item));
   const websiteCandidates = documentExtractions
-    .map((item) => evidenceCandidate(item, item.employer.website))
+    .map((item) => employerIdentityCandidate(item, item.employer.website))
     .filter((item): item is Candidate<string> => Boolean(item));
   const startCandidates = documentExtractions
     .map((item) => evidenceCandidate(item, item.planYear.start))
@@ -488,7 +589,8 @@ export function assembleBenefitsPackage({
         priority: sourcePriority(item.documentType),
       })),
     );
-  const accountEvidence = documentExtractions
+  const accountEvidence = [
+    ...documentExtractions
     .filter((item) => item.templateRole !== "master_template")
     .flatMap((item) =>
       item.accounts.map((account) => ({
@@ -497,16 +599,38 @@ export function assembleBenefitsPackage({
         sourceRef: extractionSource(item, account.page),
         confidence: account.confidence,
       })),
-    );
-  const manualHsaOffering = manualBooleanAnswer(
-    "offeredBenefits.hsa",
-    manualAnswers,
-  );
+    ),
+    ...(["hsa", "hra", "fsa"] as const)
+      .map((type) => manualAccountAnswer(`accounts.${type}`, type, manualAnswers))
+      .filter((item): item is NonNullable<ReturnType<typeof manualAccountAnswer>> =>
+        Boolean(item),
+      ),
+  ];
+  const manualOfferings = Object.fromEntries(
+    allBenefitTypes
+      .map((benefitType) => [
+        benefitType,
+        manualBooleanAnswer(`offeredBenefits.${benefitType}`, manualAnswers),
+      ] as const)
+      .filter(([, value]) => value !== undefined),
+  ) as Partial<Record<BenefitType, boolean>>;
+  const manuallyAnsweredOfferingTypes = Object.keys(manualOfferings) as BenefitType[];
+  const manualOfferingSource = (type: BenefitType): SourceRef[] =>
+    manualOfferings[type] === undefined
+      ? []
+      : [
+          {
+            fileId: `manual:${sha(`offeredBenefits.${type}`)}`,
+            fileName: "User answer",
+            documentType: "manual_answer",
+            extractionMethod: "manual",
+          },
+        ];
   const benefitTypes = new Set<BenefitType>([
     ...plans.map((plan) => plan.benefitType),
     ...offeringEvidence.map((item) => item.benefitType),
     ...accountEvidence.map((item) => item.type),
-    ...(manualHsaOffering === undefined ? [] : (["hsa"] as const)),
+    ...manuallyAnsweredOfferingTypes,
   ]);
   const offeredBenefits = [...benefitTypes].map((type) => {
     const evidence = offeringEvidence
@@ -514,26 +638,16 @@ export function assembleBenefitsPackage({
       .sort((a, b) => b.priority - a.priority || b.confidence - a.confidence);
     const selected = plans.filter((plan) => plan.benefitType === type);
     const accountEntries = accountEvidence.filter((account) => account.type === type);
-    const manualOffering =
-      type === "hsa" ? manualHsaOffering : undefined;
-    const manualSource: SourceRef[] =
-      manualOffering === undefined
-        ? []
-        : [
-            {
-              fileId: `manual:${sha("offeredBenefits.hsa")}`,
-              fileName: "User answer",
-              documentType: "manual_answer",
-              extractionMethod: "manual",
-            },
-          ];
+    const manualOffering = manualOfferings[type];
+    const manualSource = manualOfferingSource(type);
+    const sourceOffered = evidence[0]?.offered === true;
+    const selectedOrAccountBacked = selected.length > 0 || accountEntries.length > 0;
     return {
       benefitType: type,
       offered:
-        manualOffering ??
-        (selected.length > 0 ||
-          accountEntries.length > 0 ||
-          evidence[0]?.offered === true),
+        accountBenefitTypes.has(type) && (sourceOffered || selectedOrAccountBacked)
+          ? true
+          : manualOffering ?? (selectedOrAccountBacked || sourceOffered),
       selectedPlans: selected.map((plan) => plan.id),
       eligibilityRule: pick(waitingCandidates)?.value || null,
       contributionRules: contributions.filter((rule) => rule.benefitType === type),

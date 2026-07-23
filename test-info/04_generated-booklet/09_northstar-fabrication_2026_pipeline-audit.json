@@ -1,0 +1,1140 @@
+{
+  "generationMode": "employee_booklet",
+  "enforceRegistry": false,
+  "status": "complete",
+  "classifications": [
+    {
+      "fileId": "2d8de8dd1755a21b1043",
+      "documentType": "employer_application",
+      "confidence": 0.97,
+      "reasoningSummary": "Employer/group application signals found in the filename or document text.",
+      "detectedBenefitTypes": [
+        "dental",
+        "vision",
+        "std",
+        "ltd",
+        "life",
+        "eap",
+        "voluntary",
+        "telemedicine",
+        "hsa",
+        "hra",
+        "fsa",
+        "medical"
+      ],
+      "detectedEmployer": null,
+      "detectedCarrier": "Excellus",
+      "detectedPlanYear": "2026",
+      "benefitTypes": [
+        "medical",
+        "dental",
+        "vision",
+        "life",
+        "std",
+        "ltd",
+        "eap",
+        "telemedicine",
+        "hsa",
+        "hra",
+        "fsa",
+        "voluntary"
+      ],
+      "scope": "current_employer",
+      "authority": "employer_selection",
+      "documentSubtype": "employer_application",
+      "employerOrGroupId": null,
+      "planOrProgramIds": [],
+      "effectiveStart": "2026-01-01",
+      "effectiveEnd": "2026-12-31"
+    },
+    {
+      "fileId": "9f41923c921f2b6bb470",
+      "documentType": "carrier_rate_sheet",
+      "confidence": 0.93,
+      "reasoningSummary": "Workbook contains carrier plan and tier-rate headers.",
+      "detectedBenefitTypes": [
+        "dental"
+      ],
+      "detectedEmployer": null,
+      "detectedCarrier": null,
+      "detectedPlanYear": null,
+      "benefitTypes": [
+        "medical",
+        "dental"
+      ],
+      "scope": "current_employer",
+      "authority": "rate_or_contribution",
+      "documentSubtype": "carrier_rate_sheet",
+      "employerOrGroupId": null,
+      "planOrProgramIds": [],
+      "effectiveStart": null,
+      "effectiveEnd": null
+    },
+    {
+      "fileId": "68ac32550da5ac390dff",
+      "documentType": "sbc",
+      "confidence": 0.96,
+      "reasoningSummary": "Summary of Benefits and Coverage signals found.",
+      "detectedBenefitTypes": [
+        "dental",
+        "vision",
+        "hsa",
+        "medical"
+      ],
+      "detectedEmployer": null,
+      "detectedCarrier": "Excellus",
+      "detectedPlanYear": "2026",
+      "benefitTypes": [
+        "medical",
+        "vision",
+        "hsa"
+      ],
+      "scope": "generic_reference",
+      "authority": "administrator_material",
+      "documentSubtype": "prescription_formulary",
+      "employerOrGroupId": null,
+      "planOrProgramIds": [],
+      "effectiveStart": "2026-01-01",
+      "effectiveEnd": "2026-12-31"
+    },
+    {
+      "fileId": "e3f3f9d8186694ac73f8",
+      "documentType": "sbc",
+      "confidence": 0.96,
+      "reasoningSummary": "Summary of Benefits and Coverage signals found.",
+      "detectedBenefitTypes": [
+        "dental",
+        "vision",
+        "hsa",
+        "medical"
+      ],
+      "detectedEmployer": null,
+      "detectedCarrier": "Excellus",
+      "detectedPlanYear": "2026",
+      "benefitTypes": [
+        "medical",
+        "vision",
+        "hsa"
+      ],
+      "scope": "generic_reference",
+      "authority": "administrator_material",
+      "documentSubtype": "prescription_formulary",
+      "employerOrGroupId": null,
+      "planOrProgramIds": [],
+      "effectiveStart": "2026-01-01",
+      "effectiveEnd": "2026-12-31"
+    },
+    {
+      "fileId": "f78617f0705639a02be0",
+      "documentType": "sbc",
+      "confidence": 0.96,
+      "reasoningSummary": "Summary of Benefits and Coverage signals found.",
+      "detectedBenefitTypes": [
+        "dental",
+        "vision",
+        "hsa",
+        "medical"
+      ],
+      "detectedEmployer": null,
+      "detectedCarrier": "Excellus",
+      "detectedPlanYear": "2026",
+      "benefitTypes": [
+        "medical",
+        "vision",
+        "hsa"
+      ],
+      "scope": "generic_reference",
+      "authority": "administrator_material",
+      "documentSubtype": "prescription_formulary",
+      "employerOrGroupId": null,
+      "planOrProgramIds": [],
+      "effectiveStart": "2026-01-01",
+      "effectiveEnd": "2026-12-31"
+    },
+    {
+      "fileId": "002b8b30c06d4c5b4299",
+      "documentType": "plan_summary",
+      "confidence": 0.98,
+      "detectedBenefitTypes": [
+        "dental"
+      ],
+      "detectedEmployer": "Northstar Fabrication",
+      "detectedCarrier": "Delta Dental",
+      "detectedPlanYear": "2026",
+      "reasoningSummary": "This is a synthetic dental plan summary for the 2026 Delta Dental Basic Family PPO Plan I. It presents coverage terms, exclusions, deductibles, and claim rules in summary format, and includes employer contact information for Northstar HR, indicating a current employer plan document rather than a marketing brochure or prior-year guide.",
+      "benefitTypes": [
+        "dental"
+      ],
+      "documentSubtype": "synthetic dental summary / booklet-style plan summary",
+      "scope": "current_employer",
+      "authority": "current_plan_document",
+      "employerOrGroupId": "Northstar Fabrication",
+      "planOrProgramIds": [
+        "2026 Delta Dental Basic Family PPO Plan I"
+      ],
+      "effectiveStart": "2026-01-01",
+      "effectiveEnd": "2026-12-31"
+    },
+    {
+      "fileId": "1c608efaea639d09f438",
+      "documentType": "plan_summary",
+      "confidence": 0.98,
+      "detectedBenefitTypes": [
+        "dental"
+      ],
+      "detectedEmployer": "Northstar",
+      "detectedCarrier": "Delta Dental",
+      "detectedPlanYear": "2026",
+      "reasoningSummary": "This is a synthetic dental plan summary for the 2026 Delta Dental Enhanced Family PPO Plan III. It clearly describes adult and pediatric dental benefits, network rules, limitations, and coverage dates for 2026. Northstar is identified through the HR contact information, and Delta Dental is named in the title and coverage details.",
+      "benefitTypes": [
+        "dental"
+      ],
+      "documentSubtype": "Delta Dental Enhanced Family PPO Plan III; PPO; enhanced family dental summary",
+      "scope": "current_employer",
+      "authority": "administrator_material",
+      "employerOrGroupId": "Northstar",
+      "planOrProgramIds": [
+        "2026 Delta Dental Enhanced Family PPO Plan III"
+      ],
+      "effectiveStart": "2026-01-01",
+      "effectiveEnd": "2026-12-31"
+    }
+  ],
+  "selectedPlans": [
+    {
+      "name": "2026 SimplyBlue Plus Bronze 4",
+      "benefitType": "medical",
+      "carrier": "Excellus BlueCross BlueShield",
+      "ratePlanId": "d9abaacbe42679ed39b0"
+    },
+    {
+      "name": "2026 SimplyBlue Plus Silver 19",
+      "benefitType": "medical",
+      "carrier": "Excellus BlueCross BlueShield",
+      "ratePlanId": "d5c8e42e7b7eea3c9b67"
+    },
+    {
+      "name": "2026 SimplyBlue Plus Gold 6",
+      "benefitType": "medical",
+      "carrier": "Excellus BlueCross BlueShield",
+      "ratePlanId": "d37d0f7ac932a6e51c70"
+    },
+    {
+      "name": "2026 Delta Dental Basic Family PPO Plan I",
+      "benefitType": "dental",
+      "carrier": "Delta Dental",
+      "ratePlanId": "4a486a1093ca702496e2"
+    },
+    {
+      "name": "2026 Delta Dental Enhanced Family PPO Plan III",
+      "benefitType": "dental",
+      "carrier": "Delta Dental",
+      "ratePlanId": "373086c77390cf16faed"
+    }
+  ],
+  "offeredBenefits": [
+    {
+      "benefitType": "medical",
+      "offered": true
+    },
+    {
+      "benefitType": "dental",
+      "offered": true
+    },
+    {
+      "benefitType": "vision",
+      "offered": false
+    },
+    {
+      "benefitType": "life",
+      "offered": false
+    },
+    {
+      "benefitType": "std",
+      "offered": false
+    },
+    {
+      "benefitType": "ltd",
+      "offered": false
+    },
+    {
+      "benefitType": "eap",
+      "offered": false
+    },
+    {
+      "benefitType": "telemedicine",
+      "offered": false
+    },
+    {
+      "benefitType": "hsa",
+      "offered": false
+    },
+    {
+      "benefitType": "hra",
+      "offered": false
+    },
+    {
+      "benefitType": "fsa",
+      "offered": false
+    }
+  ],
+  "planYear": {
+    "start": "2026-01-01",
+    "end": "2026-12-31",
+    "label": "January 1–December 31, 2026"
+  },
+  "employer": {
+    "name": "Northstar Fabrication",
+    "legalName": "Northstar Fabrication Test Company",
+    "address": "2400 Foundry Loop, Boise, ID 83702",
+    "website": "northstar-fabrication.test",
+    "publicProfile": null
+  },
+  "eligibility": {
+    "waitingPeriod": "coverage begins the first day of the month after 30 calendar days of employment",
+    "description": "Regular employees scheduled to work at least 30 hours per week; eligible dependents are spouse, domestic partner, and eligible children through the end of the month in which they turn age 26.",
+    "employeeClasses": [
+      "Regular employees scheduled to work at least 30 hours per week"
+    ]
+  },
+  "outline": {
+    "sections": [
+      {
+        "id": "cover",
+        "title": "Cover",
+        "sourceRefs": [
+          {
+            "fileId": "manual:376ea6e7d7a4ed5c35c8",
+            "fileName": "User answer",
+            "documentType": "manual_answer",
+            "extractionMethod": "manual"
+          },
+          {
+            "fileId": "2d8de8dd1755a21b1043",
+            "fileName": "01_northstar-fabrication_2026_completed-employer-benefits-application_synthetic.pdf",
+            "documentType": "employer_application",
+            "page": 1,
+            "textRange": "Plan year January 1–December 31, 2026",
+            "extractionMethod": "pdf_text"
+          }
+        ]
+      },
+      {
+        "id": "medical",
+        "title": "Medical",
+        "benefitType": "medical",
+        "sourceRefs": [
+          {
+            "fileId": "2d8de8dd1755a21b1043",
+            "fileName": "01_northstar-fabrication_2026_completed-employer-benefits-application_synthetic.pdf",
+            "documentType": "employer_application",
+            "page": 2,
+            "textRange": "Only medical and dental coverage is offered in this test case.",
+            "extractionMethod": "pdf_text"
+          },
+          {
+            "fileId": "2d8de8dd1755a21b1043",
+            "fileName": "01_northstar-fabrication_2026_completed-employer-benefits-application_synthetic.pdf",
+            "documentType": "employer_application",
+            "page": 2,
+            "textRange": "☒ 2026 SimplyBlue Plus Bronze 4",
+            "extractionMethod": "pdf_text"
+          },
+          {
+            "fileId": "9f41923c921f2b6bb470",
+            "fileName": "02_northstar-fabrication_2026_medical-dental-rates-and-contributions_synthetic.xlsx",
+            "documentType": "renewal_spreadsheet",
+            "sheet": "Medical - 26 Pay Periods",
+            "row": 3,
+            "extractionMethod": "spreadsheet"
+          },
+          {
+            "fileId": "2d8de8dd1755a21b1043",
+            "fileName": "01_northstar-fabrication_2026_completed-employer-benefits-application_synthetic.pdf",
+            "documentType": "employer_application",
+            "page": 2,
+            "textRange": "☒ 2026 SimplyBlue Plus Silver 19",
+            "extractionMethod": "pdf_text"
+          },
+          {
+            "fileId": "9f41923c921f2b6bb470",
+            "fileName": "02_northstar-fabrication_2026_medical-dental-rates-and-contributions_synthetic.xlsx",
+            "documentType": "renewal_spreadsheet",
+            "sheet": "Medical - 26 Pay Periods",
+            "row": 7,
+            "extractionMethod": "spreadsheet"
+          },
+          {
+            "fileId": "2d8de8dd1755a21b1043",
+            "fileName": "01_northstar-fabrication_2026_completed-employer-benefits-application_synthetic.pdf",
+            "documentType": "employer_application",
+            "page": 2,
+            "textRange": "☒ 2026 SimplyBlue Plus Gold 6",
+            "extractionMethod": "pdf_text"
+          },
+          {
+            "fileId": "9f41923c921f2b6bb470",
+            "fileName": "02_northstar-fabrication_2026_medical-dental-rates-and-contributions_synthetic.xlsx",
+            "documentType": "renewal_spreadsheet",
+            "sheet": "Medical - 26 Pay Periods",
+            "row": 11,
+            "extractionMethod": "spreadsheet"
+          }
+        ]
+      },
+      {
+        "id": "toc",
+        "title": "Table of contents",
+        "sourceRefs": [
+          {
+            "fileId": "e3f3f9d8186694ac73f8",
+            "fileName": "4_northstar_2026_silver_simplyblue-plus-plan-summary_synthetic.pdf",
+            "documentType": "sbc",
+            "extractionMethod": "pdf_text"
+          }
+        ]
+      },
+      {
+        "id": "welcome",
+        "title": "Welcome",
+        "sourceRefs": [
+          {
+            "fileId": "e3f3f9d8186694ac73f8",
+            "fileName": "4_northstar_2026_silver_simplyblue-plus-plan-summary_synthetic.pdf",
+            "documentType": "sbc",
+            "extractionMethod": "pdf_text"
+          }
+        ]
+      },
+      {
+        "id": "eligibility",
+        "title": "Eligibility",
+        "sourceRefs": [
+          {
+            "fileId": "2d8de8dd1755a21b1043",
+            "fileName": "01_northstar-fabrication_2026_completed-employer-benefits-application_synthetic.pdf",
+            "documentType": "employer_application",
+            "page": 1,
+            "textRange": "Waiting period: coverage begins the first day of the month after 30 calendar days of employment.",
+            "extractionMethod": "pdf_text"
+          }
+        ]
+      },
+      {
+        "id": "enrollment",
+        "title": "How to enroll",
+        "sourceRefs": [
+          {
+            "fileId": "e3f3f9d8186694ac73f8",
+            "fileName": "4_northstar_2026_silver_simplyblue-plus-plan-summary_synthetic.pdf",
+            "documentType": "sbc",
+            "extractionMethod": "pdf_text"
+          }
+        ]
+      },
+      {
+        "id": "dental",
+        "title": "Dental",
+        "benefitType": "dental",
+        "sourceRefs": [
+          {
+            "fileId": "2d8de8dd1755a21b1043",
+            "fileName": "01_northstar-fabrication_2026_completed-employer-benefits-application_synthetic.pdf",
+            "documentType": "employer_application",
+            "page": 2,
+            "textRange": "Only medical and dental coverage is offered in this test case.",
+            "extractionMethod": "pdf_text"
+          },
+          {
+            "fileId": "2d8de8dd1755a21b1043",
+            "fileName": "01_northstar-fabrication_2026_completed-employer-benefits-application_synthetic.pdf",
+            "documentType": "employer_application",
+            "page": 2,
+            "textRange": "☒ 2026 Delta Dental Basic Family PPO Plan I",
+            "extractionMethod": "pdf_text"
+          },
+          {
+            "fileId": "9f41923c921f2b6bb470",
+            "fileName": "02_northstar-fabrication_2026_medical-dental-rates-and-contributions_synthetic.xlsx",
+            "documentType": "renewal_spreadsheet",
+            "sheet": "Dental - 26 Pay Periods",
+            "row": 3,
+            "extractionMethod": "spreadsheet"
+          },
+          {
+            "fileId": "2d8de8dd1755a21b1043",
+            "fileName": "01_northstar-fabrication_2026_completed-employer-benefits-application_synthetic.pdf",
+            "documentType": "employer_application",
+            "page": 2,
+            "textRange": "☒ 2026 Delta Dental Enhanced Family PPO Plan III",
+            "extractionMethod": "pdf_text"
+          },
+          {
+            "fileId": "9f41923c921f2b6bb470",
+            "fileName": "02_northstar-fabrication_2026_medical-dental-rates-and-contributions_synthetic.xlsx",
+            "documentType": "renewal_spreadsheet",
+            "sheet": "Dental - 26 Pay Periods",
+            "row": 7,
+            "extractionMethod": "spreadsheet"
+          }
+        ]
+      },
+      {
+        "id": "contacts",
+        "title": "Contacts",
+        "sourceRefs": [
+          {
+            "fileId": "e3f3f9d8186694ac73f8",
+            "fileName": "4_northstar_2026_silver_simplyblue-plus-plan-summary_synthetic.pdf",
+            "documentType": "sbc",
+            "extractionMethod": "pdf_text"
+          }
+        ]
+      },
+      {
+        "id": "legal",
+        "title": "Legal notices",
+        "sourceRefs": [
+          {
+            "fileId": "e3f3f9d8186694ac73f8",
+            "fileName": "4_northstar_2026_silver_simplyblue-plus-plan-summary_synthetic.pdf",
+            "documentType": "sbc",
+            "extractionMethod": "pdf_text"
+          }
+        ]
+      }
+    ]
+  },
+  "qualityReport": {
+    "passed": true,
+    "issues": [],
+    "pageCount": 12
+  },
+  "events": [
+    {
+      "id": "northstar-medical-dental-2026-synthetic:001",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Uploading files",
+      "status": "complete",
+      "message": "7 file(s) are ready for processing.",
+      "createdAt": "2026-07-21T05:24:11.356Z",
+      "details": {
+        "files": [
+          {
+            "id": "2d8de8dd1755a21b1043",
+            "fileName": "01_northstar-fabrication_2026_completed-employer-benefits-application_synthetic.pdf",
+            "sha256": "eb9e87babe640199cfb1a4ba6caf7fa0e04b431715f59788a7d85ed757d7d752"
+          },
+          {
+            "id": "9f41923c921f2b6bb470",
+            "fileName": "02_northstar-fabrication_2026_medical-dental-rates-and-contributions_synthetic.xlsx",
+            "sha256": "b5cb183005d7d2ac19c7a947e0dd5c6b9c28658c87e03bf034487ebb94686248"
+          },
+          {
+            "id": "68ac32550da5ac390dff",
+            "fileName": "3_northstar_2026_bronze_simplyblue-plus-plan-summary_synthetic.pdf",
+            "sha256": "06f8ca1e28ec6b24c73c35249b2f4790ec06490dde11ae07cd99acdcfef7b126"
+          },
+          {
+            "id": "e3f3f9d8186694ac73f8",
+            "fileName": "4_northstar_2026_silver_simplyblue-plus-plan-summary_synthetic.pdf",
+            "sha256": "3f6a640145c8ead471af979fc3b00ed391bb82fb08b6ab6ade49c6080cbf7f96"
+          },
+          {
+            "id": "f78617f0705639a02be0",
+            "fileName": "5_northstar_2026_gold_simplyblue-plus-plan-summary_synthetic.pdf",
+            "sha256": "7866b0c37f297602704065c5ecf10bb58569400758cd5cefd2a58e4d22cc29b7"
+          },
+          {
+            "id": "002b8b30c06d4c5b4299",
+            "fileName": "6_northstar_2026_delta-dental-basic-plan-summary_synthetic.pdf",
+            "sha256": "b8faa7072024152360d040b31069edfaa7a73628c6c746e8e24321fe209c2a4e"
+          },
+          {
+            "id": "1c608efaea639d09f438",
+            "fileName": "7_northstar_2026_delta-dental-enhanced-plan-summary_synthetic.pdf",
+            "sha256": "41a8fb64db60e91df42ed37576518f77a2a2b88c79c2a24d2e46f86209cdb5bf"
+          }
+        ]
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:002",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Classifying documents",
+      "status": "started",
+      "message": "Classifying every uploaded file.",
+      "createdAt": "2026-07-21T05:24:11.356Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:003",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Classifying documents",
+      "status": "complete",
+      "message": "Document classification is complete.",
+      "createdAt": "2026-07-21T05:24:15.009Z",
+      "details": {
+        "documents": [
+          {
+            "fileId": "2d8de8dd1755a21b1043",
+            "documentType": "employer_application",
+            "confidence": 0.97
+          },
+          {
+            "fileId": "9f41923c921f2b6bb470",
+            "documentType": "carrier_rate_sheet",
+            "confidence": 0.93
+          },
+          {
+            "fileId": "68ac32550da5ac390dff",
+            "documentType": "sbc",
+            "confidence": 0.96
+          },
+          {
+            "fileId": "e3f3f9d8186694ac73f8",
+            "documentType": "sbc",
+            "confidence": 0.96
+          },
+          {
+            "fileId": "f78617f0705639a02be0",
+            "documentType": "sbc",
+            "confidence": 0.96
+          },
+          {
+            "fileId": "002b8b30c06d4c5b4299",
+            "documentType": "plan_summary",
+            "confidence": 0.98
+          },
+          {
+            "fileId": "1c608efaea639d09f438",
+            "documentType": "plan_summary",
+            "confidence": 0.98
+          }
+        ]
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:004",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Writing booklet content",
+      "status": "started",
+      "message": "Streaming each source-backed HTML section as soon as its dependencies are ready.",
+      "createdAt": "2026-07-21T05:24:15.009Z",
+      "details": {
+        "incremental": true
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:005",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Extracting employer setup",
+      "status": "started",
+      "message": "Extracting employer setup",
+      "createdAt": "2026-07-21T05:24:15.009Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:006",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Reading carrier rate sheets",
+      "status": "started",
+      "message": "Reading rate and contribution workbooks.",
+      "createdAt": "2026-07-21T05:24:15.010Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:007",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Parsing plan documents",
+      "status": "started",
+      "message": "Parsing current plan documents.",
+      "createdAt": "2026-07-21T05:24:15.010Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:008",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Reading prior booklets/guides",
+      "status": "started",
+      "message": "Reading prior booklets/guides",
+      "createdAt": "2026-07-21T05:24:15.010Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:009",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Reading carrier rate sheets",
+      "status": "progress",
+      "message": "Found 5 plan-rate row(s) in 02_northstar-fabrication_2026_medical-dental-rates-and-contributions_synthetic.xlsx.",
+      "createdAt": "2026-07-21T05:24:15.023Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:010",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Reading prior booklets/guides",
+      "status": "complete",
+      "message": "0 document(s) extracted.",
+      "createdAt": "2026-07-21T05:24:15.026Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:011",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Reading carrier rate sheets",
+      "status": "complete",
+      "message": "5 normalized plan-rate row(s) found.",
+      "createdAt": "2026-07-21T05:24:15.027Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:012",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Parsing plan documents",
+      "status": "progress",
+      "message": "Identified benefit coverage in 6_northstar_2026_delta-dental-basic-plan-summary_synthetic.pdf.",
+      "createdAt": "2026-07-21T05:24:32.575Z",
+      "details": {
+        "benefitTypes": [
+          "dental"
+        ]
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:013",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Parsing plan documents",
+      "status": "progress",
+      "message": "Identified benefit coverage in 7_northstar_2026_delta-dental-enhanced-plan-summary_synthetic.pdf.",
+      "createdAt": "2026-07-21T05:24:33.804Z",
+      "details": {
+        "benefitTypes": [
+          "dental"
+        ]
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:014",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Parsing plan documents",
+      "status": "progress",
+      "message": "Identified benefit coverage in 4_northstar_2026_silver_simplyblue-plus-plan-summary_synthetic.pdf.",
+      "createdAt": "2026-07-21T05:24:36.564Z",
+      "details": {
+        "benefitTypes": [
+          "dental",
+          "vision",
+          "hsa",
+          "medical"
+        ]
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:015",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Parsing plan documents",
+      "status": "progress",
+      "message": "Identified benefit coverage in 5_northstar_2026_gold_simplyblue-plus-plan-summary_synthetic.pdf.",
+      "createdAt": "2026-07-21T05:24:36.903Z",
+      "details": {
+        "benefitTypes": [
+          "dental",
+          "vision",
+          "hsa",
+          "medical"
+        ]
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:016",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Extracting employer setup",
+      "status": "progress",
+      "message": "Extracted 01_northstar-fabrication_2026_completed-employer-benefits-application_synthetic.pdf.",
+      "createdAt": "2026-07-21T05:24:37.223Z",
+      "details": {
+        "fileId": "2d8de8dd1755a21b1043",
+        "documentType": "employer_application"
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:017",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Extracting employer setup",
+      "status": "complete",
+      "message": "1 document(s) extracted.",
+      "createdAt": "2026-07-21T05:24:37.223Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:018",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Parsing plan documents",
+      "status": "progress",
+      "message": "Identified benefit coverage in 3_northstar_2026_bronze_simplyblue-plus-plan-summary_synthetic.pdf.",
+      "createdAt": "2026-07-21T05:24:38.160Z",
+      "details": {
+        "benefitTypes": [
+          "dental",
+          "vision",
+          "hsa",
+          "medical"
+        ]
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:019",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Parsing plan documents",
+      "status": "progress",
+      "message": "Parsed medical plan details from 3_northstar_2026_bronze_simplyblue-plus-plan-summary_synthetic.pdf.",
+      "createdAt": "2026-07-21T05:24:43.214Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:020",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Parsing plan documents",
+      "status": "progress",
+      "message": "Parsed medical plan details from 4_northstar_2026_silver_simplyblue-plus-plan-summary_synthetic.pdf.",
+      "createdAt": "2026-07-21T05:24:48.059Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:021",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Parsing plan documents",
+      "status": "progress",
+      "message": "Parsed medical plan details from 5_northstar_2026_gold_simplyblue-plus-plan-summary_synthetic.pdf.",
+      "createdAt": "2026-07-21T05:24:50.163Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:022",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Parsing plan documents",
+      "status": "complete",
+      "message": "5 plan document(s) inventoried; 3 medical plan(s) parsed in detail.",
+      "createdAt": "2026-07-21T05:24:50.163Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:023",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Matching rates to plans",
+      "status": "started",
+      "message": "Matching selected plans to normalized rate rows.",
+      "createdAt": "2026-07-21T05:24:50.176Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:024",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Matching rates to plans",
+      "status": "complete",
+      "message": "5 of 5 selected plan(s) matched to rates.",
+      "createdAt": "2026-07-21T05:24:50.181Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:025",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Detecting offered benefits",
+      "status": "started",
+      "message": "Detecting offered benefit lines.",
+      "createdAt": "2026-07-21T05:24:50.181Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:026",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Detecting offered benefits",
+      "status": "complete",
+      "message": "2 offered benefit line(s) detected.",
+      "createdAt": "2026-07-21T05:24:50.181Z",
+      "details": {
+        "benefits": [
+          "medical",
+          "dental"
+        ]
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:027",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Resolving conflicts",
+      "status": "started",
+      "message": "Applying field-specific source priority and checking blockers.",
+      "createdAt": "2026-07-21T05:24:50.202Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:028",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Resolving conflicts",
+      "status": "complete",
+      "message": "Conflicts are resolved and no blocking questions remain.",
+      "createdAt": "2026-07-21T05:24:50.202Z",
+      "details": {
+        "questionIds": []
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:029",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Building booklet outline",
+      "status": "started",
+      "message": "Building a source-backed section outline.",
+      "createdAt": "2026-07-21T05:24:50.202Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:030",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Building booklet outline",
+      "status": "complete",
+      "message": "9 booklet section(s) selected.",
+      "createdAt": "2026-07-21T05:24:50.203Z",
+      "details": {
+        "sections": [
+          "cover",
+          "medical",
+          "toc",
+          "welcome",
+          "eligibility",
+          "enrollment",
+          "dental",
+          "contacts",
+          "legal"
+        ]
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:031",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Writing booklet content",
+      "status": "progress",
+      "message": "Writing concise employee-facing content from the normalized package.",
+      "createdAt": "2026-07-21T05:24:50.205Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:032",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Writing booklet content",
+      "status": "progress",
+      "message": "Rendered source-backed HTML for Cover.",
+      "createdAt": "2026-07-21T05:24:50.255Z",
+      "details": {
+        "artifactId": "cover",
+        "sectionId": "cover",
+        "pageIndex": 0,
+        "draft": true
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:033",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Writing booklet content",
+      "status": "progress",
+      "message": "Rendered source-backed HTML for Table of contents.",
+      "createdAt": "2026-07-21T05:24:50.255Z",
+      "details": {
+        "artifactId": "toc",
+        "sectionId": "toc",
+        "pageIndex": 1,
+        "draft": true
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:034",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Writing booklet content",
+      "status": "progress",
+      "message": "Rendered source-backed HTML for Welcome.",
+      "createdAt": "2026-07-21T05:24:50.255Z",
+      "details": {
+        "artifactId": "welcome",
+        "sectionId": "welcome",
+        "pageIndex": 2,
+        "draft": true
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:035",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Writing booklet content",
+      "status": "progress",
+      "message": "Rendered source-backed HTML for Open enrollment.",
+      "createdAt": "2026-07-21T05:24:50.255Z",
+      "details": {
+        "artifactId": "open-enrollment",
+        "sectionId": "enrollment",
+        "pageIndex": 3,
+        "draft": true
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:036",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Writing booklet content",
+      "status": "progress",
+      "message": "Rendered source-backed HTML for Eligibility.",
+      "createdAt": "2026-07-21T05:24:50.255Z",
+      "details": {
+        "artifactId": "eligibility",
+        "sectionId": "eligibility",
+        "pageIndex": 4,
+        "draft": true
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:037",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Writing booklet content",
+      "status": "progress",
+      "message": "Rendered source-backed HTML for Medical - 2026 SimplyBlue Plus Bronze 4.",
+      "createdAt": "2026-07-21T05:24:50.255Z",
+      "details": {
+        "artifactId": "medical-1",
+        "sectionId": "medical",
+        "pageIndex": 5,
+        "draft": true
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:038",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Writing booklet content",
+      "status": "progress",
+      "message": "Rendered source-backed HTML for Medical - 2026 SimplyBlue Plus Silver 19.",
+      "createdAt": "2026-07-21T05:24:50.255Z",
+      "details": {
+        "artifactId": "medical-2",
+        "sectionId": "medical",
+        "pageIndex": 6,
+        "draft": true
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:039",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Writing booklet content",
+      "status": "progress",
+      "message": "Rendered source-backed HTML for Medical - 2026 SimplyBlue Plus Gold 6.",
+      "createdAt": "2026-07-21T05:24:50.255Z",
+      "details": {
+        "artifactId": "medical-3",
+        "sectionId": "medical",
+        "pageIndex": 7,
+        "draft": true
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:040",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Writing booklet content",
+      "status": "progress",
+      "message": "Rendered source-backed HTML for Dental - 2026 Delta Dental Basic Family PPO Plan I.",
+      "createdAt": "2026-07-21T05:24:50.255Z",
+      "details": {
+        "artifactId": "dental-1",
+        "sectionId": "dental",
+        "pageIndex": 8,
+        "draft": true
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:041",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Writing booklet content",
+      "status": "progress",
+      "message": "Rendered source-backed HTML for Dental - 2026 Delta Dental Enhanced Family PPO Plan III.",
+      "createdAt": "2026-07-21T05:24:50.255Z",
+      "details": {
+        "artifactId": "dental-2",
+        "sectionId": "dental",
+        "pageIndex": 9,
+        "draft": true
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:042",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Writing booklet content",
+      "status": "progress",
+      "message": "Rendered source-backed HTML for Contact list.",
+      "createdAt": "2026-07-21T05:24:50.255Z",
+      "details": {
+        "artifactId": "contacts",
+        "sectionId": "contacts",
+        "pageIndex": 10,
+        "draft": true
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:043",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Writing booklet content",
+      "status": "progress",
+      "message": "Rendered source-backed HTML for Legal disclaimer.",
+      "createdAt": "2026-07-21T05:24:50.255Z",
+      "details": {
+        "artifactId": "legal",
+        "sectionId": "legal",
+        "pageIndex": 11,
+        "draft": true
+      }
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:044",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Writing booklet content",
+      "status": "complete",
+      "message": "Booklet HTML is ready.",
+      "createdAt": "2026-07-21T05:24:50.259Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:045",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Running quality checks",
+      "status": "started",
+      "message": "Checking sources, sections, costs, and placeholders before rendering.",
+      "createdAt": "2026-07-21T05:24:50.259Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:046",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Running quality checks",
+      "status": "complete",
+      "message": "Pre-render quality checks passed.",
+      "createdAt": "2026-07-21T05:24:50.261Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:047",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Rendering PDF",
+      "status": "started",
+      "message": "Rendering the final PDF.",
+      "createdAt": "2026-07-21T05:24:50.261Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:048",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Rendering PDF",
+      "status": "complete",
+      "message": "Rendered 405715 PDF bytes.",
+      "createdAt": "2026-07-21T05:24:56.819Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:049",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Running quality checks",
+      "status": "started",
+      "message": "Validating the rendered PDF.",
+      "createdAt": "2026-07-21T05:24:56.820Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:050",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Running quality checks",
+      "status": "complete",
+      "message": "Rendered PDF passed quality checks (12 pages).",
+      "createdAt": "2026-07-21T05:24:56.871Z"
+    },
+    {
+      "id": "northstar-medical-dental-2026-synthetic:051",
+      "runId": "northstar-medical-dental-2026-synthetic",
+      "stage": "Complete",
+      "status": "complete",
+      "message": "Benefits booklet generation is complete.",
+      "createdAt": "2026-07-21T05:24:56.871Z",
+      "details": {
+        "confidence": 0.9889583333333335,
+        "pageCount": 12
+      }
+    }
+  ]
+}

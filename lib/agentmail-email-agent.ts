@@ -119,7 +119,7 @@ sender is asking the agent to create, generate, revise, or continue an employee 
 benefits guide, or enrollment packet. Questions about benefits, general document analysis, and
 casual mentions of booklets are general. Attachment names are context, not proof of intent.`;
 
-const BOOKLET_INTAKE_QUESTIONS: BlockerQuestion[] = [
+const BOOKLET_INITIAL_ANSWER_HINTS: BlockerQuestion[] = [
   {
     id: "email-intake-employer",
     fieldPath: "employer.name",
@@ -162,6 +162,16 @@ const BOOKLET_INTAKE_QUESTIONS: BlockerQuestion[] = [
     sourceRefs: [],
     blocking: true,
     expectedAnswerKind: "list_or_schedule",
+  },
+  {
+    id: "email-intake-hsa-account",
+    fieldPath: "accounts.hsa",
+    question:
+      "What HSA account administrator or custodian and employer-specific HSA details should be used?",
+    reason:
+      "HSA-qualified medical coverage is a plan-design fact; selected employer HSA programs still need account administrator and employer-specific source details.",
+    sourceRefs: [],
+    blocking: true,
   },
 ];
 
@@ -249,6 +259,19 @@ export function formatBookletQuestions(
     "Reply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.",
   );
   return lines.join("\n");
+}
+
+export function bookletAnswerExtractionQuestions(
+  activeQuestions: BlockerQuestion[] = [],
+) {
+  return [
+    ...new Map(
+      [...BOOKLET_INITIAL_ANSWER_HINTS, ...activeQuestions].map((question) => [
+        question.fieldPath,
+        question,
+      ]),
+    ).values(),
+  ];
 }
 
 function agentMailClient() {
@@ -408,11 +431,16 @@ async function answersFromFollowup({
   const questionContract = questions.map((question) => ({
     fieldPath: question.fieldPath,
     question: question.question,
+    reason: question.reason,
     options: question.options || [],
     expectedAnswerKind: question.expectedAnswerKind || "text",
     specialShape:
       question.fieldPath === "plans.selected"
         ? "JSON array of {planName, benefitType, carrier?} objects"
+        : question.fieldPath.startsWith("accounts.")
+          ? "JSON object {administrator: string, custodian?: string, employerContribution?: string, eligibility?: string, notes?: string}"
+        : question.fieldPath.startsWith("offeredBenefits.")
+          ? "JSON boolean"
         : question.fieldPath.startsWith("contributions.")
           ? "JSON object {mode: percent|flat_monthly|flat_per_pay, value: number, payPeriods?: number}"
           : undefined,
@@ -424,7 +452,7 @@ async function answersFromFollowup({
       {
         role: "system",
         content:
-          "Extract only answers explicitly stated in the latest email. Map them only to the supplied fieldPath values. Never guess. answerJson must be valid JSON representing the answer. Omit unanswered questions. Attachment names do not prove their contents.",
+          "Extract only answers explicitly stated in the latest email. Map them only to the supplied fieldPath values. Never guess, infer an absent benefit from silence, or treat attachment names as proof of content. Normalize dates to YYYY-MM-DD when possible. Use true or false JSON booleans for yes/no fields. Omit unanswered questions. answerJson must be valid JSON representing the answer.",
       },
       {
         role: "user",
@@ -528,13 +556,9 @@ async function processBookletMessage({
   const previousRun = record.bookletRunId
     ? await getGenerationRun(record.bookletRunId)
     : null;
-  const answerQuestions = [
-    ...new Map(
-      [...BOOKLET_INTAKE_QUESTIONS, ...(previousRun?.questions || [])].map(
-        (question) => [question.fieldPath, question],
-      ),
-    ).values(),
-  ];
+  const answerQuestions = bookletAnswerExtractionQuestions(
+    previousRun?.questions || [],
+  );
   const answers = await answersFromFollowup({
     subject: message.subject || "",
     body,

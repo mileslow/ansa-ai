@@ -94,14 +94,23 @@ export function benefitsPackageToLegacyCompany(
     benefitsPackage.plans
       .filter((plan) => plan.carrier)
       .map((plan) => [
-        plan.benefitType === "medical" || plan.benefitType === "dental"
-          ? "medicalDental"
-          : ["life", "std", "ltd"].includes(plan.benefitType)
+        ["life", "std", "ltd"].includes(plan.benefitType)
             ? "lifeLtd"
             : plan.benefitType,
         { name: plan.carrier },
       ]),
   );
+  // Older company-shaped fixtures exposed one shared medical/dental carrier.
+  // Preserve that fallback while keeping distinct carriers for real packages.
+  const legacyMedicalDentalCarrier =
+    benefitsPackage.plans.find(
+      (plan) => plan.benefitType === "medical" && plan.carrier,
+    ) ||
+    benefitsPackage.plans.find(
+      (plan) => plan.benefitType === "dental" && plan.carrier,
+    );
+  if (legacyMedicalDentalCarrier)
+    carriers.medicalDental = { name: legacyMedicalDentalCarrier.carrier };
   if (offered.has("eap") && !carriers.eap) carriers.eap = { offered: true };
   const accountTypes = [
     ...new Set([

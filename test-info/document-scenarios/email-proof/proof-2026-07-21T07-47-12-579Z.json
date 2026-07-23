@@ -1,0 +1,497 @@
+{
+  "startedAt": "2026-07-21T07:47:12.579Z",
+  "completedAt": "2026-07-21T08:06:42.826Z",
+  "agentInbox": "miles-2501@agentmail.to",
+  "senderInbox": "ansa-live-test-2501@agentmail.to",
+  "scenarioCount": 5,
+  "proofs": [
+    {
+      "scenarioId": "00_complete-medical-dental",
+      "title": "Complete medical and dental package",
+      "sent": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f83a4a9d4-8c7efde7-653c-4523-bdc6-93b9db997930-000000@email.amazonses.com>",
+        "threadId": "e654b1e8-35d8-4cc6-9a8e-6cf27372846e",
+        "from": "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>",
+        "to": [
+          "miles-2501@agentmail.to"
+        ],
+        "subject": "Ansa document scenario 00_complete-medical-dental 00_complete-medical-dental-1784620032580",
+        "timestamp": "2026-07-21T07:47:14.072Z",
+        "text": "Authorized Ansa live email test 00_complete-medical-dental-1784620032580.\n\nPlease generate a source-backed employee benefits booklet from the attached materials.\nUse only the attached source documents and explicit facts in this thread.\nIf any required document, selected plan, rate row, or employer confirmation is missing, ask me for exactly that information instead of guessing.\n\nScenario: Complete medical and dental package.\n\n--\nSent via AgentMail",
+        "attachments": [
+          {
+            "filename": "00_completed-employer-application.pdf",
+            "contentType": "application/pdf",
+            "size": 1999
+          },
+          {
+            "filename": "01_rochester-your-ppo-option-sbc.pdf",
+            "contentType": "application/pdf",
+            "size": 401946
+          },
+          {
+            "filename": "02_delta-dental-basic-family-ppo-plan-i-policy.pdf",
+            "contentType": "application/pdf",
+            "size": 1572293
+          },
+          {
+            "filename": "03_rates-and-contributions.xlsx",
+            "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "size": 17138
+          }
+        ]
+      },
+      "localProcessor": {
+        "status": "complete",
+        "intent": "benefits_booklet"
+      },
+      "reply": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f83a6ce9c-99c428ff-30a5-45f2-a3bf-24ddaf9cedd0-000000@email.amazonses.com>",
+        "threadId": "e654b1e8-35d8-4cc6-9a8e-6cf27372846e",
+        "from": "AgentMail <miles-2501@agentmail.to>",
+        "to": [
+          "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>"
+        ],
+        "subject": "Re: Ansa document scenario 00_complete-medical-dental 00_complete-medical-dental-1784620032580",
+        "timestamp": "2026-07-21T07:49:35.000Z",
+        "text": "Your source-backed benefits booklet is ready. I’ve attached the finished PDF. If you want a revision, reply in this thread with the change or the supporting source document.\n\n--\nSent via AgentMail",
+        "attachments": [
+          {
+            "filename": "scenario-complete-manufacturing-llc-benefits-booklet.pdf",
+            "contentType": "application/pdf",
+            "size": 327710
+          }
+        ]
+      },
+      "checks": [
+        {
+          "name": "completed booklet PDF attached",
+          "passed": true,
+          "details": "scenario-complete-manufacturing-llc-benefits-booklet.pdf"
+        }
+      ]
+    },
+    {
+      "scenarioId": "01_hsa-selected-no-hsa-form",
+      "title": "HSA selected in application but no HSA form attached",
+      "sent": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f83a6e9dc-6ccb5a35-91e1-43af-a527-a949e667904d-000000@email.amazonses.com>",
+        "threadId": "7f91dc48-0509-4f4c-ba04-3037255ef00f",
+        "from": "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>",
+        "to": [
+          "miles-2501@agentmail.to"
+        ],
+        "subject": "Ansa document scenario 01_hsa-selected-no-hsa-form 01_hsa-selected-no-hsa-form-1784620181268",
+        "timestamp": "2026-07-21T07:49:41.884Z",
+        "text": "Authorized Ansa live email test 01_hsa-selected-no-hsa-form-1784620181268.\n\nPlease generate a source-backed employee benefits booklet from the attached materials.\nUse only the attached source documents and explicit facts in this thread.\nIf any required document, selected plan, rate row, or employer confirmation is missing, ask me for exactly that information instead of guessing.\n\nScenario: HSA selected in application but no HSA form attached.\n\n--\nSent via AgentMail",
+        "attachments": [
+          {
+            "filename": "00_completed-employer-application.pdf",
+            "contentType": "application/pdf",
+            "size": 2096
+          },
+          {
+            "filename": "01_rochester-your-hsa-eligible-option-sbc.pdf",
+            "contentType": "application/pdf",
+            "size": 443972
+          },
+          {
+            "filename": "02_rates-and-contributions.xlsx",
+            "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "size": 16883
+          }
+        ]
+      },
+      "localProcessor": {
+        "status": "complete",
+        "intent": "benefits_booklet"
+      },
+      "reply": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f83a8c0b2-783e0521-d4bd-43e7-bd59-edcb5f840740-000000@email.amazonses.com>",
+        "threadId": "7f91dc48-0509-4f4c-ba04-3037255ef00f",
+        "from": "AgentMail <miles-2501@agentmail.to>",
+        "to": [
+          "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>"
+        ],
+        "subject": "Re: Ansa document scenario 01_hsa-selected-no-hsa-form 01_hsa-selected-no-hsa-form-1784620181268",
+        "timestamp": "2026-07-21T07:51:42.000Z",
+        "text": "I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:\n\n1. HSA appears to be selected, but no HSA source document or administrator details were found. Please attach the HSA source materials, or confirm that no standalone HSA benefit should be included.\n   Options: yes, no\n\nReply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.\n\n--\nSent via AgentMail",
+        "attachments": []
+      },
+      "checks": [
+        {
+          "name": "asks for HSA account/source confirmation",
+          "passed": true,
+          "details": "I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:\n\n1. HSA appears to be selected, but no HSA source document or administrator details were found. Please attach the HSA source materials, or confirm that no standalone HSA benefit should be included.\n   Options: yes, no\n\nReply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.\n\n--\nSent vi"
+        }
+      ],
+      "followup": {
+        "sent": {
+          "inboxId": "ansa-live-test-2501@agentmail.to",
+          "messageId": "<0100019f83a8d991-7945b986-7d40-44b4-bdcf-294206a1108b-000000@email.amazonses.com>",
+          "threadId": "7f91dc48-0509-4f4c-ba04-3037255ef00f",
+          "from": "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>",
+          "to": [
+            "AgentMail <miles-2501@agentmail.to>"
+          ],
+          "subject": "Re: Ansa document scenario 01_hsa-selected-no-hsa-form 01_hsa-selected-no-hsa-form-1784620181268",
+          "timestamp": "2026-07-21T07:51:48.784Z",
+          "text": "Authorized Ansa live email test follow-up for 01_hsa-selected-no-hsa-form-1784620181268.\n\nReply: No standalone HSA benefit should be included. Keep the HSA-compatible medical plan, but do not add a separate HSA account section.\n\n--\nSent via AgentMail",
+          "attachments": []
+        },
+        "localProcessor": {
+          "status": "complete",
+          "intent": "benefits_booklet"
+        },
+        "reply": {
+          "inboxId": "ansa-live-test-2501@agentmail.to",
+          "messageId": "<0100019f83aab81d-3b127583-3f14-4cea-a6b6-30d925049e7f-000000@email.amazonses.com>",
+          "threadId": "7f91dc48-0509-4f4c-ba04-3037255ef00f",
+          "from": "AgentMail <miles-2501@agentmail.to>",
+          "to": [
+            "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>"
+          ],
+          "subject": "Re: Ansa document scenario 01_hsa-selected-no-hsa-form 01_hsa-selected-no-hsa-form-1784620181268",
+          "timestamp": "2026-07-21T07:53:51.000Z",
+          "text": "Your source-backed benefits booklet is ready. I’ve attached the finished PDF. If you want a revision, reply in this thread with the change or the supporting source document.\n\n--\nSent via AgentMail",
+          "attachments": [
+            {
+              "filename": "scenario-hsa-missing-llc-benefits-booklet.pdf",
+              "contentType": "application/pdf",
+              "size": 306827
+            }
+          ]
+        },
+        "checks": [
+          {
+            "name": "generates booklet PDF after resolving follow-up",
+            "passed": true,
+            "details": "scenario-hsa-missing-llc-benefits-booklet.pdf"
+          }
+        ]
+      }
+    },
+    {
+      "scenarioId": "02_extra-vision-plan-not-in-application",
+      "title": "Extra vision plan file not selected in application",
+      "sent": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f83aae86b-2760b4a7-7e25-4b09-92f7-2e71aaa290e2-000000@email.amazonses.com>",
+        "threadId": "6f6ce9c9-bc02-4cf9-b8bd-38f371f89fdc",
+        "from": "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>",
+        "to": [
+          "miles-2501@agentmail.to"
+        ],
+        "subject": "Ansa document scenario 02_extra-vision-plan-not-in-application 02_extra-vision-plan-not-in-application-1784620438210",
+        "timestamp": "2026-07-21T07:54:03.248Z",
+        "text": "Authorized Ansa live email test 02_extra-vision-plan-not-in-application-1784620438210.\n\nPlease generate a source-backed employee benefits booklet from the attached materials.\nUse only the attached source documents and explicit facts in this thread.\nIf any required document, selected plan, rate row, or employer confirmation is missing, ask me for exactly that information instead of guessing.\n\nScenario: Extra vision plan file not selected in application.\n\n--\nSent via AgentMail",
+        "attachments": [
+          {
+            "filename": "00_completed-employer-application.pdf",
+            "contentType": "application/pdf",
+            "size": 1888
+          },
+          {
+            "filename": "01_kaiser-silver-70-hmo-2500-55-pcp.pdf",
+            "contentType": "application/pdf",
+            "size": 3389943
+          },
+          {
+            "filename": "02_unselected-eyemed-bright-bold-healthy-options-summary.pdf",
+            "contentType": "application/pdf",
+            "size": 124768
+          },
+          {
+            "filename": "03_rates-and-contributions.xlsx",
+            "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "size": 16862
+          }
+        ]
+      },
+      "localProcessor": {
+        "status": "complete",
+        "intent": "benefits_booklet"
+      },
+      "reply": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f83ad22fa-f97f477b-c271-443f-bbc2-515bc2563174-000000@email.amazonses.com>",
+        "threadId": "6f6ce9c9-bc02-4cf9-b8bd-38f371f89fdc",
+        "from": "AgentMail <miles-2501@agentmail.to>",
+        "to": [
+          "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>"
+        ],
+        "subject": "Re: Ansa document scenario 02_extra-vision-plan-not-in-application 02_extra-vision-plan-not-in-application-1784620438210",
+        "timestamp": "2026-07-21T07:56:29.000Z",
+        "text": "I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:\n\n1. You included VISION source material, but the employer application or instructions do not say that VISION is offered. Should this benefit be included in the booklet?\n   Options: yes, no\n2. Which value should be used for planYear.start?\n   Options: 2026-01-01, 2025-01-01\n\nReply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.\n\n--\nSent via AgentMail",
+        "attachments": []
+      },
+      "checks": [
+        {
+          "name": "asks whether vision should be included",
+          "passed": true,
+          "details": "I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:\n\n1. You included VISION source material, but the employer application or instructions do not say that VISION is offered. Should this benefit be included in the booklet?\n   Options: yes, no\n2. Which value should be used for planYear.start?\n   Options: 2026-01-01, 2025-01-01\n\nReply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use "
+        }
+      ],
+      "followup": {
+        "sent": {
+          "inboxId": "ansa-live-test-2501@agentmail.to",
+          "messageId": "<0100019f83ad3cf4-ea6add15-53b9-4d3f-bdb5-4c52a7c93acf-000000@email.amazonses.com>",
+          "threadId": "6f6ce9c9-bc02-4cf9-b8bd-38f371f89fdc",
+          "from": "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>",
+          "to": [
+            "AgentMail <miles-2501@agentmail.to>"
+          ],
+          "subject": "Re: Ansa document scenario 02_extra-vision-plan-not-in-application 02_extra-vision-plan-not-in-application-1784620438210",
+          "timestamp": "2026-07-21T07:56:36.368Z",
+          "text": "Authorized Ansa live email test follow-up for 02_extra-vision-plan-not-in-application-1784620438210.\n\nReply: No, do not include the vision benefit. The EyeMed file was attached accidentally and the employer only offers medical.\n\n--\nSent via AgentMail",
+          "attachments": []
+        },
+        "localProcessor": {
+          "status": "complete",
+          "intent": "benefits_booklet"
+        },
+        "reply": {
+          "inboxId": "ansa-live-test-2501@agentmail.to",
+          "messageId": "<0100019f83ad1eab-6ad84564-8abb-450e-92ea-80a07d9fdcc7-000000@email.amazonses.com>",
+          "threadId": "6f6ce9c9-bc02-4cf9-b8bd-38f371f89fdc",
+          "from": "AgentMail <miles-2501@agentmail.to>",
+          "to": [
+            "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>"
+          ],
+          "subject": "Re: Ansa document scenario 02_extra-vision-plan-not-in-application 02_extra-vision-plan-not-in-application-1784620438210",
+          "timestamp": "2026-07-21T07:56:28.000Z",
+          "text": "Your source-backed benefits booklet is ready. I’ve attached the finished PDF. If you want a revision, reply in this thread with the change or the supporting source document.\n\n--\nSent via AgentMail",
+          "attachments": [
+            {
+              "filename": "scenario-extra-vision-llc-benefits-booklet.pdf",
+              "contentType": "application/pdf",
+              "size": 95222
+            }
+          ]
+        },
+        "checks": [
+          {
+            "name": "generates booklet PDF after resolving follow-up",
+            "passed": true,
+            "details": "scenario-extra-vision-llc-benefits-booklet.pdf"
+          }
+        ]
+      }
+    },
+    {
+      "scenarioId": "03_application-only-progressive-intake",
+      "title": "Application only progressive intake",
+      "sent": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f83b0393e-300566d5-2ce3-4f33-9ce8-ba1c139cdf15-000000@email.amazonses.com>",
+        "threadId": "1ef1303f-019f-4426-b531-62642a3e691c",
+        "from": "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>",
+        "to": [
+          "miles-2501@agentmail.to"
+        ],
+        "subject": "Ansa document scenario 03_application-only-progressive-intake 03_application-only-progressive-intake-1784620791933",
+        "timestamp": "2026-07-21T07:59:52.071Z",
+        "text": "Authorized Ansa live email test 03_application-only-progressive-intake-1784620791933.\n\nPlease generate a source-backed employee benefits booklet from the attached materials.\nUse only the attached source documents and explicit facts in this thread.\nIf any required document, selected plan, rate row, or employer confirmation is missing, ask me for exactly that information instead of guessing.\n\nScenario: Application only progressive intake.\n\n--\nSent via AgentMail",
+        "attachments": [
+          {
+            "filename": "00_completed-employer-application.pdf",
+            "contentType": "application/pdf",
+            "size": 1904
+          }
+        ]
+      },
+      "localProcessor": {
+        "status": "complete",
+        "intent": "benefits_booklet"
+      },
+      "reply": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f83b09c9b-872ac08b-5ecc-4e22-9582-10059c75344b-000000@email.amazonses.com>",
+        "threadId": "1ef1303f-019f-4426-b531-62642a3e691c",
+        "from": "AgentMail <miles-2501@agentmail.to>",
+        "to": [
+          "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>"
+        ],
+        "subject": "Re: Ansa document scenario 03_application-only-progressive-intake 03_application-only-progressive-intake-1784620791933",
+        "timestamp": "2026-07-21T08:00:17.000Z",
+        "text": "I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:\n\n1. Which current plans should be included in this booklet?\n\nReply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.\n\n--\nSent via AgentMail",
+        "attachments": []
+      },
+      "checks": [
+        {
+          "name": "asks for selected current plans",
+          "passed": true,
+          "details": "I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:\n\n1. Which current plans should be included in this booklet?\n\nReply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.\n\n--\nSent via AgentMail"
+        }
+      ],
+      "followup": {
+        "sent": {
+          "inboxId": "ansa-live-test-2501@agentmail.to",
+          "messageId": "<0100019f83b0b043-23ce0d87-917e-43b9-a9b8-271a57cb0e5a-000000@email.amazonses.com>",
+          "threadId": "1ef1303f-019f-4426-b531-62642a3e691c",
+          "from": "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>",
+          "to": [
+            "AgentMail <miles-2501@agentmail.to>"
+          ],
+          "subject": "Re: Ansa document scenario 03_application-only-progressive-intake 03_application-only-progressive-intake-1784620791933",
+          "timestamp": "2026-07-21T08:00:22.380Z",
+          "text": "Authorized Ansa live email test follow-up for 03_application-only-progressive-intake-1784620791933.\n\nReply with the selected current plan: Medical: Healthfirst Essential Plan 2 - Healthfirst.\nAttach the plan document and rates from this folder so the agent can continue the booklet intake.\n\n--\nSent via AgentMail",
+          "attachments": [
+            {
+              "filename": "01_healthfirst-essential-plan-2.pdf",
+              "contentType": "application/pdf",
+              "size": 571210
+            },
+            {
+              "filename": "02_rates-and-contributions.xlsx",
+              "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              "size": 16845
+            }
+          ]
+        },
+        "localProcessor": {
+          "status": "complete",
+          "intent": "benefits_booklet"
+        },
+        "reply": {
+          "inboxId": "ansa-live-test-2501@agentmail.to",
+          "messageId": "<0100019f83b26143-16be04d1-71ba-49da-a1aa-351f56f00fe8-000000@email.amazonses.com>",
+          "threadId": "1ef1303f-019f-4426-b531-62642a3e691c",
+          "from": "AgentMail <miles-2501@agentmail.to>",
+          "to": [
+            "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>"
+          ],
+          "subject": "Re: Ansa document scenario 03_application-only-progressive-intake 03_application-only-progressive-intake-1784620791933",
+          "timestamp": "2026-07-21T08:02:13.000Z",
+          "text": "Your source-backed benefits booklet is ready. I’ve attached the finished PDF. If you want a revision, reply in this thread with the change or the supporting source document.\n\n--\nSent via AgentMail",
+          "attachments": [
+            {
+              "filename": "scenario-application-only-llc-benefits-booklet.pdf",
+              "contentType": "application/pdf",
+              "size": 94736
+            }
+          ]
+        },
+        "checks": [
+          {
+            "name": "generates booklet PDF after resolving follow-up",
+            "passed": true,
+            "details": "scenario-application-only-llc-benefits-booklet.pdf"
+          }
+        ]
+      }
+    },
+    {
+      "scenarioId": "04_rate-sheet-plan-mismatch",
+      "title": "Application and spreadsheet plan mismatch",
+      "sent": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f83b2b71a-dba7cbb4-9414-4847-a09c-8e286cb5fb4d-000000@email.amazonses.com>",
+        "threadId": "23304064-58b5-4c4f-916f-76692de00366",
+        "from": "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>",
+        "to": [
+          "miles-2501@agentmail.to"
+        ],
+        "subject": "Ansa document scenario 04_rate-sheet-plan-mismatch 04_rate-sheet-plan-mismatch-1784620954707",
+        "timestamp": "2026-07-21T08:02:35.253Z",
+        "text": "Authorized Ansa live email test 04_rate-sheet-plan-mismatch-1784620954707.\n\nPlease generate a source-backed employee benefits booklet from the attached materials.\nUse only the attached source documents and explicit facts in this thread.\nIf any required document, selected plan, rate row, or employer confirmation is missing, ask me for exactly that information instead of guessing.\n\nScenario: Application and spreadsheet plan mismatch.\n\n--\nSent via AgentMail",
+        "attachments": [
+          {
+            "filename": "00_completed-employer-application.pdf",
+            "contentType": "application/pdf",
+            "size": 1844
+          },
+          {
+            "filename": "01_healthfirst-essential-plan-1.pdf",
+            "contentType": "application/pdf",
+            "size": 571602
+          },
+          {
+            "filename": "02_mismatched-rates.xlsx",
+            "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "size": 17121
+          }
+        ]
+      },
+      "localProcessor": {
+        "status": "complete",
+        "intent": "benefits_booklet"
+      },
+      "reply": {
+        "inboxId": "ansa-live-test-2501@agentmail.to",
+        "messageId": "<0100019f83b45f82-47d5fd72-fc7d-427f-81dc-cb4f399a1023-000000@email.amazonses.com>",
+        "threadId": "23304064-58b5-4c4f-916f-76692de00366",
+        "from": "AgentMail <miles-2501@agentmail.to>",
+        "to": [
+          "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>"
+        ],
+        "subject": "Re: Ansa document scenario 04_rate-sheet-plan-mismatch 04_rate-sheet-plan-mismatch-1784620954707",
+        "timestamp": "2026-07-21T08:04:24.000Z",
+        "text": "I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:\n\n1. Which uploaded rate row matches Healthfirst Essential Plan 1?\n   Options: 00a1428e7556ae91a744, 146ccd933a5ce6d60224\n\nReply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.\n\n--\nSent via AgentMail",
+        "attachments": []
+      },
+      "checks": [
+        {
+          "name": "asks for rate-row mismatch resolution",
+          "passed": true,
+          "details": "I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:\n\n1. Which uploaded rate row matches Healthfirst Essential Plan 1?\n   Options: 00a1428e7556ae91a744, 146ccd933a5ce6d60224\n\nReply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.\n\n--\nSent via AgentMail"
+        }
+      ],
+      "followup": {
+        "sent": {
+          "inboxId": "ansa-live-test-2501@agentmail.to",
+          "messageId": "<0100019f83b4799f-d9a136fc-4cb2-4427-bb53-967dd9f01a75-000000@email.amazonses.com>",
+          "threadId": "23304064-58b5-4c4f-916f-76692de00366",
+          "from": "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>",
+          "to": [
+            "AgentMail <miles-2501@agentmail.to>"
+          ],
+          "subject": "Re: Ansa document scenario 04_rate-sheet-plan-mismatch 04_rate-sheet-plan-mismatch-1784620954707",
+          "timestamp": "2026-07-21T08:04:30.633Z",
+          "text": "Authorized Ansa live email test follow-up for 04_rate-sheet-plan-mismatch-1784620954707.\n\nReply with the corrected rate workbook attached. Use the Healthfirst Essential Plan 1 rate row for the selected medical plan.\n\n--\nSent via AgentMail",
+          "attachments": [
+            {
+              "filename": "03_corrected-rates-and-contributions.xlsx",
+              "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              "size": 16845
+            }
+          ]
+        },
+        "localProcessor": {
+          "status": "complete",
+          "intent": "benefits_booklet"
+        },
+        "reply": {
+          "inboxId": "ansa-live-test-2501@agentmail.to",
+          "messageId": "<0100019f83b673eb-dc005f96-459d-4a25-8e67-126d2e8705e8-000000@email.amazonses.com>",
+          "threadId": "23304064-58b5-4c4f-916f-76692de00366",
+          "from": "AgentMail <miles-2501@agentmail.to>",
+          "to": [
+            "Ansa Live Test Sender <ansa-live-test-2501@agentmail.to>"
+          ],
+          "subject": "Re: Ansa document scenario 04_rate-sheet-plan-mismatch 04_rate-sheet-plan-mismatch-1784620954707",
+          "timestamp": "2026-07-21T08:06:40.000Z",
+          "text": "Your source-backed benefits booklet is ready. I’ve attached the finished PDF. If you want a revision, reply in this thread with the change or the supporting source document.\n\n--\nSent via AgentMail",
+          "attachments": [
+            {
+              "filename": "scenario-rate-mismatch-llc-benefits-booklet.pdf",
+              "contentType": "application/pdf",
+              "size": 94843
+            }
+          ]
+        },
+        "checks": [
+          {
+            "name": "generates booklet PDF after resolving follow-up",
+            "passed": true,
+            "details": "scenario-rate-mismatch-llc-benefits-booklet.pdf"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+# 04_rate-sheet-plan-mismatch: Application and spreadsheet plan mismatch
+
+## Initial sent
+Message: <0100019f83b2b71a-dba7cbb4-9414-4847-a09c-8e286cb5fb4d-000000@email.amazonses.com>
+Thread: 23304064-58b5-4c4f-916f-76692de00366
+Authorized Ansa live email test 04_rate-sheet-plan-mismatch-1784620954707.
+
+Please generate a source-backed employee benefits booklet from the attached materials.
+Use only the attached source documents and explicit facts in this thread.
+If any required document, selected plan, rate row, or employer confirmation is missing, ask me for exactly that information instead of guessing.
+
+Scenario: Application and spreadsheet plan mismatch.
+
+--
+Sent via AgentMail
+
+## Initial reply
+Message: <0100019f83b45f82-47d5fd72-fc7d-427f-81dc-cb4f399a1023-000000@email.amazonses.com>
+I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:
+
+1. Which uploaded rate row matches Healthfirst Essential Plan 1?
+   Options: 00a1428e7556ae91a744, 146ccd933a5ce6d60224
+
+Reply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.
+
+--
+Sent via AgentMail
+
+## Follow-up sent
+Message: <0100019f83b4799f-d9a136fc-4cb2-4427-bb53-967dd9f01a75-000000@email.amazonses.com>
+Authorized Ansa live email test follow-up for 04_rate-sheet-plan-mismatch-1784620954707.
+
+Reply with the corrected rate workbook attached. Use the Healthfirst Essential Plan 1 rate row for the selected medical plan.
+
+--
+Sent via AgentMail
+
+## Follow-up reply
+Message: <0100019f83b673eb-dc005f96-459d-4a25-8e67-126d2e8705e8-000000@email.amazonses.com>
+Your source-backed benefits booklet is ready. I’ve attached the finished PDF. If you want a revision, reply in this thread with the change or the supporting source document.
+
+--
+Sent via AgentMail

@@ -113,6 +113,56 @@ describe("benefits package rendering adapter", () => {
     for (const benefit of Object.values(company.benefits)) {
       expect(benefit.plans[0]).toMatchObject({ tiers: [] });
     }
+    expect(company.planDetails.carriers.medical).toEqual({
+      name: "UnitedHealthcare",
+    });
+    expect(company.planDetails.carriers.dental).toEqual({
+      name: "UnitedHealthcare",
+    });
+  });
+
+  it("keeps different medical and dental carriers separate", () => {
+    const benefitsPackage = {
+      employer: { name: "Northstar Fabrication" },
+      planYear: { start: "2026-01-01", end: "2026-12-31", label: "2026" },
+      eligibility: { employeeClasses: [] },
+      offeredBenefits: [
+        { benefitType: "medical", offered: true },
+        { benefitType: "dental", offered: true },
+      ],
+      plans: [
+        {
+          id: "medical",
+          benefitType: "medical",
+          name: "SimplyBlue Plus Gold 6",
+          carrier: "Excellus BlueCross BlueShield",
+        },
+        {
+          id: "dental",
+          benefitType: "dental",
+          name: "Delta Dental Enhanced Family PPO Plan III",
+          carrier: "Delta Dental",
+        },
+      ],
+      rates: [],
+      contributions: [],
+      contacts: [],
+      accounts: [],
+    } as unknown as BenefitsPackage;
+
+    const company = benefitsPackageToLegacyCompany(
+      benefitsPackage,
+      { sections: [] },
+      undefined,
+      { allowUnpricedPlans: true },
+    );
+
+    expect(company.planDetails.carriers.medical).toEqual({
+      name: "Excellus BlueCross BlueShield",
+    });
+    expect(company.planDetails.carriers.dental).toEqual({
+      name: "Delta Dental",
+    });
   });
 
   it("uses the confirmed waiting period ahead of a broader eligibility description", () => {

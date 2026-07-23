@@ -144,6 +144,27 @@ describe("benefits package assembler and question engine", () => {
     expect(result.employer.name).toBe("");
   });
 
+  it("does not let carrier plan documents create employer-name conflicts", () => {
+    const planDocument = extraction({
+      fileId: "sbc",
+      fileName: "carrier-sbc.pdf",
+      documentType: "sbc",
+      employer: {
+        name: evidence("University of Rochester"),
+        legalName: null,
+        address: null,
+        website: null,
+      },
+    });
+    const result = assemble([extraction(), planDocument]);
+    expect(result.employer.name).toBe("Acme Manufacturing");
+    expect(
+      result.confidenceReport.conflicts.find(
+        (conflict) => conflict.fieldPath === "employer.name",
+      ),
+    ).toBeUndefined();
+  });
+
   it("detects a blocking conflict between equally authoritative waiting periods", () => {
     const second = extraction({
       fileId: "application-2",
@@ -200,6 +221,30 @@ describe("benefits package assembler and question engine", () => {
       start: "2026-01-01",
       end: "2026-12-31",
     });
+  });
+
+  it("does not treat equivalent plan-year date formats as conflicts", () => {
+    const application = extraction();
+    const carrierDocument = extraction({
+      fileId: "sbc",
+      fileName: "carrier-sbc.pdf",
+      documentType: "sbc",
+      planYear: {
+        start: evidence("01/01/2026"),
+        end: evidence("12/31/2026"),
+        label: evidence("2026"),
+      },
+    });
+    const result = assemble([application, carrierDocument]);
+    expect(result.planYear).toMatchObject({
+      start: "2026-01-01",
+      end: "2026-12-31",
+    });
+    expect(
+      result.confidenceReport.conflicts.filter((conflict) =>
+        conflict.fieldPath.startsWith("planYear."),
+      ),
+    ).toEqual([]);
   });
 
   it("detects a dental plan as an offered benefit", () => {
@@ -318,7 +363,7 @@ describe("benefits package assembler and question engine", () => {
     expect(result.offeredBenefits.find((item) => item.benefitType === "hsa")).toBeUndefined();
     expect(
       buildBlockerQuestions(result).some(
-        (question) => question.fieldPath === "offeredBenefits.hsa",
+        (question) => question.fieldPath === "accounts.hsa",
       ),
     ).toBe(false);
     expect(generateBookletOutline(result).sections.map((section) => section.id)).not.toContain(
@@ -335,7 +380,7 @@ describe("benefits package assembler and question engine", () => {
     expect(withoutIds).not.toContain("std");
     expect(
       buildBlockerQuestions(withoutOptionalBenefits).some((question) =>
-        ["offeredBenefits.hsa", "offeredBenefits.std"].includes(question.fieldPath),
+        ["accounts.hsa", "offeredBenefits.std"].includes(question.fieldPath),
       ),
     ).toBe(false);
 
@@ -375,7 +420,7 @@ describe("benefits package assembler and question engine", () => {
     expect(withIds).toContain("std");
   });
 
-  it("applies a manual HSA offering decision without treating qualification as the answer", () => {
+  it("requires HSA account details after an HSA offering decision", () => {
     const inputFile: LoadedUploadedFile = {
       id: "sbc-manual-hsa",
       companyId: "acme",
@@ -420,7 +465,11 @@ describe("benefits package assembler and question engine", () => {
       offered: true,
       confidence: 1,
     });
-    expect(buildBlockerQuestions(offered).some((item) => item.fieldPath === "offeredBenefits.hsa")).toBe(false);
+    expect(buildBlockerQuestions(offered)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ fieldPath: "accounts.hsa" }),
+      ]),
+    );
 
     const notOffered = assembleWithAnswer(false);
     expect(notOffered.offeredBenefits.find((item) => item.benefitType === "hsa")).toMatchObject({
@@ -428,6 +477,63 @@ describe("benefits package assembler and question engine", () => {
       confidence: 1,
     });
     expect(generateBookletOutline(notOffered).sections.map((section) => section.id)).not.toContain("hsa");
+
+    const applicationCheckedHsa = assembleBenefitsPackage({
+      companyId: "acme",
+      documentExtractions: [
+        extraction({
+          offeredBenefits: [
+            { benefitType: "medical", offered: true, page: 1, quote: "Medical", confidence: 0.99 },
+            { benefitType: "hsa", offered: true, page: 2, quote: "HSA is checked", confidence: 0.99 },
+          ],
+        }),
+      ],
+      rates: [rate()],
+      rateContributions: [contribution(rate())],
+      medicalPlans: [],
+      manualAnswers: { "offeredBenefits.hsa": false },
+    });
+    expect(
+      applicationCheckedHsa.offeredBenefits.find((item) => item.benefitType === "hsa"),
+    ).toMatchObject({ offered: true });
+    expect(buildBlockerQuestions(applicationCheckedHsa)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ fieldPath: "accounts.hsa" }),
+      ]),
+    );
+
+    const withAccountDetails = assembleBenefitsPackage({
+      companyId: "acme",
+      documentExtractions: [
+        extraction({
+          offeredBenefits: [
+            { benefitType: "medical", offered: true, page: 1, quote: "Medical", confidence: 0.99 },
+            { benefitType: "hsa", offered: true, page: 2, quote: "HSA is checked", confidence: 0.99 },
+          ],
+        }),
+      ],
+      rates: [rate()],
+      rateContributions: [contribution(rate())],
+      medicalPlans: [],
+      manualAnswers: { "accounts.hsa": { administrator: "Optum Bank" } },
+    });
+    expect(withAccountDetails.accounts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "hsa", administrator: "Optum Bank" }),
+      ]),
+    );
+    expect(buildBlockerQuestions(withAccountDetails).some((item) => item.fieldPath === "accounts.hsa")).toBe(false);
+    expect(generateBookletOutline(withAccountDetails).sections.map((section) => section.id)).toContain("hsa");
+  });
+
+  it("applies manual offered-benefit answers for non-HSA benefits", () => {
+    const result = assemble([], [], [], { "offeredBenefits.vision": false });
+    expect(result.offeredBenefits.find((item) => item.benefitType === "vision")).toMatchObject({
+      offered: false,
+      confidence: 1,
+    });
+    expect(result.confidenceReport.manualAnswers).toContain("offeredBenefits.vision");
+    expect(buildBlockerQuestions(result).some((item) => item.fieldPath === "offeredBenefits.vision")).toBe(false);
   });
 
   it("attaches a differently named SBC to one explicit medical selection without duplicating it", () => {
@@ -460,6 +566,14 @@ describe("benefits package assembler and question engine", () => {
               offered: true,
               page: 1,
               quote: "HSA",
+              confidence: 0.95,
+            },
+          ],
+          accounts: [
+            {
+              type: "hsa",
+              administrator: "Example HSA Bank",
+              page: 1,
               confidence: 0.95,
             },
           ],

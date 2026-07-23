@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bookletAnswerExtractionQuestions,
   formatBookletQuestions,
   isBenefitsBookletRequest,
   isSupportedAgentAttachment,
@@ -44,5 +45,33 @@ describe("AgentMail email agent", () => {
     expect(message).toContain("January 1, 2027");
     expect(message).toContain("logo.png");
     expect(message).toContain("Reply in plain language");
+  });
+
+  it("keeps generation-style confirmed facts in the email answer contract", () => {
+    const paths = bookletAnswerExtractionQuestions().map(
+      (question) => question.fieldPath,
+    );
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        "employer.name",
+        "planYear.start",
+        "planYear.end",
+        "eligibility.waitingPeriod",
+        "plans.selected",
+        "accounts.hsa",
+      ]),
+    );
+
+    const blockerOverride: BlockerQuestion = {
+      id: "pipeline-employer-conflict",
+      fieldPath: "employer.name",
+      question: "Which employer name should be used for employer.name?",
+      reason: "The application and plan document disagree.",
+      sourceRefs: [],
+      blocking: true,
+    };
+    expect(bookletAnswerExtractionQuestions([blockerOverride])).toContain(
+      blockerOverride,
+    );
   });
 });

@@ -1,0 +1,108 @@
+[
+  {
+    "id": "00_complete-medical-dental",
+    "title": "Complete medical and dental package",
+    "sha": "dd13146999d5",
+    "files": [
+      "00_completed-employer-application.pdf",
+      "01_rochester-your-ppo-option-sbc.pdf",
+      "02_delta-dental-basic-family-ppo-plan-i-policy.pdf",
+      "03_rates-and-contributions.xlsx"
+    ],
+    "followups": [],
+    "expected": [
+      "Builder should produce an employee_booklet preview without blockers.",
+      "Email generator should reply with a completed booklet PDF."
+    ]
+  },
+  {
+    "id": "01_hsa-selected-no-hsa-form",
+    "title": "HSA selected in application but no HSA form attached",
+    "sha": "2a5fd11a5e6c",
+    "files": [
+      "00_completed-employer-application.pdf",
+      "01_rochester-your-hsa-eligible-option-sbc.pdf",
+      "02_rates-and-contributions.xlsx"
+    ],
+    "followups": [
+      {
+        "id": "01_hsa-account-source-details",
+        "title": "Follow-up HSA account source details",
+        "files": [
+          "01_hsa-account-source-details/01_scenario-hsa-account-source-details.pdf"
+        ]
+      }
+    ],
+    "expected": [
+      "Builder should ask for HSA source materials or account administrator details.",
+      "Email generator should ask the same HSA follow-up instead of omitting the selected HSA."
+    ]
+  },
+  {
+    "id": "02_extra-vision-plan-not-in-application",
+    "title": "Extra vision plan file not selected in application",
+    "sha": "cf01a52a68a8",
+    "files": [
+      "00_completed-employer-application.pdf",
+      "01_kaiser-silver-70-hmo-2500-55-pcp.pdf",
+      "02_unselected-eyemed-bright-bold-healthy-options-summary.pdf",
+      "03_rates-and-contributions.xlsx"
+    ],
+    "followups": [
+      {
+        "id": "01_confirm-vision-not-offered",
+        "title": "Follow-up confirmation to omit accidental vision file",
+        "files": []
+      }
+    ],
+    "expected": [
+      "Builder should ask whether the uploaded vision benefit should be included.",
+      "Email generator should ask for the same employer-selection confirmation."
+    ]
+  },
+  {
+    "id": "03_application-only-progressive-intake",
+    "title": "Application only progressive intake",
+    "sha": "4ee7564e71ac",
+    "files": [
+      "00_completed-employer-application.pdf"
+    ],
+    "followups": [
+      {
+        "id": "01_selected-medical-plan-source-pack",
+        "title": "Follow-up selected medical plan source pack",
+        "files": [
+          "01_selected-medical-plan-source-pack/01_healthfirst-essential-plan-2.pdf",
+          "01_selected-medical-plan-source-pack/02_rates-and-contributions.xlsx"
+        ]
+      }
+    ],
+    "expected": [
+      "Builder should ask for selected current plans.",
+      "After a selected-plan answer, builder should continue and ask for any remaining source-backed details instead of failing."
+    ]
+  },
+  {
+    "id": "04_rate-sheet-plan-mismatch",
+    "title": "Application and spreadsheet plan mismatch",
+    "sha": "071b24ae1014",
+    "files": [
+      "00_completed-employer-application.pdf",
+      "01_healthfirst-essential-plan-1.pdf",
+      "02_mismatched-rates.xlsx"
+    ],
+    "followups": [
+      {
+        "id": "01_corrected-rate-workbook",
+        "title": "Follow-up corrected rate workbook",
+        "files": [
+          "01_corrected-rate-workbook/03_corrected-rates-and-contributions.xlsx"
+        ]
+      }
+    ],
+    "expected": [
+      "Builder should ask which uploaded rate row matches the selected medical plan.",
+      "Email generator should ask the rate-row mismatch question instead of using the wrong rate."
+    ]
+  }
+]

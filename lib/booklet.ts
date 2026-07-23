@@ -330,7 +330,11 @@ function eligibilityPage(company: Company) {
 
 function medicalPages(company: Company, payPeriods: number) {
   const plans = company.benefits?.health?.plans || [],
-    carrier = plain(company.planDetails?.carriers?.medicalDental?.name, "");
+    carrier = plain(
+      company.planDetails?.carriers?.medical?.name ||
+        company.planDetails?.carriers?.medicalDental?.name,
+      "",
+    );
   return plans.map((plan, index) =>
     page(
       `medical-${index + 1}`,
@@ -345,7 +349,11 @@ function medicalPages(company: Company, payPeriods: number) {
 
 function dentalPages(company: Company, payPeriods: number) {
   const dentalPlans = company.benefits?.dental?.plans || [],
-    carrier = plain(company.planDetails?.carriers?.medicalDental?.name, "");
+    carrier = plain(
+      company.planDetails?.carriers?.dental?.name ||
+        company.planDetails?.carriers?.medicalDental?.name,
+      "",
+    );
   return dentalPlans.map((plan, index) => {
     const currentEeTier = plan?.tiers?.[0],
       currentEePerPay =

@@ -2,6 +2,31 @@
 
 Benefit guide generator — one structure file → HTML → PDF.
 
+## Gmail email agent
+
+The settings route at `/email-agent` implements the Gmail/Google Workspace
+agent described in `docs/gmail-nylas-email-agent-plan.md`. It uses Nylas Hosted
+Auth, exact per-mailbox sender allowlists, verified raw-body webhooks, Cloud
+Tasks leases, stateless OpenAI Responses requests, and server-approved remote
+MCP tools. It never exposes shell, filesystem, browser, or computer-control
+tools to the email model.
+
+Backend routes:
+
+- `POST /api/email-agent` — authenticated connection, allowlist, tool-grant,
+  and approval actions.
+- `GET /api/email-connections/google/callback` — Nylas OAuth callback.
+- `GET|POST /api/nylas/webhook` — Nylas challenge and signed notifications.
+- `POST /api/nylas/worker` — internal Cloud Tasks worker.
+
+Configure the non-secret values shown in `cloud-run/env.example.yaml`. Inject
+the Nylas, OpenAI, worker, encryption, and MCP credential environment values
+from the deployment secret store. A sender starts with no MCP access even after
+being added to the email allowlist.
+
+See `docs/gmail-nylas-email-agent-setup.md` for the Nylas/Google dashboard,
+Cloud Tasks, Firestore TTL, trusted MCP registry, and first-connection steps.
+
 ## Purpose of the benefits booklet generator
 
 The generator is used after a company has received and supplied the information
@@ -41,6 +66,55 @@ remain supported for other employers, but each section is included only when
 the employer explicitly offers that benefit. An HSA-qualified medical plan does
 not by itself establish an employer HSA offering, and missing HSA or STD
 materials do not block a booklet when the corresponding benefit is not offered.
+
+## Synthetic generation fixture
+
+The repository includes a complete 2026 Northstar Fabrication test package for
+the `employee_booklet` workflow. It contains a completed synthetic employer
+application, a formula-driven medical and dental cost workbook, three selected
+medical plan summaries, two selected dental plan summaries, the generated HTML
+and PDF booklet, and pipeline audit metadata.
+
+The fixture intentionally offers only medical and dental. It demonstrates that
+multiple finalized options for the same employee population can appear in one
+booklet while benefits that the employer does not offer remain omitted.
+
+See [generation.md](generation.md) for the original request, synthetic
+assumptions, package layout, generation workflow, required code changes, and QA
+results. The generated files are cataloged in
+[test-info/README.md](test-info/README.md).
+
+Regenerate the package from the repository root with:
+
+```bash
+npx tsx scripts/generate-northstar-medical-dental-test-package.ts
+```
+
+## Document scenario email fixtures
+
+`scripts/generate-booklet-document-scenarios.ts` creates separate scenario
+folders under `test-info/document-scenarios/` for missing HSA source details,
+extra unselected benefit documents, application-only progressive intake, rate
+row mismatch, and a complete medical/dental package. Plan-backed scenarios copy
+distinct source PDFs from the repository document reservoir and pair them with
+synthetic employer applications and rate workbooks.
+
+Run the builder fixture tests with:
+
+```bash
+npx vitest run tests/booklet-document-scenarios.test.ts
+```
+
+Run the live AgentMail proof loop with:
+
+```bash
+npx tsx scripts/run-agentmail-document-scenario-emails.ts
+```
+
+The live runner sends each scenario from `AGENTMAIL_LIVE_SENDER_INBOX` to
+`AGENTMAIL_INBOX_ID`, invokes the local email agent, waits for the expected
+reply, and writes proof transcripts plus downloaded generated PDFs to
+`test-info/document-scenarios/email-proof/`.
 
 ## Remaining product work
 

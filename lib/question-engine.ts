@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type {
+  BenefitType,
   BenefitsPackage,
   BlockerQuestion,
   ContributionRule,
@@ -22,6 +23,15 @@ const id = (path: string) =>
 
 const validDate = (value: string) =>
   Boolean(value) && !Number.isNaN(new Date(value).getTime());
+const planBenefitTypes = new Set<BenefitType>([
+  "medical",
+  "dental",
+  "vision",
+  "life",
+  "std",
+  "ltd",
+]);
+const accountBenefitTypes = new Set<BenefitType>(["hsa", "hra", "fsa"]);
 
 function question(
   fieldPath: string,
@@ -43,10 +53,112 @@ function question(
   };
 }
 
-export function buildBlockerQuestions(
+function manualAnswerSupplied(benefitsPackage: BenefitsPackage, fieldPath: string) {
+  return benefitsPackage.confidenceReport.manualAnswers.includes(fieldPath);
+}
+
+function offeringFor(
+  benefitsPackage: BenefitsPackage,
+  benefitType: BenefitType,
+) {
+  return benefitsPackage.offeredBenefits.find(
+    (offering) => offering.benefitType === benefitType,
+  );
+}
+
+function hasSelectedPlan(benefitsPackage: BenefitsPackage, benefitType: BenefitType) {
+  return benefitsPackage.plans.some((plan) => plan.benefitType === benefitType);
+}
+
+function subjectSourceRefs(
+  benefitsPackage: BenefitsPackage,
+  benefitType: BenefitType,
+) {
+  const refs = benefitsPackage.requirements.subjects
+    .filter((subject) => subject.benefitType === benefitType)
+    .flatMap((subject) =>
+      Object.values(subject.resolutions)
+        .flatMap(resolutionEvidence)
+        .map(evidenceSourceRef),
+    );
+  return [
+    ...new Map(
+      refs.map((ref) => [
+        `${ref.fileId}:${ref.page || ""}:${ref.sheet || ""}:${ref.row || ""}:${ref.textRange || ""}`,
+        ref,
+      ]),
+    ).values(),
+  ].slice(0, 20);
+}
+
+function buildScenarioIntakeQuestions(
   benefitsPackage: BenefitsPackage,
 ): BlockerQuestion[] {
   const questions: BlockerQuestion[] = [];
+  const subjectBenefitTypes = new Set(
+    benefitsPackage.requirements.subjects.map((subject) => subject.benefitType),
+  );
+
+  for (const type of subjectBenefitTypes) {
+    const fieldPath = `offeredBenefits.${type}`;
+    const offering = offeringFor(benefitsPackage, type);
+    if (
+      offering?.offered ||
+      hasSelectedPlan(benefitsPackage, type) ||
+      manualAnswerSupplied(benefitsPackage, fieldPath)
+    )
+      continue;
+    questions.push(
+      question(
+        fieldPath,
+        `You included ${type.toUpperCase()} source material, but the employer application or instructions do not say that ${type.toUpperCase()} is offered. Should this benefit be included in the booklet?`,
+        "A benefit document by itself proves plan design, not employer selection. Confirm whether the employer meant to include this benefit, or say no and it will be omitted.",
+        subjectSourceRefs(benefitsPackage, type),
+        ["yes", "no"],
+      ),
+    );
+  }
+
+  for (const type of accountBenefitTypes) {
+    const fieldPath = `accounts.${type}`;
+    const offering = offeringFor(benefitsPackage, type);
+    if (
+      !offering?.offered ||
+      benefitsPackage.accounts.some(
+        (account) => account.type === type && account.administrator,
+      )
+    )
+      continue;
+    questions.push(
+      question(
+        fieldPath,
+        `${type.toUpperCase()} appears to be selected, but no ${type.toUpperCase()} source document or administrator details were found. Please attach the ${type.toUpperCase()} source materials or provide the account administrator/custodian and employer-specific account details.`,
+        "Account benefits selected in employer materials need employer-specific source support before the booklet can describe administrator, eligibility, contribution, and account-use details.",
+        offering.sourceRefs,
+      ),
+    );
+  }
+
+  for (const type of planBenefitTypes) {
+    const offering = offeringFor(benefitsPackage, type);
+    if (!offering?.offered || hasSelectedPlan(benefitsPackage, type)) continue;
+    questions.push(
+      question(
+        "plans.selected",
+        `Which ${type.toUpperCase()} plan or plans should be included in this booklet?`,
+        `The employer materials indicate ${type.toUpperCase()} is offered, but no selected ${type.toUpperCase()} plan could be distinguished from the sources.`,
+        offering.sourceRefs,
+      ),
+    );
+  }
+
+  return questions;
+}
+
+export function buildBlockerQuestions(
+  benefitsPackage: BenefitsPackage,
+): BlockerQuestion[] {
+  const questions: BlockerQuestion[] = buildScenarioIntakeQuestions(benefitsPackage);
   if (!benefitsPackage.employer.name)
     questions.push(
       question(

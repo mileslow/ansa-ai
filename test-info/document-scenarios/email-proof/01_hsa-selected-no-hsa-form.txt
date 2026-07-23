@@ -1,0 +1,44 @@
+# 01_hsa-selected-no-hsa-form: HSA selected in application but no HSA form attached
+
+## Initial sent
+Message: <0100019f8524122b-5a4edaa8-c359-4952-ab60-9ff4fbdd4300-000000@email.amazonses.com>
+Thread: 8b2ef083-9496-438a-ab65-5b31876eaea6
+Authorized Ansa live email test 01_hsa-selected-no-hsa-form-1784645160595.
+
+Please generate a source-backed employee benefits booklet from the attached materials.
+Use only the attached source documents and explicit facts in this thread.
+If any required document, selected plan, rate row, or employer confirmation is missing, ask me for exactly that information instead of guessing.
+
+Scenario: HSA selected in application but no HSA form attached.
+
+--
+Sent via AgentMail
+
+## Initial reply
+Message: <0100019f852602a4-a016257a-0a33-47f6-8057-8adeb0827db8-000000@email.amazonses.com>
+I’ve started reviewing the materials for your benefits booklet. I still need a few details before I can finish it:
+
+1. HSA appears to be selected, but no HSA source document or administrator details were found. Please attach the HSA source materials or provide the account administrator/custodian and employer-specific account details.
+
+Reply in plain language with whatever you know, or attach source documents that contain the answers. I’ll use the new information and continue from there.
+
+--
+Sent via AgentMail
+
+## Follow-up sent
+Message: <0100019f85261be4-5eae6e12-e534-4a05-8373-60870e8b47db-000000@email.amazonses.com>
+Authorized Ansa live email test follow-up for 01_hsa-selected-no-hsa-form-1784645160595.
+
+Reply with the attached HSA account source details. Include the HSA in the booklet.
+HSA administrator/custodian: Optum Bank.
+Employer HSA contribution: $500 annually for employee-only HDHP coverage and $1,000 annually for family HDHP coverage, funded in equal quarterly installments.
+
+--
+Sent via AgentMail
+
+## Follow-up reply
+Message: <0100019f85283679-9ef8a611-dc85-4b02-be42-c281846bf6ab-000000@email.amazonses.com>
+Your source-backed benefits booklet is ready. I’ve attached the finished PDF. If you want a revision, reply in this thread with the change or the supporting source document.
+
+--
+Sent via AgentMail

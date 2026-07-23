@@ -1,0 +1,22 @@
+# 00_complete-medical-dental: Complete medical and dental package
+
+## Initial sent
+Message: <0100019f85218eae-eb4c49b4-49bb-4739-bdca-38e66b462487-000000@email.amazonses.com>
+Thread: ba90e49e-6c8c-484e-850c-9f6f8407193c
+Authorized Ansa live email test 00_complete-medical-dental-1784644993979.
+
+Please generate a source-backed employee benefits booklet from the attached materials.
+Use only the attached source documents and explicit facts in this thread.
+If any required document, selected plan, rate row, or employer confirmation is missing, ask me for exactly that information instead of guessing.
+
+Scenario: Complete medical and dental package.
+
+--
+Sent via AgentMail
+
+## Initial reply
+Message: <0100019f8523f542-b41e3000-0423-442e-a29d-a798332056e8-000000@email.amazonses.com>
+Your source-backed benefits booklet is ready. I’ve attached the finished PDF. If you want a revision, reply in this thread with the change or the supporting source document.
+
+--
+Sent via AgentMail
