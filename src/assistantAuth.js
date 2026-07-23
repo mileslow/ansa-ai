@@ -21,7 +21,7 @@ export async function signInWithGoogle() {
     return result.user;
   } catch (error) {
     // If link fails because credential already exists, fall back to sign-in.
-    const code = (error as { code?: string })?.code || "";
+    const code = error?.code || "";
     if (code.includes("credential-already-in-use") || code.includes("email-already-in-use")) {
       const result = await signInWithPopup(auth, googleProvider);
       return result.user;
