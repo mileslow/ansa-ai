@@ -3,6 +3,13 @@
 Branch: `feat/broker-email-assistant`  
 Flags default **off** — safe for prod until explicitly enabled.
 
+> **TODO before the pilot can run:** create the Gmail pieces in Google Cloud
+> Console (project `flux-ebfb0`) — an OAuth web client
+> (`GMAIL_OAUTH_CLIENT_ID` / `GMAIL_OAUTH_CLIENT_SECRET`, redirect URI
+> `http://127.0.0.1:5175/api/mailbox/oauth/callback`, Gmail API enabled) and a
+> Pub/Sub topic (`GMAIL_PUBSUB_TOPIC`) with `gmail-api-push@system.gserviceaccount.com`
+> as publisher. Everything else in local `.env` is already filled in.
+
 ## Env (non-prod / pilot)
 
 ```
