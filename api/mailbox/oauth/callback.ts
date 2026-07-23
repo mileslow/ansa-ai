@@ -32,7 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!tokens.refresh_token)
         throw new Error("Gmail did not return a refresh token; revoke access and retry");
       const email = await fetchGmailProfileEmail(tokens.access_token);
-      await saveMailboxConnection({
+      const connection = await saveMailboxConnection({
         ownerId: parsed.ownerId,
         provider: "gmail",
         email,
@@ -46,6 +46,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         createdAt: now,
         updatedAt: now,
       });
+      try {
+        const { isBrokerAssistantEmailEnabled } = await import(
+          "../../../lib/broker-agent/flags"
+        );
+        if (isBrokerAssistantEmailEnabled()) {
+          const { saveAssistantSettings, ensureGmailWatchForOwner } = await import(
+            "../../../lib/broker-assistant"
+          );
+          await saveAssistantSettings({
+            ownerId: parsed.ownerId,
+            gmailConnectionId: connection.id,
+            gmailEmail: email,
+            enabled: true,
+            paused: false,
+          });
+          await ensureGmailWatchForOwner(parsed.ownerId);
+        }
+      } catch (watchError) {
+        console.error("assistant watch setup after oauth failed", { watchError });
+      }
     } else {
       const tokens = await exchangeOutlookCode(code);
       if (!tokens.refresh_token)
@@ -66,7 +86,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         updatedAt: now,
       });
     }
-    const redirect = parsed.returnTo || "/";
+    const redirectBase = parsed.returnTo || "/";
+    const joiner = redirectBase.includes("?") ? "&" : "?";
+    const redirect =
+      parsed.provider === "gmail"
+        ? `${redirectBase}${joiner}assistant=connected`
+        : redirectBase;
     res.statusCode = 302;
     res.setHeader("Location", redirect);
     res.end();

@@ -330,6 +330,57 @@ export default defineConfig(({ mode, command }) => {
         });
       },
     },
+    {
+      name: "local-mailbox-oauth-and-assistant-api",
+      configureServer(server) {
+        const mount = (routePath, modulePath) => {
+          server.middlewares.use(routePath, (req, res) => {
+            let body = "";
+            req.on("data", (chunk) => {
+              body += chunk;
+            });
+            req.on("end", async () => {
+              try {
+                req.bookletDevUserId = "local-booklet-studio";
+                req.body = body ? JSON.parse(body) : {};
+                const url = new URL(req.url || "", "http://127.0.0.1");
+                req.query = Object.fromEntries(url.searchParams.entries());
+                req.headers = req.headers || {};
+                res.status = (code) => {
+                  res.statusCode = code;
+                  return res;
+                };
+                res.json = (payload) => {
+                  if (!res.headersSent)
+                    res.setHeader("Content-Type", "application/json; charset=utf-8");
+                  res.end(JSON.stringify(payload));
+                  return res;
+                };
+                const module = await server.ssrLoadModule(modulePath);
+                await module.default(req, res);
+              } catch (error) {
+                if (res.writableEnded) return;
+                res.statusCode = 500;
+                res.setHeader("Content-Type", "application/json");
+                res.end(
+                  JSON.stringify({
+                    error: error.message || "Local assistant API failed",
+                  }),
+                );
+              }
+            });
+          });
+        };
+        mount("/api/mailbox/oauth/start", "/api/mailbox/oauth/start.ts");
+        mount("/api/mailbox/oauth/callback", "/api/mailbox/oauth/callback.ts");
+        mount("/api/mailbox/oauth/status", "/api/mailbox/oauth/status.ts");
+        mount("/api/mailbox/oauth/disconnect", "/api/mailbox/oauth/disconnect.ts");
+        mount("/api/broker-assistant/settings", "/api/broker-assistant/settings.ts");
+        mount("/api/broker-assistant/research", "/api/broker-assistant/research.ts");
+        mount("/api/broker-assistant/gmail-push", "/api/broker-assistant/gmail-push.ts");
+        mount("/api/broker-assistant/worker", "/api/broker-assistant/worker.ts");
+      },
+    },
   ],
   };
 });

@@ -1,5 +1,10 @@
 export type SourceConnectorId = "ansa_library" | "gmail" | "outlook";
 
+/** Reserved for later iterations — not registered in CONNECTORS yet. */
+export type FutureSourceConnectorId = "desktop" | "carrier_web";
+
+export type AnySourceConnectorId = SourceConnectorId | FutureSourceConnectorId;
+
 export type SourceQuery = {
   ownerId: string;
   companyId: string;

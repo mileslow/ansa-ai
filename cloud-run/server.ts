@@ -5,6 +5,14 @@ import parsePlan from "../api/parse-plan";
 import bookletPipeline from "../api/booklet-pipeline";
 import agentmailWebhook from "../api/agentmail-webhook";
 import agentmailWorker from "../api/agentmail-worker";
+import brokerAssistantSettings from "../api/broker-assistant/settings";
+import brokerAssistantResearch from "../api/broker-assistant/research";
+import brokerAssistantGmailPush from "../api/broker-assistant/gmail-push";
+import brokerAssistantWorker from "../api/broker-assistant/worker";
+import mailboxOAuthStart from "../api/mailbox/oauth/start";
+import mailboxOAuthCallback from "../api/mailbox/oauth/callback";
+import mailboxOAuthStatus from "../api/mailbox/oauth/status";
+import mailboxOAuthDisconnect from "../api/mailbox/oauth/disconnect";
 
 type CompatibleRequest = IncomingMessage & {
   body?: unknown;
@@ -29,6 +37,14 @@ const routes = new Map<string, ApiHandler>([
   ["/api/booklet-pipeline", bookletPipeline as ApiHandler],
   ["/api/agentmail-webhook", agentmailWebhook as ApiHandler],
   ["/api/agentmail-worker", agentmailWorker as ApiHandler],
+  ["/api/broker-assistant/settings", brokerAssistantSettings as ApiHandler],
+  ["/api/broker-assistant/research", brokerAssistantResearch as ApiHandler],
+  ["/api/broker-assistant/gmail-push", brokerAssistantGmailPush as ApiHandler],
+  ["/api/broker-assistant/worker", brokerAssistantWorker as ApiHandler],
+  ["/api/mailbox/oauth/start", mailboxOAuthStart as ApiHandler],
+  ["/api/mailbox/oauth/callback", mailboxOAuthCallback as ApiHandler],
+  ["/api/mailbox/oauth/status", mailboxOAuthStatus as ApiHandler],
+  ["/api/mailbox/oauth/disconnect", mailboxOAuthDisconnect as ApiHandler],
 ]);
 
 const port = Number(process.env.PORT || 8080);

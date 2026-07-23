@@ -10,3 +10,10 @@ export function isMailboxOAuthEnabled() {
     process.env.BROKER_MAILBOX_OAUTH === "true"
   );
 }
+
+export function isBrokerAssistantEmailEnabled() {
+  return (
+    process.env.BROKER_ASSISTANT_EMAIL === "1" ||
+    process.env.BROKER_ASSISTANT_EMAIL === "true"
+  );
+}

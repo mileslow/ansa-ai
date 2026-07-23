@@ -39,7 +39,9 @@ import {
   phaseDefinitions,
   sourceDefinitions,
 } from "./bookletStudioData";
+import AnsaAssistantPanel from "./AnsaAssistantPanel";
 import "./bookletStudio.css";
+import "./assistantSettings.css";
 
 const emptyCompanyProfile = {
   companyName: "Your company",
@@ -451,13 +453,49 @@ export default function BookletStudio({
 
 function CompanySidebar({ companies, selectedCompanyId, onSelect, onCreate, onHome, onOpenBrokerAgent, colorPickerEnabled, accentColor, onAccentColorChange }) {
   const [query, setQuery] = useState("");
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const params = new URLSearchParams(window.location.search);
+    return params.get("settings") === "assistant" || params.get("assistant") === "connected";
+  });
+  const [accountLabel, setAccountLabel] = useState({ name: "Guest", detail: "Account" });
   const normalizedQuery = query.trim().toLowerCase();
   const filteredCompanies = companies.filter((item) =>
     [item.name, item.industry, item.headquarters]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(normalizedQuery)),
   );
+
+  useEffect(() => {
+    let unsub = () => {};
+    let cancelled = false;
+    (async () => {
+      const { auth } = await import("./firebase");
+      const { onAuthStateChanged } = await import("firebase/auth");
+      if (cancelled) return;
+      unsub = onAuthStateChanged(auth, (user) => {
+        if (user && !user.isAnonymous) {
+          setAccountLabel({
+            name: user.displayName || user.email || "Broker",
+            detail: user.email || "Google",
+          });
+        } else {
+          setAccountLabel({ name: "Guest", detail: "Sign in via Settings" });
+        }
+      });
+    })();
+    return () => {
+      cancelled = true;
+      unsub();
+    };
+  }, []);
+
+  const initials = accountLabel.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("") || "A";
 
   return (
     <aside className="bs-company-sidebar">
@@ -487,24 +525,36 @@ function CompanySidebar({ companies, selectedCompanyId, onSelect, onCreate, onHo
         <button type="button" onClick={onOpenBrokerAgent}>
           <Sparkles /><span><b>Broker agent</b><small>Voice-ready booklet chat demo</small></span>
         </button>
-        <button className={settingsOpen ? "active" : ""} onClick={() => colorPickerEnabled && setSettingsOpen((open) => !open)} aria-expanded={colorPickerEnabled ? settingsOpen : undefined}>
-          <Settings /><span><b>Settings</b><small>Workspace and appearance</small></span>
+        <button
+          className={settingsOpen ? "active" : ""}
+          onClick={() => setSettingsOpen((open) => !open)}
+          aria-expanded={settingsOpen}
+        >
+          <Settings /><span><b>Settings</b><small>Ansa Assistant · workspace</small></span>
         </button>
-        {colorPickerEnabled && settingsOpen && (
-          <div className="bs-accent-control">
-            <label htmlFor="studio-accent-color">
-              <span>Accent color<small>{accentColor.toUpperCase()}</small></span>
-              <input
-                id="studio-accent-color"
-                type="color"
-                value={accentColor}
-                onChange={(event) => onAccentColorChange(event.target.value)}
-                aria-label="Choose accent color"
-              />
-            </label>
+        {settingsOpen && (
+          <div className="bs-assistant-settings">
+            <AnsaAssistantPanel
+              companies={companies}
+              onClose={() => setSettingsOpen(false)}
+            />
+            {colorPickerEnabled && (
+              <div className="bs-accent-control">
+                <label htmlFor="studio-accent-color">
+                  <span>Accent color<small>{accentColor.toUpperCase()}</small></span>
+                  <input
+                    id="studio-accent-color"
+                    type="color"
+                    value={accentColor}
+                    onChange={(event) => onAccentColorChange(event.target.value)}
+                    aria-label="Choose accent color"
+                  />
+                </label>
+              </div>
+            )}
           </div>
         )}
-        <span className="bs-company-sidebar__account"><i>ML</i><span><b>Miles</b><small>Account</small></span></span>
+        <span className="bs-company-sidebar__account"><i>{initials}</i><span><b>{accountLabel.name}</b><small>{accountLabel.detail}</small></span></span>
       </div>
     </aside>
   );

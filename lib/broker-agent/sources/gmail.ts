@@ -246,8 +246,10 @@ export function gmailAuthUrl(state: string) {
   const clientId = process.env.GMAIL_OAUTH_CLIENT_ID;
   const redirectUri = process.env.GMAIL_OAUTH_REDIRECT_URI;
   if (!clientId || !redirectUri) throw new Error("Gmail OAuth is not configured");
+  // modify covers watch history + drafts; readonly alone cannot create drafts.
   const scopes = [
-    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.modify",
+    "https://www.googleapis.com/auth/gmail.compose",
     "https://www.googleapis.com/auth/userinfo.email",
   ].join(" ");
   const params = new URLSearchParams({

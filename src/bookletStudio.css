@@ -1301,6 +1301,7 @@ body:has(.bs-studio) { height: 100vh; overflow: hidden; }
 .bs-accent-control input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
 .bs-accent-control input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 3px; }
 .bs-accent-control input[type="color"]::-moz-color-swatch { border: 0; border-radius: 3px; }
+.bs-assistant-settings { margin: 4px; display: grid; gap: 8px; max-width: 100%; }
 .bs-company-sidebar__foot > button > svg { width: 14px; justify-self: center; color: var(--bs-muted); }
 .bs-company-sidebar__foot b,
 .bs-company-sidebar__foot small { display: block; }
