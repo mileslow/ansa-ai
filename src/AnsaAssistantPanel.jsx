@@ -19,6 +19,7 @@ export default function AnsaAssistantPanel({ companies = [], onClose }) {
   const [gmailConnections, setGmailConnections] = useState([]);
   const [research, setResearch] = useState([]);
   const [audit, setAudit] = useState([]);
+  const [approvals, setApprovals] = useState([]);
 
   const isGoogleUser = Boolean(user && !user.isAnonymous);
 
@@ -27,7 +28,7 @@ export default function AnsaAssistantPanel({ companies = [], onClose }) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("assistant") === "connected") {
-      setNotice("Gmail connected. Ansa can draft replies in your inbox.");
+      setNotice("Gmail connected. Ansa now answers client emails for you.");
     }
   }, []);
 
@@ -44,9 +45,11 @@ export default function AnsaAssistantPanel({ companies = [], onClose }) {
         );
         setResearch(researchPayload.research || []);
         setAudit(researchPayload.audit || []);
+        setApprovals(researchPayload.approvals || []);
       } catch {
         setResearch([]);
         setAudit([]);
+        setApprovals([]);
       }
     } catch (err) {
       setError(
@@ -90,8 +93,8 @@ export default function AnsaAssistantPanel({ companies = [], onClose }) {
           <p className="aaEyebrow">Ansa Assistant</p>
           <h2>Email Q&amp;A for your clients</h2>
           <p className="aaSub">
-            Sign in, connect Gmail, and Ansa drafts answers from company data — or
-            acknowledges when it needs research.
+            Sign in, connect Gmail, and Ansa answers client emails automatically.
+            When it isn&apos;t sure, it emails you an approve/deny request instead.
           </p>
         </div>
         <span className={`aaChip ${settings?.enabled && !settings?.paused ? "on" : ""}`}>
@@ -128,8 +131,9 @@ export default function AnsaAssistantPanel({ companies = [], onClose }) {
           <section className="aaCard">
             <h3>2. Connect Gmail</h3>
             <p className="aaMuted">
-              One click grants Ansa access to watch your inbox and create draft
-              replies (not auto-send).
+              One click grants Ansa access to watch your inbox and reply on your
+              behalf. Confident answers go out automatically; anything uncertain
+              comes to you first as an approve/deny email.
             </p>
             {gmailConnections[0]?.email || settings?.gmailEmail ? (
               <p>
@@ -220,6 +224,38 @@ export default function AnsaAssistantPanel({ companies = [], onClose }) {
           </section>
 
           <section className="aaCard">
+            <h3>Waiting on you</h3>
+            {!approvals.length ? (
+              <p className="aaMuted">
+                Nothing pending — Ansa is handling replies on its own.
+              </p>
+            ) : (
+              <ul className="aaList">
+                {approvals.map((item) => (
+                  <li key={item.id}>
+                    <div>
+                      <b>{item.companyName || "Unknown company"}</b>
+                      <small>{item.clientSubject || "(no subject)"}</small>
+                      <p>{item.brokerQuestion}</p>
+                    </div>
+                    <div className="aaRow">
+                      {item.approvalThreadId ? (
+                        <a
+                          href={`https://mail.google.com/mail/u/0/#inbox/${item.approvalThreadId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Reply in Gmail (Approve / Deny)
+                        </a>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="aaCard">
             <h3>Needs research</h3>
             {!research.length ? (
               <p className="aaMuted">No open research items.</p>
@@ -259,17 +295,27 @@ export default function AnsaAssistantPanel({ companies = [], onClose }) {
           </section>
 
           <section className="aaCard">
-            <h3>Recent drafts</h3>
+            <h3>Recent activity</h3>
             {!audit.length ? (
-              <p className="aaMuted">No drafts yet.</p>
+              <p className="aaMuted">No activity yet.</p>
             ) : (
               <ul className="aaList aaList--compact">
                 {audit.slice(0, 8).map((item) => (
                   <li key={item.id}>
                     <span>{new Date(item.createdAt).toLocaleString()}</span>
                     <span>
-                      conf {(item.confidence * 100).toFixed(0)}%
-                      {item.needsResearch ? " · research" : ""}
+                      {item.action === "auto_sent"
+                        ? "Sent automatically"
+                        : item.action === "escalated"
+                          ? "Asked you first"
+                          : item.action === "approval_approved"
+                            ? "You approved · sent"
+                            : item.action === "approval_denied"
+                              ? "You denied · held"
+                              : item.action === "approval_answered"
+                                ? "Sent your answer"
+                                : "Draft"}
+                      {" · "}conf {(item.confidence * 100).toFixed(0)}%
                     </span>
                   </li>
                 ))}

@@ -5,6 +5,10 @@ import {
 } from "../lib/broker-agent/flags";
 import { isNoiseEmail } from "../lib/broker-assistant/gmail-ops";
 import { listFutureConnectors } from "../lib/broker-assistant/future-connectors";
+import {
+  extractReplyText,
+  parseApprovalDecision,
+} from "../lib/broker-assistant/runtime";
 
 describe("broker assistant flags", () => {
   const originalAssistant = process.env.BROKER_ASSISTANT_EMAIL;
@@ -62,6 +66,32 @@ describe("gmail noise filter", () => {
         "broker@ansa.test",
       ),
     ).toBe(false);
+  });
+});
+
+describe("approval reply parsing", () => {
+  it("strips quoted history from broker replies", () => {
+    const body = [
+      "Approve",
+      "",
+      "On Wed, Jul 22, 2026 at 9:01 AM Broker <broker@ansa.test> wrote:",
+      "> Hi — it's Ansa. I got a client email...",
+      "> Reply APPROVE to send.",
+    ].join("\n");
+    expect(extractReplyText(body)).toBe("Approve");
+  });
+
+  it("recognizes approve, deny, and custom answers", () => {
+    expect(parseApprovalDecision("Approve")).toBe("approve");
+    expect(parseApprovalDecision("send it")).toBe("approve");
+    expect(parseApprovalDecision("yes!")).toBe("approve");
+    expect(parseApprovalDecision("Deny")).toBe("deny");
+    expect(parseApprovalDecision("don't send")).toBe("deny");
+    expect(parseApprovalDecision("Skip")).toBe("deny");
+    expect(
+      parseApprovalDecision("Tell them the HSA limit is $4,300 for 2026."),
+    ).toBe("answer");
+    expect(parseApprovalDecision("   ")).toBe("empty");
   });
 });
 

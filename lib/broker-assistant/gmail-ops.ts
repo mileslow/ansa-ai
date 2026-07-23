@@ -231,6 +231,62 @@ export async function createReplyDraft(
   return { draftId: draft.id || null };
 }
 
+/** Send a reply into an existing thread (auto-send path). */
+export async function sendReply(
+  conn: MailboxConnection,
+  message: GmailMessageSummary,
+  bodyText: string,
+) {
+  const token = await refreshAccessToken(conn);
+  const raw = [
+    `To: ${message.from}`,
+    `Subject: ${message.subject?.toLowerCase().startsWith("re:") ? message.subject : `Re: ${message.subject || ""}`}`,
+    `In-Reply-To: ${message.id}`,
+    `References: ${message.id}`,
+    "Content-Type: text/plain; charset=UTF-8",
+    "MIME-Version: 1.0",
+    "",
+    bodyText,
+  ].join("\r\n");
+
+  const sent = (await gmailApi("/users/me/messages/send", token, {
+    method: "POST",
+    json: {
+      threadId: message.threadId,
+      raw: encodeRawEmail(raw),
+    },
+  })) as { id?: string; threadId?: string };
+
+  return { messageId: sent.id || null, threadId: sent.threadId || message.threadId };
+}
+
+/** Send a brand-new email (used to escalate questions to the broker). */
+export async function sendNewEmail(
+  conn: MailboxConnection,
+  {
+    to,
+    subject,
+    bodyText,
+  }: { to: string; subject: string; bodyText: string },
+) {
+  const token = await refreshAccessToken(conn);
+  const raw = [
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    "Content-Type: text/plain; charset=UTF-8",
+    "MIME-Version: 1.0",
+    "",
+    bodyText,
+  ].join("\r\n");
+
+  const sent = (await gmailApi("/users/me/messages/send", token, {
+    method: "POST",
+    json: { raw: encodeRawEmail(raw) },
+  })) as { id?: string; threadId?: string };
+
+  return { messageId: sent.id || null, threadId: sent.threadId || null };
+}
+
 export function isNoiseEmail(message: GmailMessageSummary, inboxEmail?: string | null) {
   const from = message.from.toLowerCase();
   if (inboxEmail && from.includes(inboxEmail.toLowerCase())) return true;

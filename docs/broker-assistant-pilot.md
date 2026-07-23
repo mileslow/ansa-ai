@@ -24,6 +24,20 @@ Firebase: enable **Google** sign-in provider for the web app.
 
 Gmail Pub/Sub: create topic + push subscription → `POST /api/broker-assistant/gmail-push`.
 
+## How it behaves
+
+- **Confident answer** (company matched, confidence ≥ 0.7): Ansa **sends the reply
+  to the client automatically**. The broker does nothing.
+- **Not confident**: Ansa
+  1. auto-sends the client a short "confirming details, will follow up" ack,
+  2. emails the broker (`[Ansa needs your OK] …`) with the question it has, the
+     proposed reply, and instructions, and
+  3. waits. The broker replies in that thread with **Approve** (send proposed
+     reply), **Deny** (do nothing), or just types the answer (Ansa sends that to
+     the client instead).
+- Pending items also show under **Waiting on you** in Settings → Ansa Assistant,
+  with a deep link to the Gmail thread.
+
 ## Pilot steps
 
 1. Run app on this branch (not `main`).
@@ -33,13 +47,14 @@ Gmail Pub/Sub: create topic + push subscription → `POST /api/broker-assistant/
 5. **Turn on** assistant (registers `users.watch`).
 6. Ensure 1–2 companies exist in Ansa with plan details / library files.
 7. From another account, email the broker a client-style benefits question naming the employer.
-8. Confirm Ansa creates a **draft** reply (not sent).
-9. If company unknown / low confidence: draft is a researching ack + item under **Needs research**.
-10. **Pause** stops new drafts; reconnect/disable as needed.
+8. Confident case: confirm the reply is **auto-sent** in the client thread.
+9. Low-confidence case (unknown company / missing facts): confirm the client got
+   an ack, the broker got an `[Ansa needs your OK]` email, and reply **Approve**
+   / **Deny** / a custom answer to see each path resolve.
+10. **Pause** stops new processing; reconnect/disable as needed.
 
 ## Not in this pilot
 
-- Auto-send
 - Outlook
 - Desktop file pickup
 - Carrier website scraping

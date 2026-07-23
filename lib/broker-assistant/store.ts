@@ -40,6 +40,15 @@ export type AssistantAudit = {
   gmailMessageId: string;
   gmailThreadId: string;
   draftId?: string | null;
+  /** What the assistant did with this message. */
+  action?:
+    | "auto_sent"
+    | "escalated"
+    | "approval_approved"
+    | "approval_denied"
+    | "approval_answered"
+    | null;
+  sentMessageId?: string | null;
   confidence: number;
   needsResearch: boolean;
   sourceRefs: string[];
@@ -141,6 +150,107 @@ export async function updateResearchItem(
   };
   await ref.set(updated, { merge: true });
   return updated;
+}
+
+export type PendingApproval = {
+  id: string;
+  ownerId: string;
+  status: "pending" | "approved" | "denied" | "expired";
+  /** Client thread the answer belongs to. */
+  clientThreadId: string;
+  clientMessageId: string;
+  clientFrom: string;
+  clientSubject: string;
+  /** Reply Ansa proposes to send to the client once approved. */
+  proposedReply: string;
+  /** What Ansa needs from the broker. */
+  brokerQuestion: string;
+  companyId?: string | null;
+  companyName?: string | null;
+  /** Thread of the escalation email sent to the broker. */
+  approvalThreadId?: string | null;
+  approvalMessageId?: string | null;
+  resolutionNote?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const APPROVALS = "brokerAssistantApprovals";
+
+export async function createPendingApproval(
+  item: Omit<PendingApproval, "id" | "status" | "createdAt" | "updatedAt">,
+) {
+  const { db } = getAdminServices();
+  const now = new Date().toISOString();
+  const record: PendingApproval = {
+    ...item,
+    id: randomUUID(),
+    status: "pending",
+    createdAt: now,
+    updatedAt: now,
+  };
+  await db.collection(APPROVALS).doc(record.id).set(record);
+  return record;
+}
+
+export async function setApprovalThread(
+  id: string,
+  approvalThreadId: string | null,
+  approvalMessageId: string | null,
+) {
+  const { db } = getAdminServices();
+  await db.collection(APPROVALS).doc(id).set(
+    {
+      approvalThreadId,
+      approvalMessageId,
+      updatedAt: new Date().toISOString(),
+    },
+    { merge: true },
+  );
+}
+
+export async function findPendingApprovalByThread(
+  ownerId: string,
+  approvalThreadId: string,
+) {
+  const { db } = getAdminServices();
+  const snapshot = await db
+    .collection(APPROVALS)
+    .where("ownerId", "==", ownerId)
+    .where("approvalThreadId", "==", approvalThreadId)
+    .where("status", "==", "pending")
+    .limit(1)
+    .get();
+  return snapshot.empty ? null : (snapshot.docs[0].data() as PendingApproval);
+}
+
+export async function resolvePendingApproval(
+  id: string,
+  status: "approved" | "denied",
+  resolutionNote?: string | null,
+) {
+  const { db } = getAdminServices();
+  await db.collection(APPROVALS).doc(id).set(
+    {
+      status,
+      resolutionNote: resolutionNote || null,
+      updatedAt: new Date().toISOString(),
+    },
+    { merge: true },
+  );
+}
+
+export async function listPendingApprovals(ownerId: string, limit = 50) {
+  const { db } = getAdminServices();
+  const snapshot = await db
+    .collection(APPROVALS)
+    .where("ownerId", "==", ownerId)
+    .where("status", "==", "pending")
+    .limit(limit)
+    .get();
+  return snapshot.docs
+    .map((doc) => doc.data() as PendingApproval)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function writeAssistantAudit(

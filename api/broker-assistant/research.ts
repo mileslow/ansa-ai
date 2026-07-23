@@ -3,6 +3,7 @@ import { BookletAuthError, requireBookletUser } from "../../lib/booklet-auth";
 import {
   assertBrokerAssistantEnabled,
   listAssistantAudit,
+  listPendingApprovals,
   listResearchItems,
   updateResearchItem,
 } from "../../lib/broker-assistant";
@@ -16,11 +17,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === "GET") {
       const status = String(req.query.status || "open") as "open" | "done" | "all";
-      const [research, audit] = await Promise.all([
+      const [research, audit, approvals] = await Promise.all([
         listResearchItems(user.uid, status),
         listAssistantAudit(user.uid),
+        listPendingApprovals(user.uid),
       ]);
-      return res.status(200).json({ research, audit });
+      return res.status(200).json({ research, audit, approvals });
     }
 
     if (req.method === "POST") {
