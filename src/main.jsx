@@ -46,6 +46,7 @@ import {
 import { db, storage } from "./firebase";
 import AddCompany from "./AddCompany";
 import BookletStudio from "./BookletStudio";
+import EmailAgentSettings from "./EmailAgentSettings";
 import "./styles.css";
 import "./inline.css";
 import "./add-company.css";
@@ -134,6 +135,8 @@ function App() {
       ]);
       go(`/companies/${companyToAdd.id}`, setRoute);
     };
+  if (route[0] === "email-agent")
+    return <EmailAgentSettings onBack={() => go("/", setRoute)} />;
   return (
     <BookletStudio
       key={company?.id || "company-picker"}
@@ -143,6 +146,7 @@ function App() {
       onOpenCompanies={() => go("/", setRoute)}
       onUpdateCompany={update}
       onCreateCompany={add}
+      onOpenEmailAgent={() => go("/email-agent", setRoute)}
     />
   );
 }

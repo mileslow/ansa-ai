@@ -9,5 +9,19 @@ service cloud.firestore {
       allow read, write: if true;
       match /{document=**} { allow read, write: if true; }
     }
+    // Email-agent authorization, OAuth, event, approval, and audit records are
+    // server-only. Firebase Admin bypasses rules; browser clients receive no
+    // direct access and must use the authenticated API.
+    match /emailConnections/{document=**} { allow read, write: if false; }
+    match /emailOAuthStates/{document=**} { allow read, write: if false; }
+    match /nylasGrantOwners/{document=**} { allow read, write: if false; }
+    match /emailEvents/{document=**} { allow read, write: if false; }
+    match /emailMessageClaims/{document=**} { allow read, write: if false; }
+    match /emailAgentAudit/{document=**} { allow read, write: if false; }
+    match /emailMemoryToolRuns/{document=**} { allow read, write: if false; }
+    match /emailAgentRateLimits/{document=**} { allow read, write: if false; }
+    match /mcpConnections/{document=**} { allow read, write: if false; }
+    match /emailAgentApprovals/{document=**} { allow read, write: if false; }
+    match /mcpToolRuns/{document=**} { allow read, write: if false; }
   }
 }

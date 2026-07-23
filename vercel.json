@@ -3,6 +3,10 @@
     {
       "source": "/companies/:path*",
       "destination": "/index.html"
+    },
+    {
+      "source": "/email-agent",
+      "destination": "/index.html"
     }
   ]
 }

@@ -5,6 +5,10 @@ import parsePlan from "../api/parse-plan";
 import bookletPipeline from "../api/booklet-pipeline";
 import agentmailWebhook from "../api/agentmail-webhook";
 import agentmailWorker from "../api/agentmail-worker";
+import emailAgent from "../api/email-agent";
+import nylasOauthCallback from "../api/nylas-oauth-callback";
+import nylasWebhook from "../api/nylas-webhook";
+import nylasWorker from "../api/nylas-worker";
 
 type CompatibleRequest = IncomingMessage & {
   body?: unknown;
@@ -29,11 +33,20 @@ const routes = new Map<string, ApiHandler>([
   ["/api/booklet-pipeline", bookletPipeline as ApiHandler],
   ["/api/agentmail-webhook", agentmailWebhook as ApiHandler],
   ["/api/agentmail-worker", agentmailWorker as ApiHandler],
+  ["/api/email-agent", emailAgent as ApiHandler],
+  ["/api/email-connections/google/callback", nylasOauthCallback as ApiHandler],
+  ["/api/nylas/webhook", nylasWebhook as ApiHandler],
+  ["/api/nylas/worker", nylasWorker as ApiHandler],
 ]);
 
 const port = Number(process.env.PORT || 8080);
 const maxBodyBytes = Number(process.env.MAX_JSON_BODY_BYTES || 30 * 1024 * 1024);
-const localOrigins = ["http://127.0.0.1:5173", "http://localhost:5173"];
+const localOrigins = [
+  "http://127.0.0.1:5173",
+  "http://localhost:5173",
+  "http://127.0.0.1:5175",
+  "http://localhost:5175",
+];
 const configuredOrigins = String(process.env.CORS_ALLOWED_ORIGINS || "")
   .split(",")
   .map((origin) => origin.trim())
@@ -68,10 +81,10 @@ function applyCors(request: IncomingMessage, response: ServerResponse) {
   if (!origin) return true;
   if (!originIsAllowed(origin)) return false;
   response.setHeader("Access-Control-Allow-Origin", origin);
-  response.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  response.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
   response.setHeader(
     "Access-Control-Allow-Headers",
-    "Authorization,Content-Type,X-Requested-With",
+    "Authorization,Content-Type,X-Requested-With,X-Email-Agent-Worker-Secret,X-Nylas-Signature",
   );
   response.setHeader("Access-Control-Max-Age", "86400");
   response.setHeader("Access-Control-Expose-Headers", "Content-Length,Content-Type");
@@ -120,6 +133,8 @@ async function readBody(request: IncomingMessage) {
   }
   const rawBody = Buffer.concat(chunks);
   if (!chunks.length) return { rawBody, body: {} };
+  if (String(request.headers["content-encoding"] || "").toLowerCase() === "gzip")
+    return { rawBody, body: undefined };
   try {
     return { rawBody, body: JSON.parse(rawBody.toString("utf8")) };
   } catch {

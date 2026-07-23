@@ -18,6 +18,7 @@ import {
   Files,
   Gauge,
   LoaderCircle,
+  Mail,
   PanelLeft,
   Plus,
   ScanLine,
@@ -168,6 +169,7 @@ export default function BookletStudio({
   onOpenCompanies,
   onUpdateCompany,
   onCreateCompany,
+  onOpenEmailAgent,
 }) {
   const [activePhase, setActivePhase] = useState(() => {
     if (typeof window === "undefined") return "employer";
@@ -454,6 +456,7 @@ export default function BookletStudio({
         colorPickerEnabled={colorPickerEnabled}
         accentColor={accentColor}
         onAccentColorChange={setAccentColor}
+        onOpenEmailAgent={onOpenEmailAgent}
       />
       <button className="bs-sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Close company sidebar" />
 
@@ -579,7 +582,7 @@ export default function BookletStudio({
   );
 }
 
-function CompanySidebar({ companies, selectedCompanyId, onSelect, onCreate, onHome, colorPickerEnabled, accentColor, onAccentColorChange }) {
+function CompanySidebar({ companies, selectedCompanyId, onSelect, onCreate, onHome, colorPickerEnabled, accentColor, onAccentColorChange, onOpenEmailAgent }) {
   const [query, setQuery] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const normalizedQuery = query.trim().toLowerCase();
@@ -614,6 +617,9 @@ function CompanySidebar({ companies, selectedCompanyId, onSelect, onCreate, onHo
         {!filteredCompanies.length && <p>No companies found</p>}
       </nav>
       <div className="bs-company-sidebar__foot">
+        <button onClick={onOpenEmailAgent}>
+          <Mail /><span><b>Email agent</b><small>Gmail and sender access</small></span>
+        </button>
         <button className={settingsOpen ? "active" : ""} onClick={() => colorPickerEnabled && setSettingsOpen((open) => !open)} aria-expanded={colorPickerEnabled ? settingsOpen : undefined}>
           <Settings /><span><b>Settings</b><small>Workspace and appearance</small></span>
         </button>

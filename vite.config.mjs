@@ -46,8 +46,22 @@ function configureLocalBackendEnv(mode) {
     "FIREBASE_PROJECT_ID",
     "FIREBASE_STORAGE_BUCKET",
     "FIREBASE_SERVICE_ACCOUNT_JSON",
+    "GOOGLE_APPLICATION_CREDENTIALS",
     "VITE_FIREBASE_PROJECT_ID",
     "VITE_FIREBASE_STORAGE_BUCKET",
+    "NYLAS_API_KEY",
+    "NYLAS_API_URI",
+    "NYLAS_CLIENT_ID",
+    "NYLAS_WEBHOOK_SECRET",
+    "NYLAS_OAUTH_CALLBACK_URL",
+    "OPENAI_EMAIL_MODEL",
+    "EMAIL_AGENT_UI_BASE_URL",
+    "EMAIL_AGENT_TASK_QUEUE",
+    "EMAIL_AGENT_TASK_LOCATION",
+    "EMAIL_AGENT_WORKER_URL",
+    "EMAIL_AGENT_WORKER_SECRET",
+    "EMAIL_AGENT_MCP_REGISTRY_JSON",
+    "MCP_CREDENTIAL_ENCRYPTION_KEY",
   ]) {
     if (!process.env[key] && env[key]) process.env[key] = env[key];
   }
@@ -84,6 +98,53 @@ export default defineConfig(({ mode, command }) => {
     }),
     tailwindcss(),
     react(),
+    {
+      name: "local-email-agent-api",
+      configureServer(server) {
+        const endpoints = new Map([
+          ["/api/email-agent", "/api/email-agent.ts"],
+          ["/api/email-connections/google/callback", "/api/nylas-oauth-callback.ts"],
+          ["/api/nylas/webhook", "/api/nylas-webhook.ts"],
+          ["/api/nylas/worker", "/api/nylas-worker.ts"],
+        ]);
+        for (const [route, modulePath] of endpoints) {
+          server.middlewares.use(route, (req, res) => {
+            const chunks = [];
+            req.on("data", (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+            req.on("end", async () => {
+              try {
+                const rawBody = Buffer.concat(chunks);
+                const url = new URL(req.url || "/", "http://local-email-agent");
+                req.query = Object.fromEntries(url.searchParams.entries());
+                req.rawBody = rawBody;
+                req.body = rawBody.length && req.headers["content-encoding"] !== "gzip"
+                  ? JSON.parse(rawBody.toString("utf8"))
+                  : {};
+                if (modulePath === "/api/email-agent.ts")
+                  req.bookletDevUserId = "local-booklet-studio";
+                res.status = (code) => {
+                  res.statusCode = code;
+                  return res;
+                };
+                res.json = (payload) => {
+                  if (!res.headersSent)
+                    res.setHeader("Content-Type", "application/json; charset=utf-8");
+                  res.end(JSON.stringify(payload));
+                  return res;
+                };
+                const module = await server.ssrLoadModule(modulePath);
+                await module.default(req, res);
+              } catch (error) {
+                if (res.writableEnded) return;
+                res.statusCode = 500;
+                res.setHeader("Content-Type", "application/json");
+                res.end(JSON.stringify({ error: error.message || "Local email-agent API failed" }));
+              }
+            });
+          });
+        }
+      },
+    },
     {
       name: "local-booklet-pipeline-api",
       configureServer(server) {
