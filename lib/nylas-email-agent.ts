@@ -32,6 +32,10 @@ import {
 } from "./email-agent-memory";
 import { plainTextEmailReply } from "./email-agent-reply-style";
 import {
+  configuredEmailReplyTransport,
+  EmailReplyTransportError,
+} from "./email-agent-reply-transport";
+import {
   acquireEmailEvent,
   claimInboundEmailMessage,
   claimEmailAgentApproval,
@@ -54,6 +58,7 @@ import {
 import type {
   EffectiveMcpServer,
   EmailConnection,
+  EmailReplyTransport,
   MailboxMessage,
   MailboxProvider,
   NylasWebhookEvent,
@@ -403,7 +408,10 @@ function eventGrantId(event: NylasWebhookEvent) {
 
 export async function processNylasEvent(
   event: NylasWebhookEvent,
-  dependencies: { provider?: MailboxProvider } = {},
+  dependencies: {
+    provider?: MailboxProvider;
+    replyTransport?: EmailReplyTransport;
+  } = {},
 ) {
   const maximumAttempts = Number(process.env.EMAIL_AGENT_MAX_ATTEMPTS || 5);
   const lease = await acquireEmailEvent(event.id, maximumAttempts);
@@ -597,12 +605,14 @@ export async function processNylasEvent(
       });
       return { status: "ignored" as const, reason: "authorization_revoked_before_send" };
     }
-    const sent = await provider.reply({
-      grantId: connection.nylasGrantId,
-      messageId: message.id,
+    const replyTransport = dependencies.replyTransport ||
+      configuredEmailReplyTransport(provider);
+    const sent = await replyTransport.send({
+      connection,
+      message,
       recipient: message.from[0],
       body: generated.body,
-      idempotencyKey: stableEmailAgentId(`nylas-reply:${event.id}`, 64),
+      idempotencyKey: stableEmailAgentId(`email-agent-reply:${event.id}`, 64),
     });
     await updateInboundEmailMessageClaim(messageClaim.ref, "complete", sent.id);
     await finishEmailEvent(lease.ref, { status: "complete", outcome: "reply_sent" });
@@ -618,6 +628,8 @@ export async function processNylasEvent(
         webSearchUsed: generated.webSearchUsed,
         webSearchSources: generated.webSearchSources,
         memoryToolCalls: generated.memoryToolCalls,
+        replyTransport: sent.transport,
+        replyFromAddress: sent.fromAddress,
       });
     } catch (auditError) {
       console.error("email agent sent-reply audit failed", {
@@ -630,7 +642,11 @@ export async function processNylasEvent(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Email processing failed";
     const statusCode = Number((error as { statusCode?: number }).statusCode || 0);
-    if (connection && [401, 403].includes(statusCode))
+    if (
+      connection &&
+      [401, 403].includes(statusCode) &&
+      !(error instanceof EmailReplyTransportError && error.transport === "agentmail")
+    )
       await updateEmailConnection(connection.id, {
         status: "reauth_required",
         lastErrorCode: "nylas_authorization_failed",
@@ -710,6 +726,7 @@ export async function resolveEmailAgentApproval(input: {
   ownerId: string;
   approve: boolean;
   provider?: MailboxProvider;
+  replyTransport?: EmailReplyTransport;
 }) {
   const approval = await claimEmailAgentApproval(input.approvalId, input.ownerId);
   const provider = input.provider || new NylasMailboxProvider();
@@ -822,12 +839,17 @@ export async function resolveEmailAgentApproval(input: {
     ]);
     if (latestConnection?.status !== "connected" || !latestAllowed?.enabled)
       throw new Error("Authorization was revoked before the reply could be sent");
-    const sent = await provider.reply({
-      grantId: connection.nylasGrantId,
-      messageId: message.id,
+    const replyTransport = input.replyTransport ||
+      configuredEmailReplyTransport(provider);
+    const sent = await replyTransport.send({
+      connection,
+      message,
       recipient: message.from[0],
       body,
-      idempotencyKey: stableEmailAgentId(`nylas-reply:${approval.eventId}`, 64),
+      idempotencyKey: stableEmailAgentId(
+        `email-agent-reply:${approval.eventId}`,
+        64,
+      ),
     });
     const messageClaimRef = getAdminServices().db
       .collection("emailMessageClaims")
@@ -851,6 +873,8 @@ export async function resolveEmailAgentApproval(input: {
         webSearchSources: [...new Set(webSearchMetadata.flatMap((item) =>
           item.sources.map((source) => source.url)))],
         memoryToolCalls: [...new Set(modelRun.memoryToolCalls)],
+        replyTransport: sent.transport,
+        replyFromAddress: sent.fromAddress,
       });
     } catch (auditError) {
       console.error("email agent approved-reply audit failed", {

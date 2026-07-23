@@ -461,6 +461,8 @@ export async function writeEmailAgentAudit(input: {
   webSearchUsed?: boolean;
   webSearchSources?: string[];
   memoryToolCalls?: string[];
+  replyTransport?: "nylas" | "agentmail";
+  replyFromAddress?: string;
 }) {
   let senderEmail = "";
   if (input.senderEmail) {

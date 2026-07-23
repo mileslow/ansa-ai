@@ -61,7 +61,21 @@ export type MailboxThread = {
 export type SentMessage = {
   id: string;
   threadId?: string;
+  transport?: "nylas" | "agentmail";
+  fromAddress?: string;
 };
+
+export type EmailReplyInput = {
+  connection: EmailConnection;
+  message: MailboxMessage;
+  recipient: MailboxAddress;
+  body: string;
+  idempotencyKey: string;
+};
+
+export interface EmailReplyTransport {
+  send(input: EmailReplyInput): Promise<SentMessage>;
+}
 
 export type EmailSenderMemory = {
   id: string;

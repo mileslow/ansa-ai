@@ -22,6 +22,20 @@ configured.
 The webhook verifies HMAC-SHA256 over the exact raw request bytes. Do not enable
 an intermediary that rewrites webhook JSON. Gzip delivery is supported.
 
+## AgentMail reply transport
+
+Set `EMAIL_AGENT_REPLY_TRANSPORT=agentmail` and
+`EMAIL_AGENT_AGENTMAIL_INBOX_ID` to the AgentMail inbox that should appear in
+the visible `From` header. Inject its organization API key as
+`AGENTMAIL_API_KEY`.
+
+Nylas still receives and authorizes messages delivered to the connected Gmail
+mailbox. AgentMail sends the generated response to the exact authorized sender.
+The outbound message uses the Gmail mailbox as `Reply-To`, so subsequent replies
+continue through the same Gmail/Nylas authorization path. When the inbound
+message exposes a valid RFC `Message-ID`, the transport also sends sanitized
+`In-Reply-To` and `References` headers to preserve the sender-side thread.
+
 ## Web search
 
 The email agent exposes OpenAI's built-in `web_search` tool by default. It uses
